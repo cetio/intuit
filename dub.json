@@ -1,0 +1,12 @@
+{
+	"authors": [
+		"cet"
+	],
+	"copyright": "Copyright © 2026, cet",
+	"dependencies": {
+		"intel-intrinsics": "~>1.13.0"
+	},
+	"description": ".",
+	"license": "AGPL-3.0-only",
+	"name": "intuit"
+}

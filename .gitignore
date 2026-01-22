@@ -1,0 +1,16 @@
+.dub
+docs.json
+__dummy.html
+docs/
+/intuit
+intuit.so
+intuit.dylib
+intuit.dll
+intuit.a
+intuit.lib
+intuit-test-*
+*.exe
+*.pdb
+*.o
+*.obj
+*.lst
