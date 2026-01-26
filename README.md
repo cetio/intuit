@@ -119,7 +119,7 @@ float[] mean = normMean(embeddings);
 - [ ] Audio
 - [x] OpenAI (Qwen, Deepseek, Phi, incl.)
 - [ ] Gemini
-- [ ] Claude
+- [X] Claude
 
 
 ## License

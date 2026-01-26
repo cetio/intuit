@@ -62,7 +62,7 @@ JSONValue toJSON(T)(T val)
         static foreach (F; FieldNameTuple!T)
             ret[F] = __traits(getMember, val, F).toJSON();
     }
-    // TODO: Support for advanced iterators using traits.
+    // TODO: Should handle associative arrays.
     else static if (isArray!T)
     {
         ret = JSONValue.emptyArray;

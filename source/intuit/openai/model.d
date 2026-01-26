@@ -63,9 +63,7 @@ class Model
         static if (is(T == JSONValue))
         {
             if (data.type == JSONType.array)
-            {
                 ret["messages"] = data;
-            }
             else
             {
                 // Fallback: treat as single message
