@@ -1,9 +1,6 @@
 # Intuit
 
-A high-performance D library for interacting with OpenAI-compatible language model endpoints. Intuit provides native D structures and SIMD-optimized vector operations for chat completions and embeddings, with a focus on performance and linear, imperative metaprogramming.
-
-
-Intuit is not yet on DUB, but will be soon!
+Intuit is a D library for interacting with language/embedding model endpoints. Intuit provides native D structures and SIMD-optimized vector operations, with a focus on a native feel.
 
 ## Features
 
@@ -13,7 +10,11 @@ Intuit is not yet on DUB, but will be soon!
 - **Model Management** - Automatic model discovery and configuration.
 - **Type-Safe Metaprogramming** - Leverages D's compile-time features for efficient JSON serialization and type handling.
 
+Currently supports both OpenAI (`intuit.openai`) and Claude (`intuit.claude`) endpoints and model configuration.
+
 ## Usage
+
+`dub add intuit`
 
 ### Endpoints
 
