@@ -1,5 +1,6 @@
 module intuit.openai.model;
 
+import intuit.context;
 import intuit.response;
 import intuit.utils;
 import std.variant;
@@ -59,23 +60,10 @@ class Model
         if (seed > 0) ret["seed"] = JSONValue(seed);
 
         // Payload
-        // If data is already a JSONValue array (messages), use it directly
-        static if (is(T == JSONValue))
-        {
-            if (data.type == JSONType.array)
-                ret["messages"] = data;
-            else
-            {
-                // Fallback: treat as single message
-                ret["messages"] = JSONValue.emptyArray;
-                ret["messages"].array ~= JSONValue.emptyObject;
-                ret["messages"][0]["role"] = JSONValue("user");
-                ret["messages"][0]["content"] = data;
-            }
-        }
+        static if (is(T == Context))
+            ret["messages"] = data.messages;
         else
         {
-            // Original behavior: single user message
             ret["messages"] = JSONValue.emptyArray;
             ret["messages"].array ~= JSONValue.emptyObject;
             ret["messages"][0]["role"] = JSONValue("user");

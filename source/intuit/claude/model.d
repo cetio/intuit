@@ -1,5 +1,6 @@
 module intuit.claude.model;
 
+import intuit.context;
 import intuit.response;
 import intuit.utils;
 import std.variant;
@@ -44,15 +45,10 @@ class Model
         if (stream) ret["stream"] = JSONValue(stream);
 
         JSONValue messages = JSONValue.emptyArray;
-        static if (is(T == JSONValue))
+        static if (is(T == Context))
         {
-            if (data.type == JSONType.array)
-            {
-                foreach (m; data.array)
-                    messages.array ~= toClaudeMessage(m);
-            }
-            else
-                messages.array ~= userMessage(data);
+            foreach (m; data.messages.array)
+                messages.array ~= toClaudeMessage(m);
         }
         else
             messages.array ~= userMessage(data.toJSON());
