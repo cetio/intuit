@@ -1,103 +1,157 @@
 module intuit.openai.model;
 
-import intuit.context;
+import intuit.model;
 import intuit.response;
 import intuit.utils;
-import std.variant;
-import std.conv;
-import std.traits : isIntegral;
+import std.conv : to;
+import std.json : JSONValue, JSONType;
 
-class Model
+class OpenAIModel : IModel
 {
-    string name;
+    string _name;
     string owner;
-    //Tool[] _tools;
 
-    double temperature = double.nan;
-    double topP = double.nan;
-    long maxTokens = -1;
-    string[] stop;
-    double presencePenalty = double.nan;
-    double frequencyPenalty = double.nan;
-    long n = 1;
-    bool stream = false;
-    long[long] logitBias;
-    long seed = 0;
-    string encodingFormat = "float";
-    long dimensions = 0;
+    double _temperature = double.nan;
+    double _topP = double.nan;
+    long _maxTokens = -1;
+    string[] _stop;
+    double _presencePenalty = double.nan;
+    double _frequencyPenalty = double.nan;
+    long _n = 1;
+    bool _stream = false;
+    long[long] _logitBias;
+    long _seed = 0;
+    string _encodingFormat = "float";
+    long _dimensions = 0;
 
-    this(string name, string owner)
+    this(string name, string owner = null)
     {
-        this.name = name;
+        this._name = name;
         this.owner = owner;
     }
 
-    JSONValue completionsJSON(T)(T data)
+    override string name() => _name;
+
+    override string toString() const
+        => "OpenAIModel("~_name~", "~owner~")";
+
+    // Per-setting lambda accessors (chainable). Each has a plain-value overload.
+
+    OpenAIModel temperature(double delegate(OpenAIModel) fn)
+    { _temperature = fn(this); return this; }
+    OpenAIModel temperature(double v)
+    { _temperature = v; return this; }
+
+    OpenAIModel topP(double delegate(OpenAIModel) fn)
+    { _topP = fn(this); return this; }
+    OpenAIModel topP(double v)
+    { _topP = v; return this; }
+
+    OpenAIModel maxTokens(long delegate(OpenAIModel) fn)
+    { _maxTokens = fn(this); return this; }
+    OpenAIModel maxTokens(long v)
+    { _maxTokens = v; return this; }
+
+    OpenAIModel stop(string[] delegate(OpenAIModel) fn)
+    { _stop = fn(this); return this; }
+    OpenAIModel stop(string[] v)
+    { _stop = v; return this; }
+
+    OpenAIModel presencePenalty(double delegate(OpenAIModel) fn)
+    { _presencePenalty = fn(this); return this; }
+    OpenAIModel presencePenalty(double v)
+    { _presencePenalty = v; return this; }
+
+    OpenAIModel frequencyPenalty(double delegate(OpenAIModel) fn)
+    { _frequencyPenalty = fn(this); return this; }
+    OpenAIModel frequencyPenalty(double v)
+    { _frequencyPenalty = v; return this; }
+
+    OpenAIModel n(long delegate(OpenAIModel) fn)
+    { _n = fn(this); return this; }
+    OpenAIModel n(long v)
+    { _n = v; return this; }
+
+    OpenAIModel stream(bool delegate(OpenAIModel) fn)
+    { _stream = fn(this); return this; }
+    OpenAIModel stream(bool v)
+    { _stream = v; return this; }
+
+    OpenAIModel logitBias(long[long] delegate(OpenAIModel) fn)
+    { _logitBias = fn(this); return this; }
+    OpenAIModel logitBias(long[long] v)
+    { _logitBias = v; return this; }
+
+    OpenAIModel seed(long delegate(OpenAIModel) fn)
+    { _seed = fn(this); return this; }
+    OpenAIModel seed(long v)
+    { _seed = v; return this; }
+
+    OpenAIModel encodingFormat(string delegate(OpenAIModel) fn)
+    { _encodingFormat = fn(this); return this; }
+    OpenAIModel encodingFormat(string v)
+    { _encodingFormat = v; return this; }
+
+    OpenAIModel dimensions(long delegate(OpenAIModel) fn)
+    { _dimensions = fn(this); return this; }
+    OpenAIModel dimensions(long v)
+    { _dimensions = v; return this; }
+
+    override JSONValue completionsJSON(JSONValue input)
     {
         JSONValue ret = JSONValue.emptyObject;
-        ret["model"] = JSONValue(name);
-        ret["max_tokens"] = JSONValue(maxTokens);
+        ret["model"] = JSONValue(_name);
+        ret["max_tokens"] = JSONValue(_maxTokens);
 
-        // Options
-        if (temperature !is double.nan) ret["temperature"] = JSONValue(temperature);
-        if (topP !is double.nan) ret["top_p"] = JSONValue(topP);
-        if (stop.length > 0)
+        if (_temperature !is double.nan) ret["temperature"] = JSONValue(_temperature);
+        if (_topP !is double.nan) ret["top_p"] = JSONValue(_topP);
+        if (_stop.length > 0)
         {
             JSONValue arr = JSONValue.emptyArray;
-            foreach (s; stop) arr.array ~= JSONValue(s);
+            foreach (s; _stop) arr.array ~= JSONValue(s);
             ret["stop"] = arr;
         }
-        if (presencePenalty !is double.nan) ret["presence_penalty"] = JSONValue(presencePenalty);
-        if (frequencyPenalty !is double.nan) ret["frequency_penalty"] = JSONValue(frequencyPenalty);
-        if (n > 1) ret["n"] = JSONValue(n);
-        if (stream) ret["stream"] = JSONValue(stream);
-        if (logitBias.length > 0)
+        if (_presencePenalty !is double.nan) ret["presence_penalty"] = JSONValue(_presencePenalty);
+        if (_frequencyPenalty !is double.nan) ret["frequency_penalty"] = JSONValue(_frequencyPenalty);
+        if (_n > 1) ret["n"] = JSONValue(_n);
+        if (_stream) ret["stream"] = JSONValue(_stream);
+        if (_logitBias.length > 0)
         {
             JSONValue bias = JSONValue.emptyObject;
-            foreach (k, v; logitBias) bias[k.to!string] = JSONValue(v);
+            foreach (k, v; _logitBias) bias[k.to!string] = JSONValue(v);
             ret["logit_bias"] = bias;
         }
-        if (seed > 0) ret["seed"] = JSONValue(seed);
+        if (_seed > 0) ret["seed"] = JSONValue(_seed);
 
-        // Payload
-        static if (is(T == Context))
-            ret["messages"] = data.messages;
+        if (input.type == JSONType.array)
+        {
+            ret["messages"] = input;
+        }
         else
         {
             ret["messages"] = JSONValue.emptyArray;
-            ret["messages"].array ~= JSONValue.emptyObject;
-            ret["messages"][0]["role"] = JSONValue("user");
-            ret["messages"][0]["content"] = data.toJSON();
+            JSONValue msg = JSONValue.emptyObject;
+            msg["role"] = JSONValue("user");
+            msg["content"] = input;
+            ret["messages"].array ~= msg;
         }
         return ret;
     }
 
-    JSONValue embeddingsJSON(T)(T data)
+    override JSONValue embeddingsJSON(JSONValue input)
     {
         JSONValue ret = JSONValue.emptyObject;
-        ret["model"] = JSONValue(name);
-
-        // Options
-        if (encodingFormat != "float") ret["encoding_format"] = JSONValue(encodingFormat);
-        if (dimensions > 0) ret["dimensions"] = JSONValue(dimensions);
-
-        // Payload
-        ret["input"] = data.toJSON();
+        ret["model"] = JSONValue(_name);
+        if (_encodingFormat != "float") ret["encoding_format"] = JSONValue(_encodingFormat);
+        if (_dimensions > 0) ret["dimensions"] = JSONValue(_dimensions);
+        ret["input"] = input;
         return ret;
     }
 
-    Completion parseCompletions(JSONValue json)
+    override Completion parseCompletions(JSONValue json)
     {
         Completion ret;
-        if ("error" in json)
-        {
-            if (json["error"].type == JSONType.string)
-                throw new Exception(json["error"].str);
-            else if (json["error"].type == JSONType.object && "message" in json["error"])
-                throw new Exception(json["error"]["message"].str);
-            else
-                throw new Exception("Critical error parsing error JSON "~json.toPrettyString());
-        }
+        checkError(json);
 
         if ("choices" in json)
         {
@@ -106,16 +160,17 @@ class Model
                 Choice choice;
                 JSONValue msg = ("message" in c) ? c["message"] : c["delta"];
 
-                string content = ("content" in msg && !msg["content"].isNull) 
-                    ? msg["content"].str 
+                string content = ("content" in msg && !msg["content"].isNull)
+                    ? msg["content"].str
                     : cast(string)null;
+                import std.variant : Variant;
                 choice.data = Variant(content);
-                
+
                 bool hasFinishReason = ("finish_reason" in c && !c["finish_reason"].isNull);
                 choice.finishReason = hasFinishReason
                     ? cast(FinishReason)c["finish_reason"].str
                     : FinishReason.Unknown;
-                
+
                 bool hasLogProbs = ("log_probs" in c && !c["log_probs"].isNull);
                 choice.logProbs = hasLogProbs
                     ? cast(float)c["log_probs"].floating
@@ -126,74 +181,33 @@ class Model
         return ret;
     }
 
-    Embedding!T parseEmbeddings(T)(JSONValue json)
+    override JSONValue parseEmbeddings(JSONValue json)
     {
-        Embedding!T ret;
-        if ("error" in json)
-        {
-            if (json["error"].type == JSONType.string)
-                throw new Exception(json["error"].str);
-            else if (json["error"].type == JSONType.object && "message" in json["error"])
-                throw new Exception(json["error"]["message"].str);
-            else
-                throw new Exception("Critical error parsing error JSON "~json.toPrettyString());
-        }
+        checkError(json);
 
-        if ("data" in json && json["data"].array.length > 0)
+        JSONValue ret = JSONValue.emptyArray;
+        if ("data" in json && json["data"].type == JSONType.array)
         {
-            JSONValue data = json["data"].array[0];
-            if ("embedding" in data)
+            foreach (item; json["data"].array)
             {
-                ret.value = new T[](data["embedding"].array.length);
-                foreach (i, v; data["embedding"].array)
-                {
-                    static if (isIntegral!T)
-                        ret.value[i] = cast(T)v.integer;
-                    else
-                        ret.value[i] = cast(T)v.floating;
-                }
+                if ("embedding" in item)
+                    ret.array ~= item["embedding"];
             }
         }
         return ret;
     }
 
-    Embedding!T[] parseEmbeddingsBatch(T)(JSONValue json)
+private:
+    static void checkError(JSONValue json)
     {
-        Embedding!T[] ret;
-        if ("error" in json)
-        {
-            if (json["error"].type == JSONType.string)
-                throw new Exception(json["error"].str);
-            else if (json["error"].type == JSONType.object && "message" in json["error"])
-                throw new Exception(json["error"]["message"].str);
-            else
-                throw new Exception("Critical error parsing error JSON "~json.toPrettyString());
-        }
+        if ("error" !in json)
+            return;
 
-        if ("data" in json && json["data"].array.length > 0)
-        {
-            foreach (data; json["data"].array)
-            {
-                Embedding!T emb;
-                if ("embedding" in data)
-                {
-                    emb.value = new T[](data["embedding"].array.length);
-                    foreach (i, v; data["embedding"].array)
-                    {
-                        static if (isIntegral!T)
-                            emb.value[i] = cast(T)v.integer;
-                        else
-                            emb.value[i] = cast(T)v.floating;
-                    }
-                }
-                ret ~= emb;
-            }
-        }
-        return ret;
-    }
-
-    override string toString() const
-    {
-        return "Model("~name~", "~owner~")";
+        if (json["error"].type == JSONType.string)
+            throw new Exception(json["error"].str);
+        else if (json["error"].type == JSONType.object && "message" in json["error"])
+            throw new Exception(json["error"]["message"].str);
+        else
+            throw new Exception("Critical error parsing error JSON "~json.toPrettyString());
     }
 }

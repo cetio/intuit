@@ -1,104 +1,92 @@
 module intuit.openai.endpoint;
 
+import intuit.endpoint;
+import intuit.model;
 import intuit.openai.model;
-import intuit.response;
 import intuit.utils;
-import std.net.curl;
+import std.net.curl : HTTP;
 import std.string : assumeUTF;
-import std.traits : isStaticArray, isDynamicArray;
-import std.algorithm : map;
-import std.array : array;
 
-class OpenAI
+class OpenAI : IEndpoint
 {
-    string url;
+    private string _name;
+    private string _url;
+    private string _key;
     HTTP http;
-    Model[string] models;
 
-    this(string url, string key = null)
+    this(string name, string url, string key = null)
     {
-        this.url = url;
-        http = HTTP();
-        if (key != null)
-            http.addRequestHeader("Authorization", "Bearer "~key);
+        this._name = name;
+        this._url = url;
+        this._key = key;
+        rebuildHTTP();
     }
 
-    Model fetch(string name)
+    override string name() => _name;
+    override void name(string value) { _name = value; }
+    override string url() => _url;
+    override void url(string value) { _url = value; }
+    override void key(string value)
     {
-        if (name in models)
-            return models[name];
-        else
-        {
-            if (models.values.length < available.length && name in models)
-                return models[name];
-        }
-
-        throw new Exception("Model '"~name~"' not available.");
+        _key = value;
+        rebuildHTTP();
     }
 
-    Model[] available()
+    override IModel[] available()
     {
+        IModel[] models;
         http.get(
-            url~"v1/models",
+            _url~"v1/models",
             (ubyte[] data) {
-                string str = data.assumeUTF();
-                JSONValue json = str.parseJSON();
+                JSONValue json = data.assumeUTF().parseJSON();
                 if ("data" in json)
                 {
                     foreach (m; json["data"].array)
                     {
                         string name = "id" in m ? m["id"].str : null;
                         string owner = "owned_by" in m ? m["owned_by"].str : null;
-
-                        if (name !in models)
-                            models[name] = new Model(name, owner);
+                        models ~= new OpenAIModel(name, owner);
                     }
                 }
             },
             (ubyte[] data) => throw new Exception("Unable to retrieve available models!")
         );
-        return models.values;
+        return models;
     }
 
-    Completion completions(T)(string name, T data)
+    override JSONValue _completions(IModel model, JSONValue payload)
     {
-        Model model = fetch(name);
-        JSONValue json = model.completionsJSON(data);
-        Completion ret;
-
+        JSONValue ret;
         http.post(
-            url~"v1/chat/completions",
+            _url~"v1/chat/completions",
             (ubyte[] data) {
-                string str = data.assumeUTF();
-                ret = model.parseCompletions(str.parseJSON());
+                ret = data.assumeUTF().parseJSON();
             },
             (ubyte[] data) => throw new Exception("Connection to endpoint failed!"),
-            json
+            payload
         );
         return ret;
     }
 
-    auto embeddings(A = float, B)(string name, B data)
+    override JSONValue _embeddings(IModel model, JSONValue payload)
     {
-        Model model = fetch(name);
-        JSONValue json = model.embeddingsJSON(data);
-        static if (!is(B == string) && (isDynamicArray!B || isStaticArray!B))
-            Embedding!A[] ret;
-        else
-            Embedding!A ret;
-
+        JSONValue ret;
         http.post(
-            url~"v1/embeddings",
+            _url~"v1/embeddings",
             (ubyte[] data) {
-                string str = data.assumeUTF();
-                static if (!is(B == string) && (isDynamicArray!B || isStaticArray!B))
-                    ret = model.parseEmbeddingsBatch!A(str.parseJSON());
-                else
-                    ret = model.parseEmbeddings!A(str.parseJSON());
+                ret = data.assumeUTF().parseJSON();
             },
             (ubyte[] data) => throw new Exception("Connection to endpoint failed!"),
-            json
+            payload
         );
         return ret;
+    }
+
+private:
+    void rebuildHTTP()
+    {
+        http = HTTP();
+        if (_key !is null)
+            http.addRequestHeader("Authorization", "Bearer "~_key);
     }
 }
