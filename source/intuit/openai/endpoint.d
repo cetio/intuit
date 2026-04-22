@@ -3,7 +3,7 @@ module intuit.openai.endpoint;
 import intuit.endpoint;
 import intuit.model;
 import intuit.openai.model;
-import intuit.utils;
+import conductor.http : get, post, JSONValue, parseJSON;
 import std.net.curl : HTTP;
 import std.string : assumeUTF;
 
@@ -59,11 +59,11 @@ class OpenAI : IEndpoint
         JSONValue ret;
         http.post(
             _url~"v1/chat/completions",
+            payload,
             (ubyte[] data) {
                 ret = data.assumeUTF().parseJSON();
             },
             (ubyte[] data) => throw new Exception("Connection to endpoint failed!"),
-            payload
         );
         return ret;
     }
@@ -73,11 +73,11 @@ class OpenAI : IEndpoint
         JSONValue ret;
         http.post(
             _url~"v1/embeddings",
+            payload,
             (ubyte[] data) {
                 ret = data.assumeUTF().parseJSON();
             },
             (ubyte[] data) => throw new Exception("Connection to endpoint failed!"),
-            payload
         );
         return ret;
     }

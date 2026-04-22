@@ -1,6 +1,6 @@
 module intuit.context;
 
-import intuit.utils;
+import conductor.http : toJSON;
 import std.json;
 
 enum Role : string

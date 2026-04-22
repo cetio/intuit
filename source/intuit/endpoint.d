@@ -3,7 +3,7 @@ module intuit.endpoint;
 import intuit.context;
 import intuit.model;
 import intuit.response;
-import intuit.utils;
+import conductor.http : toJSON;
 import std.json : JSONValue, JSONType;
 import std.traits : isArray, isIntegral;
 

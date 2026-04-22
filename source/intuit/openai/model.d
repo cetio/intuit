@@ -2,7 +2,7 @@ module intuit.openai.model;
 
 import intuit.model;
 import intuit.response;
-import intuit.utils;
+import conductor.http : toJSON;
 import std.conv : to;
 import std.json : JSONValue, JSONType;
 
