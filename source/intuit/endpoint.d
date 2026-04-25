@@ -16,6 +16,7 @@ interface IEndpoint
     void key(string value);
 
     IModel[] available();
+    IModel model(string name);
 
     JSONValue _completions(IModel model, JSONValue payload);
     JSONValue _embeddings(IModel model, JSONValue payload);
@@ -34,6 +35,12 @@ Completion completions(E, M, D)(E ep, M model, D data)
     return model.parseCompletions(resp);
 }
 
+Completion completions(E, D)(E ep, string modelName, D data)
+    if (is(E : IEndpoint))
+{
+    return completions(ep, ep.model(modelName), data);
+}
+
 Embedding!T embeddings(T = float, E, M, D)(E ep, M model, D data)
     if (is(E : IEndpoint) && is(M : IModel)
         && (is(D == string) || !isArray!D))
@@ -46,6 +53,13 @@ Embedding!T embeddings(T = float, E, M, D)(E ep, M model, D data)
     if (arr.type == JSONType.array && arr.array.length > 0)
         ret.value = toVector!T(arr.array[0]);
     return ret;
+}
+
+Embedding!T embeddings(T = float, E, D)(E ep, string modelName, D data)
+    if (is(E : IEndpoint)
+        && (is(D == string) || !isArray!D))
+{
+    return embeddings!T(ep, ep.model(modelName), data);
 }
 
 Embedding!T[] embeddings(T = float, E, M, D)(E ep, M model, D data)
@@ -64,6 +78,13 @@ Embedding!T[] embeddings(T = float, E, M, D)(E ep, M model, D data)
             ret[i].value = toVector!T(v);
     }
     return ret;
+}
+
+Embedding!T[] embeddings(T = float, E, D)(E ep, string modelName, D data)
+    if (is(E : IEndpoint)
+        && isArray!D && !is(D == string))
+{
+    return embeddings!T(ep, ep.model(modelName), data);
 }
 
 private T[] toVector(T)(JSONValue arr)

@@ -1,10 +1,14 @@
 module intuit.openai.model;
 
+import std.algorithm.searching : canFind;
+import intuit.error : EndpointError;
 import intuit.model;
 import intuit.response;
 import conductor.http : toJSON;
 import std.conv : to;
 import std.json : JSONValue, JSONType;
+import std.math : isNaN;
+import std.string : toLower;
 
 class OpenAIModel : IModel
 {
@@ -18,11 +22,12 @@ class OpenAIModel : IModel
     double _presencePenalty = double.nan;
     double _frequencyPenalty = double.nan;
     long _n = 1;
-    bool _stream = false;
     long[long] _logitBias;
     long _seed = 0;
     string _encodingFormat = "float";
     long _dimensions = 0;
+    JSONValue _responseFormat;
+    bool _hasResponseFormat;
 
     this(string name, string owner = null)
     {
@@ -72,11 +77,6 @@ class OpenAIModel : IModel
     OpenAIModel n(long v)
     { _n = v; return this; }
 
-    OpenAIModel stream(bool delegate(OpenAIModel) fn)
-    { _stream = fn(this); return this; }
-    OpenAIModel stream(bool v)
-    { _stream = v; return this; }
-
     OpenAIModel logitBias(long[long] delegate(OpenAIModel) fn)
     { _logitBias = fn(this); return this; }
     OpenAIModel logitBias(long[long] v)
@@ -97,24 +97,52 @@ class OpenAIModel : IModel
     OpenAIModel dimensions(long v)
     { _dimensions = v; return this; }
 
+    OpenAIModel responseFormat(JSONValue delegate(OpenAIModel) fn)
+    { return responseFormat(fn(this)); }
+    OpenAIModel responseFormat(JSONValue v)
+    {
+        _responseFormat = v;
+        _hasResponseFormat = true;
+        return this;
+    }
+
+    OpenAIModel jsonMode()
+    {
+        JSONValue format = JSONValue.emptyObject;
+        format["type"] = JSONValue("json_object");
+        return responseFormat(format);
+    }
+
+    OpenAIModel jsonSchema(string name, JSONValue schema, bool strict = true)
+    {
+        JSONValue format = JSONValue.emptyObject;
+        format["type"] = JSONValue("json_schema");
+
+        JSONValue spec = JSONValue.emptyObject;
+        spec["name"] = JSONValue(name);
+        spec["schema"] = schema;
+        spec["strict"] = JSONValue(strict);
+        format["json_schema"] = spec;
+        return responseFormat(format);
+    }
+
     override JSONValue completionsJSON(JSONValue input)
     {
         JSONValue ret = JSONValue.emptyObject;
         ret["model"] = JSONValue(_name);
-        ret["max_tokens"] = JSONValue(_maxTokens);
 
-        if (_temperature !is double.nan) ret["temperature"] = JSONValue(_temperature);
-        if (_topP !is double.nan) ret["top_p"] = JSONValue(_topP);
+        if (_maxTokens >= 0) ret["max_tokens"] = JSONValue(_maxTokens);
+        if (!isNaN(_temperature)) ret["temperature"] = JSONValue(_temperature);
+        if (!isNaN(_topP)) ret["top_p"] = JSONValue(_topP);
         if (_stop.length > 0)
         {
             JSONValue arr = JSONValue.emptyArray;
             foreach (s; _stop) arr.array ~= JSONValue(s);
             ret["stop"] = arr;
         }
-        if (_presencePenalty !is double.nan) ret["presence_penalty"] = JSONValue(_presencePenalty);
-        if (_frequencyPenalty !is double.nan) ret["frequency_penalty"] = JSONValue(_frequencyPenalty);
+        if (!isNaN(_presencePenalty)) ret["presence_penalty"] = JSONValue(_presencePenalty);
+        if (!isNaN(_frequencyPenalty)) ret["frequency_penalty"] = JSONValue(_frequencyPenalty);
         if (_n > 1) ret["n"] = JSONValue(_n);
-        if (_stream) ret["stream"] = JSONValue(_stream);
         if (_logitBias.length > 0)
         {
             JSONValue bias = JSONValue.emptyObject;
@@ -122,6 +150,7 @@ class OpenAIModel : IModel
             ret["logit_bias"] = bias;
         }
         if (_seed > 0) ret["seed"] = JSONValue(_seed);
+        if (_hasResponseFormat) ret["response_format"] = _responseFormat;
 
         if (input.type == JSONType.array)
         {
@@ -151,30 +180,24 @@ class OpenAIModel : IModel
     override Completion parseCompletions(JSONValue json)
     {
         Completion ret;
+        ret.raw = json;
         checkError(json);
 
-        if ("choices" in json)
+        if ("choices" in json && json["choices"].type == JSONType.array)
         {
             foreach (c; json["choices"].array)
             {
                 Choice choice;
-                JSONValue msg = ("message" in c) ? c["message"] : c["delta"];
+                choice.raw = c;
+                JSONValue message = ("message" in c) ? c["message"] : (("delta" in c) ? c["delta"] : JSONValue.init);
+                parseMessage(choice, message);
+                choice.finishReason = parseFinishReason("finish_reason" in c ? c["finish_reason"] : JSONValue.init);
 
-                string content = ("content" in msg && !msg["content"].isNull)
-                    ? msg["content"].str
-                    : cast(string)null;
-                import std.variant : Variant;
-                choice.data = Variant(content);
+                if ("logprobs" in c && !c["logprobs"].isNull)
+                    choice.logProbs = c["logprobs"];
+                else if ("log_probs" in c && !c["log_probs"].isNull)
+                    choice.logProbs = c["log_probs"];
 
-                bool hasFinishReason = ("finish_reason" in c && !c["finish_reason"].isNull);
-                choice.finishReason = hasFinishReason
-                    ? cast(FinishReason)c["finish_reason"].str
-                    : FinishReason.Unknown;
-
-                bool hasLogProbs = ("log_probs" in c && !c["log_probs"].isNull);
-                choice.logProbs = hasLogProbs
-                    ? cast(float)c["log_probs"].floating
-                    : float.nan;
                 ret.choices ~= choice;
             }
         }
@@ -198,6 +221,106 @@ class OpenAIModel : IModel
     }
 
 private:
+    static void parseMessage(ref Choice choice, JSONValue message)
+    {
+        if (message.type != JSONType.object)
+            return;
+
+        if ("content" in message && !message["content"].isNull)
+        {
+            choice.content = message["content"];
+            parseContent(message["content"], choice.text, choice.reasoning, false);
+        }
+
+        if ("reasoning" in message && !message["reasoning"].isNull)
+            parseContent(message["reasoning"], choice.text, choice.reasoning, true);
+    }
+
+    static void parseContent(JSONValue value, ref string text, ref string reasoning, bool reasoningMode)
+    {
+        switch (value.type)
+        {
+        case JSONType.string:
+            appendText(reasoningMode ? reasoning : text, value.str);
+            return;
+
+        case JSONType.array:
+            foreach (part; value.array)
+                parseContent(part, text, reasoning, reasoningMode);
+            return;
+
+        case JSONType.object:
+            bool nextReasoning = reasoningMode;
+            if ("type" in value && value["type"].type == JSONType.string)
+                nextReasoning = isReasoningType(value["type"].str);
+
+            if ("summary" in value && !value["summary"].isNull)
+                parseContent(value["summary"], text, reasoning, true);
+            if ("text" in value && !value["text"].isNull)
+                parseContent(value["text"], text, reasoning, nextReasoning);
+            if ("content" in value && !value["content"].isNull)
+                parseContent(value["content"], text, reasoning, nextReasoning);
+            if ("value" in value && !value["value"].isNull)
+                parseContent(value["value"], text, reasoning, nextReasoning);
+            return;
+
+        default:
+            return;
+        }
+    }
+
+    static bool isReasoningType(string raw)
+    {
+        string kind = raw.toLower;
+        return kind.canFind("reason")
+            || kind.canFind("think")
+            || kind.canFind("summary");
+    }
+
+    static void appendText(ref string target, string value)
+    {
+        if (value.length > 0)
+            target ~= value;
+    }
+
+    static FinishReason parseFinishReason(JSONValue value)
+    {
+        if (value.type != JSONType.string)
+            return FinishReason.Unknown;
+
+        switch (value.str)
+        {
+        case "missing":
+            return FinishReason.Missing;
+        case "length":
+            return FinishReason.Length;
+        case "max_tokens":
+            return FinishReason.Max_Tokens;
+        case "content_filter":
+            return FinishReason.ContentFilter;
+        case "refusal":
+            return FinishReason.Refusal;
+        case "tool_call":
+            return FinishReason.ToolCall;
+        case "tool_use":
+            return FinishReason.ToolUse;
+        case "function_call":
+            return FinishReason.FunctionCall;
+        case "pause":
+            return FinishReason.Pause;
+        case "pause_turn":
+            return FinishReason.PauseTurn;
+        case "stop":
+            return FinishReason.Stop;
+        case "end_turn":
+            return FinishReason.EndTurn;
+        case "stop_sequence":
+            return FinishReason.StopSequence;
+        default:
+            return FinishReason.Unknown;
+        }
+    }
+
     static void checkError(JSONValue json)
     {
         if ("error" !in json)
@@ -206,8 +329,8 @@ private:
         if (json["error"].type == JSONType.string)
             throw new Exception(json["error"].str);
         else if (json["error"].type == JSONType.object && "message" in json["error"])
-            throw new Exception(json["error"]["message"].str);
+            throw new EndpointError("POST", "chat/completions", 0, "error", json["error"]["message"].str);
         else
-            throw new Exception("Critical error parsing error JSON "~json.toPrettyString());
+            throw new EndpointError("POST", "chat/completions", 0, "error", json.toPrettyString());
     }
 }

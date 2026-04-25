@@ -1,16 +1,15 @@
 # Intuit
 
-Intuit is a D library for interacting with language/embedding model endpoints. Intuit provides native D structures and SIMD-optimized vector operations, with a focus on a native feel.
+Intuit is a small D library for interacting with OpenAI-compatible language and embedding endpoints. Intuit keeps the surface direct, JSON-native, and pragmatic, while still providing native D response types and SIMD-optimized embedding operations.
 
 ## Features
 
 - **Chat Completions** - Generate text completions with configurable model parameters.
+- **Structured Output** - Parse JSON from completion text with balanced extraction for fenced or prose-wrapped responses.
 - **Embeddings** - Generate vector embeddings with support for batch processing.
 - **SIMD-Optimized Vector Operations** - High-performance cosine similarity, dot product, Euclidean distance, and normalization using AVX intrinsics.
-- **Model Management** - Automatic model discovery and configuration.
-- **Type-Safe Metaprogramming** - Leverages D's compile-time features for efficient JSON serialization and type handling.
-
-Currently supports both OpenAI (`intuit.openai`) and Claude (`intuit.claude`) endpoints and model configuration.
+- **Model Management** - Lightweight model discovery and provider-native model configuration.
+- **Type-Safe Metaprogramming** - Uses D's native types and JSON interop instead of large wrapper layers.
 
 ## Usage
 
@@ -22,47 +21,59 @@ Currently supports both OpenAI (`intuit.openai`) and Claude (`intuit.claude`) en
 import intuit.openai;
 
 // Local LMStudio
-auto endpoint = new OpenAI("http://127.0.0.1:1234/v1/");
+auto endpoint = new OpenAI("http://127.0.0.1:1234");
 
 // OpenAI API
-auto openai = new OpenAI("https://api.openai.com/v1/", "your-api-key");
+auto openai = new OpenAI("https://api.openai.com", "your-api-key");
 ```
 
 ### Chat Completions
 
 ```d
 import intuit.openai;
-import std.json;
+import std.json : parseJSON;
 
 // Simple text completion
-Completion result = endpoint.completions("gpt-4", "Explain quantum computing");
-string text = result.select!string();
+Completion result = completions(endpoint, "gpt-4o-mini", "Explain quantum computing");
+string text = result.text();
 
-// With JSONValue messages array
-JSONValue messages = parseJSON(`[
-    {"role": "system", "content": "You are a helpful assistant"},
-    {"role": "user", "content": "What is the capital of France?"}
-]`);
-Completion result = endpoint.completions("gpt-4", messages);
+// With Context
+Context ctx;
+ctx.system("You are a helpful assistant.")
+   .user("What is the capital of France?");
+
+Completion answer = completions(endpoint, "gpt-4o-mini", ctx);
+string capital = answer.text();
+
+// Structured JSON extraction
+Completion jsonResult = completions(endpoint, "gpt-4o-mini", "Return {\"ok\":true} and nothing else.");
+auto parsed = jsonResult.parsedJSON();
 ```
 
 ### Model Configuration
 
 ```d
 import intuit.openai;
+import std.json : parseJSON;
 
-// Fetch a model
-Model model = endpoint.fetch("gpt-4");
+auto endpoint = new OpenAI("https://api.openai.com", "your-api-key");
+auto model = cast(OpenAIModel)endpoint.model("gpt-4o-mini");
 
 // Configure model parameters
-model.temperature = 0.7;
-model.maxTokens = 500;
-model.topP = 0.9;
-model.presencePenalty = 0.1;
-model.frequencyPenalty = 0.1;
+model
+    .temperature(0.7)
+    .maxTokens(500)
+    .topP(0.9)
+    .presencePenalty(0.1)
+    .frequencyPenalty(0.1)
+    .jsonSchema("reply", parseJSON(`{
+        "type":"object",
+        "properties":{"answer":{"type":"string"}},
+        "required":["answer"]
+    }`));
 
 // Parameters are automatically applied to requests
-Completion result = endpoint.completions("gpt-4", "Hello!");
+Completion result = completions(endpoint, model, "Hello!");
 ```
 
 ### Embeddings
@@ -70,13 +81,15 @@ Completion result = endpoint.completions("gpt-4", "Hello!");
 ```d
 import intuit.openai;
 
+auto endpoint = new OpenAI("https://api.openai.com", "your-api-key");
+
 // Single embedding
-Embedding!float embedding = endpoint.embeddings("text-embedding-ada-002", "Hello, world!");
+Embedding!float embedding = embeddings(endpoint, "text-embedding-3-small", "Hello, world!");
 float[] vector = embedding.value;
 
 // Batch embeddings
 string[] texts = ["Hello", "World", "D Programming"];
-Embedding!float[] embeddings = endpoint.embeddings("text-embedding-ada-002", texts);
+Embedding!float[] vectors = embeddings(endpoint, "text-embedding-3-small", texts);
 ```
 
 ### Vector Operations
@@ -84,7 +97,7 @@ Embedding!float[] embeddings = endpoint.embeddings("text-embedding-ada-002", tex
 Intuit provides SIMD-optimized vector operations for working with embeddings:
 
 ```d
-import intuit.space;
+import intuit.response.embedding;
 
 float[] vec1 = [1.0f, 2.0f, 3.0f];
 float[] vec2 = [4.0f, 5.0f, 6.0f];
@@ -108,20 +121,6 @@ normalize(vec1);
 float[][] embeddings = [[1.0f, 2.0f], [3.0f, 4.0f], [5.0f, 6.0f]];
 float[] mean = normMean(embeddings);
 ```
-
-## Roadmap
-
-- [x] Completions
-- [x] Embeddings
-- [ ] Tools
-- [ ] Function interop
-- [x] Streaming
-- [ ] Images & Vision
-- [ ] Audio
-- [x] OpenAI (Qwen, Deepseek, Phi, incl.)
-- [ ] Gemini
-- [X] Claude
-
 
 ## License
 

@@ -4,10 +4,16 @@
 	],
 	"copyright": "Copyright © 2026, cet",
 	"dependencies": {
-		"conductor": "~>1.0.0",
-		"intel-intrinsics": "~>1.13.0"
+		"conductor": {
+			"path": "../conductor"
+		},
+		"intel-intrinsics": "~>1.14.2"
 	},
-	"description": ".",
+	"description": "Small, pragmatic D bindings for OpenAI-compatible language and embedding APIs.",
 	"license": "AGPL-3.0-only",
-	"name": "intuit"
+	"name": "intuit",
+	"sourcePaths": [
+		"source",
+		"tests"
+	]
 }
