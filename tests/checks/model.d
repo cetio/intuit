@@ -55,8 +55,8 @@ unittest
         }]
     }`));
 
-    assert(completion.text() == "Hello");
-    assert(completion.reasoning() == "Plan more");
+    assert(completion.text == "Hello");
+    assert(completion.reasoning == "Plan more");
     assert(completion.choice().content.type == JSONType.array);
     assert(completion.choice().logProbs.type == JSONType.object);
     assert(completion.choice().finishReason == FinishReason.Stop);
@@ -74,7 +74,7 @@ unittest
         }]
     }`));
 
-    assert(completion.text() == "Hello");
+    assert(completion.text == "Hello");
     assert(completion.choice().finishReason == FinishReason.Unknown);
 }
 
@@ -90,6 +90,6 @@ unittest
     }`));
 
     assert(completion.choices.length == 1);
-    assert(completion.text() is null);
-    assert(completion.reasoning() is null);
+    assert(completion.text is null);
+    assert(completion.reasoning is null);
 }

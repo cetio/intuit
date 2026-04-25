@@ -196,7 +196,7 @@ unittest
     auto endpoint = new StubEndpoint;
     Completion completion = completions(endpoint, "gpt-test", "hello");
     assert(endpoint.lastModel == "gpt-test");
-    assert(completion.text() == "gpt-test");
+    assert(completion.text == "gpt-test");
 }
 
 unittest
@@ -232,7 +232,7 @@ unittest
         (string baseUrl) {
             auto endpoint = new OpenAI(baseUrl, "secret");
             Completion completion = completions(endpoint, "gpt-test", "hello");
-            assert(completion.text() == "Hello");
+            assert(completion.text == "Hello");
         },
     );
 

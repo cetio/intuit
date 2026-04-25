@@ -35,7 +35,7 @@ import std.json : parseJSON;
 
 // Simple text completion
 Completion result = completions(endpoint, "gpt-4o-mini", "Explain quantum computing");
-string text = result.text();
+string text = result.text;
 
 // With Context
 Context ctx;
@@ -43,11 +43,11 @@ ctx.system("You are a helpful assistant.")
    .user("What is the capital of France?");
 
 Completion answer = completions(endpoint, "gpt-4o-mini", ctx);
-string capital = answer.text();
+string capital = answer.text;
 
 // Structured JSON extraction
 Completion jsonResult = completions(endpoint, "gpt-4o-mini", "Return {\"ok\":true} and nothing else.");
-auto parsed = jsonResult.parsedJSON();
+auto parsed = jsonResult.json;
 ```
 
 ### Model Configuration

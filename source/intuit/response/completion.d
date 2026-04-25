@@ -1,8 +1,8 @@
 module intuit.response.completion;
 
-import intuit.error : CompletionParseError;
-import std.json : JSONType, JSONValue, parseJSON;
-import std.string : strip;
+import core.atomic;
+import core.thread;
+import std.json : JSONValue, parseJSON;
 
 enum FinishReason : string
 {
@@ -44,118 +44,103 @@ struct Completion
         return choices[index];
     }
 
+    string text() const
+        => text(0);
+
     string text(size_t index = 0) const
-    {
-        return choice(index).text;
-    }
+        => choice(index).text;
+
+    string reasoning() const
+        => reasoning(0);
 
     string reasoning(size_t index = 0) const
-    {
-        return choice(index).reasoning;
-    }
+        => choice(index).reasoning;
 
-    JSONValue parsedJSON(size_t index = 0) const
-    {
-        return parseStructuredJSON(text(index));
-    }
+    JSONValue json() const
+        => json(0);
+
+    JSONValue json(size_t index = 0) const
+        => text(index).parseJSON();
 }
 
+class CompletionStream
+{
 private:
+    Completion[] completions;
+    shared size_t length;
+    shared size_t index;
+    shared bool writer;
 
-JSONValue parseStructuredJSON(string raw)
-{
-    string text = raw.strip;
-    if (text.length == 0)
-        throw new CompletionParseError("Completion did not contain parseable text.", raw, null);
+package:
+    void delegate(CompletionStream) _commence;
 
-    string candidate;
-    string parseError;
-    foreach (size_t i, char c; text)
+public:
+    JSONValue json;
+    string model;
+    bool complete;
+    void delegate(Completion) callback;
+
+    this(string model, void delegate(Completion) callback)
     {
-        if (c != '{' && c != '[')
-            continue;
-
-        candidate = balancedSlice(text, i);
-        if (candidate.length == 0)
-            continue;
-
-        try
-        {
-            return parseJSON(candidate);
-        }
-        catch (Exception e)
-        {
-            parseError = e.msg;
-        }
+        this.model = model;
+        this.callback = callback;
+        this.completions = null;
+        this.length = 0;
+        this.index = 0;
+        this.writer = false;
+        this.complete = false;
+        this.json = JSONValue.emptyObject;
     }
 
-    if (candidate.length == 0)
-        throw new CompletionParseError("Completion did not contain JSON.", raw, null);
-
-    throw new CompletionParseError("Completion response was not valid JSON: "~parseError, raw, candidate);
-}
-
-string balancedSlice(string raw, size_t start)
-{
-    char[] stack;
-    bool inString;
-    bool escaped;
-
-    char opener = raw[start];
-    if (opener != '{' && opener != '[')
-        return null;
-
-    stack ~= opener == '{' ? '}' : ']';
-    foreach (size_t i; start + 1..raw.length)
+    Completion next()
     {
-        char c = raw[i];
-        if (inString)
+        if (_commence is null)
+            throw new Exception("Stream not initialized");
+
+        while (atomicLoad!(MemoryOrder.acq)(writer))
+            Thread.yield();
+
+        size_t cur = atomicFetchAdd!(MemoryOrder.seq)(index, 1);
+
+        while (cur >= atomicLoad!(MemoryOrder.acq)(length))
         {
-            if (escaped)
-            {
-                escaped = false;
-                continue;
-            }
-
-            if (c == '\\')
-            {
-                escaped = true;
-                continue;
-            }
-
-            if (c == '"')
-                inString = false;
-            continue;
+            if (complete)
+                return completions[atomicLoad!(MemoryOrder.acq)(length) - 1];
+            Thread.yield();
         }
 
-        if (c == '"')
-        {
-            inString = true;
-            continue;
-        }
-
-        if (c == '{')
-        {
-            stack ~= '}';
-            continue;
-        }
-
-        if (c == '[')
-        {
-            stack ~= ']';
-            continue;
-        }
-
-        if (c == '}' || c == ']')
-        {
-            if (stack.length == 0 || c != stack[$-1])
-                return null;
-
-            stack = stack[0..$-1];
-            if (stack.length == 0)
-                return raw[start..i + 1].idup;
-        }
+        atomicFence!(MemoryOrder.acq);
+        return completions[cur];
     }
 
-    return null;
+    Completion[] collect(size_t count)
+    {
+        Completion[] ret;
+        foreach (i; 0 .. count)
+            ret ~= next();
+        return ret;
+    }
+
+    void begin()
+    {
+        _commence(this);
+    }
+
+    void commence(void delegate(CompletionStream) cb)
+    {
+        _commence = cb;
+        begin();
+    }
+
+    void update(Completion val)
+    {
+        atomicStore!(MemoryOrder.rel)(writer, true);
+        atomicFence!(MemoryOrder.rel);
+
+        completions ~= val;
+        atomicFetchAdd!(MemoryOrder.rel)(length, 1);
+
+        atomicFence!(MemoryOrder.rel);
+        atomicStore!(MemoryOrder.rel)(writer, false);
+    }
 }
