@@ -1,7 +1,7 @@
 {
 	"fileVersion": 1,
 	"versions": {
-		"conductor": "1.0.0",
+		"conductor": {"path":"../conductor"},
 		"intel-intrinsics": "1.14.2"
 	}
 }

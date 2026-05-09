@@ -180,14 +180,21 @@ private:
     {
         static if (is(T == string))
             return args[name].str;
-        else static if (is(T == int))
-            return cast(int) args[name].integer;
-        else static if (is(T == long))
-            return cast(long) args[name].integer;
-        else static if (is(T == float))
-            return cast(float) args[name].floating;
-        else static if (is(T == double))
-            return args[name].floating;
+        else static if (is(T == byte) || is(T == short) || is(T == int) || is(T == long) ||
+            is(T == ubyte) || is(T == ushort) || is(T == uint) || is(T == ulong))
+        {
+            if (args[name].type == JSONType.integer)
+                return cast(T)args[name].integer;
+            else
+                return cast(T)args[name].floating;
+        }
+        else static if (is(T == float) || is(T == double))
+        {
+            if (args[name].type == JSONType.integer)
+                return cast(T)args[name].integer;
+            else
+                return cast(T)args[name].floating;
+        }
         else static if (is(T == bool))
             return args[name].type == JSONType.true_;
         else
