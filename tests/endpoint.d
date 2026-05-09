@@ -4,6 +4,7 @@ import conductor.http : toJSON;
 import core.thread : Thread;
 import intuit;
 import intuit.openai : OpenAI;
+import intuit.tool;
 import std.algorithm.searching : canFind, countUntil;
 import std.conv : to;
 import std.json : JSONType, JSONValue, parseJSON;
@@ -14,25 +15,26 @@ private struct RequestData
 {
     string method;
     string path;
-    string body;
+    string content;
     string[string] headers;
 }
 
 private class StubModel : IModel
 {
     string _name;
+    string _owner;
 
     this(string name)
     {
         _name = name;
     }
 
-    override string name()
-    {
-        return _name;
-    }
+    override ref string name() 
+        => _name;
+    override ref string owner() 
+        => _owner;
 
-    override JSONValue completionsJSON(JSONValue input)
+    override JSONValue completionsJSON(JSONValue input, ToolRegistry tools = ToolRegistry.init)
     {
         JSONValue ret = JSONValue.emptyObject;
         ret["model"] = JSONValue(_name);
@@ -70,11 +72,12 @@ private class StubEndpoint : IEndpoint
     string _key;
     string lastModel;
 
-    override string name() => _name;
-    override void name(string value) { _name = value; }
-    override string url() => _url;
-    override void url(string value) { _url = value; }
-    override void key(string value) { _key = value; }
+    override ref string name() => _name;
+    override ref string url() => _url;
+    override ref string key() => _key;
+
+    private ToolRegistry _tools;
+    override ref ToolRegistry tools() => _tools;
 
     override IModel[] available()
     {
@@ -141,7 +144,7 @@ private RequestData withServer(
 
         ptrdiff_t headerEnd = data.countUntil("\r\n\r\n");
         string headerText = headerEnd < 0 ? data : data[0..headerEnd];
-        string body = headerEnd < 0 ? null : data[headerEnd + 4..$];
+        string content = headerEnd < 0 ? null : data[headerEnd + 4..$];
         string[] lines = headerText.split("\r\n");
         if (lines.length > 0)
         {
@@ -167,14 +170,14 @@ private RequestData withServer(
                 contentLength = value.to!size_t;
         }
 
-        while (body.length < contentLength)
+        while (content.length < contentLength)
         {
             ptrdiff_t got = client.receive(buffer[]);
             if (got <= 0)
                 break;
-            body ~= cast(string)buffer[0..got];
+            content ~= cast(string)buffer[0..got];
         }
-        request.body = body;
+        request.content = content;
 
         string response =
             "HTTP/1.1 "~status.to!string~" "~reason~"\r\n"
@@ -238,8 +241,8 @@ unittest
 
     assert(request.method == "POST");
     assert(request.path == "/v1/chat/completions");
-    JSONValue body = parseJSON(request.body);
-    assert(body["model"].str == "gpt-test");
+    JSONValue content = parseJSON(request.content);
+    assert(content["model"].str == "gpt-test");
 }
 
 unittest
@@ -256,7 +259,7 @@ unittest
             catch (EndpointError e)
             {
                 assert(e.status == 401);
-                assert(e.body == `{"error":{"message":"bad key"}}`);
+                assert(e.content == `{"error":{"message":"bad key"}}`);
                 assert(e.route.canFind("/v1/models"));
             }
         },
@@ -279,7 +282,7 @@ unittest
             catch (EndpointError e)
             {
                 assert(e.status == 200);
-                assert(e.body == "not-json");
+                assert(e.content == "not-json");
             }
         },
     );

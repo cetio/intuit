@@ -4,6 +4,7 @@ import intuit.error : EndpointError;
 import intuit.endpoint;
 import intuit.model;
 import intuit.openai.model;
+import intuit.tool;
 import conductor.http : JSONValue, Response, parseJSON, send;
 import std.net.curl : HTTP;
 import std.json : JSONType;
@@ -11,11 +12,14 @@ import std.string : assumeUTF;
 
 class OpenAI : IEndpoint
 {
-    private string _name;
-    private string _url;
-    private string _key;
+private:
+    string _name;
+    string _url;
+    string _key;
+    ToolRegistry _tools;
     HTTP http;
 
+public:
     this(string url, string key = null, string name = "OpenAI")
     {
         this._name = name;
@@ -24,14 +28,14 @@ class OpenAI : IEndpoint
         this.http = HTTP();
     }
 
-    override string name() => _name;
-    override void name(string value) { _name = value; }
-    override string url() => _url;
-    override void url(string value) { _url = value; }
-    override void key(string value)
-    {
-        _key = value;
-    }
+    override ref string name() 
+        => _name;
+    override ref string url() 
+        => _url;
+    override ref string key() 
+        => _key;
+    override ref ToolRegistry tools() 
+        => _tools;
 
     override IModel[] available()
     {
@@ -50,19 +54,13 @@ class OpenAI : IEndpoint
     }
 
     override IModel model(string name)
-    {
-        return new OpenAIModel(name);
-    }
+        => new OpenAIModel(name);
 
     override JSONValue _completions(IModel model, JSONValue payload)
-    {
-        return request(HTTP.Method.post, "chat/completions", payload);
-    }
+        => request(HTTP.Method.post, "chat/completions", payload);
 
     override JSONValue _embeddings(IModel model, JSONValue payload)
-    {
-        return request(HTTP.Method.post, "embeddings", payload);
-    }
+        => request(HTTP.Method.post, "embeddings", payload);
 
 private:
     JSONValue request(HTTP.Method method, string tail, JSONValue payload = JSONValue.init)
@@ -86,19 +84,19 @@ private:
             );
         }
 
-        string body = response.content is null ? null : response.content.assumeUTF().idup;
+        string content = response.content is null ? null : response.content.assumeUTF().idup;
         if (response.status < 200 || response.status >= 300)
-            throw new EndpointError(methodName(method), target, response.status, response.reason, body);
+            throw new EndpointError(methodName(method), target, response.status, response.reason, content);
 
         try
-            return body.parseJSON();
+            return content.parseJSON();
         catch (Exception)
             throw new EndpointError(
                 methodName(method),
                 target,
                 response.status,
                 response.reason,
-                body,
+                content,
                 "Endpoint returned invalid JSON.",
             );
     }

@@ -22,6 +22,13 @@ enum FinishReason : string
     Unknown = "unknown"
 }
 
+struct ToolCall
+{
+    string id;
+    string name;
+    JSONValue arguments;
+}
+
 struct Choice
 {
     JSONValue raw;
@@ -30,6 +37,7 @@ struct Choice
     string reasoning;
     FinishReason finishReason;
     JSONValue logProbs;
+    ToolCall[] toolCalls;
 }
 
 struct Completion

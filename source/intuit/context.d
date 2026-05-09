@@ -1,6 +1,7 @@
 module intuit.context;
 
 import conductor.http : toJSON;
+import intuit.response;
 import std.json;
 
 enum Role : string
@@ -39,9 +40,44 @@ struct Context
         return append(Role.Assistant, data);
     }
 
+    ref Context assistant(T)(T data, ToolCall[] toolCalls)
+    {
+        JSONValue msg = JSONValue.emptyObject;
+        msg["role"] = JSONValue(Role.Assistant);
+        msg["content"] = data.toJSON();
+        if (toolCalls.length > 0)
+        {
+            JSONValue callsArray = JSONValue.emptyArray;
+            foreach (tc; toolCalls)
+            {
+                JSONValue call = JSONValue.emptyObject;
+                call["id"] = JSONValue(tc.id);
+                call["type"] = JSONValue("function");
+                JSONValue func = JSONValue.emptyObject;
+                func["name"] = JSONValue(tc.name);
+                func["arguments"] = JSONValue(tc.arguments);
+                call["function"] = func;
+                callsArray.array ~= call;
+            }
+            msg["tool_calls"] = callsArray;
+        }
+        _messages.array ~= msg;
+        return this;
+    }
+
     ref Context tool(T)(T data)
     {
         return append(Role.Tool, data);
+    }
+
+    ref Context tool(T)(string toolCallId, T data)
+    {
+        JSONValue msg = JSONValue.emptyObject;
+        msg["role"] = JSONValue(Role.Tool);
+        msg["tool_call_id"] = JSONValue(toolCallId);
+        msg["content"] = data.toJSON();
+        _messages.array ~= msg;
+        return this;
     }
 
     ref Context clear()

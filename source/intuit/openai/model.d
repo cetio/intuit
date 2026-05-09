@@ -4,16 +4,18 @@ import std.algorithm.searching : canFind;
 import intuit.error : EndpointError;
 import intuit.model;
 import intuit.response;
+import intuit.tool;
 import conductor.http : toJSON;
 import std.conv : to;
-import std.json : JSONValue, JSONType;
+import std.json : JSONValue, JSONType, parseJSON;
 import std.math : isNaN;
 import std.string : toLower;
 
 class OpenAIModel : IModel
 {
+private:
     string _name;
-    string owner;
+    string _owner;
 
     double _temperature = double.nan;
     double _topP = double.nan;
@@ -29,79 +31,104 @@ class OpenAIModel : IModel
     JSONValue _responseFormat;
     bool _hasResponseFormat;
 
+public:
     this(string name, string owner = null)
     {
         this._name = name;
-        this.owner = owner;
+        this._owner = owner;
     }
 
-    override string name() => _name;
+    override ref string name() 
+        => _name;
+    override ref string owner() 
+    => _owner;
 
     override string toString() const
-        => "OpenAIModel("~_name~", "~owner~")";
+        => "OpenAIModel("~_name~", "~_owner~")";
 
-    // Per-setting lambda accessors (chainable). Each has a plain-value overload.
+    // Chainable and accessor properties for model settings.
 
-    OpenAIModel temperature(double delegate(OpenAIModel) fn)
-    { _temperature = fn(this); return this; }
-    OpenAIModel temperature(double v)
-    { _temperature = v; return this; }
-
-    OpenAIModel topP(double delegate(OpenAIModel) fn)
-    { _topP = fn(this); return this; }
-    OpenAIModel topP(double v)
-    { _topP = v; return this; }
-
-    OpenAIModel maxTokens(long delegate(OpenAIModel) fn)
-    { _maxTokens = fn(this); return this; }
-    OpenAIModel maxTokens(long v)
-    { _maxTokens = v; return this; }
-
-    OpenAIModel stop(string[] delegate(OpenAIModel) fn)
-    { _stop = fn(this); return this; }
-    OpenAIModel stop(string[] v)
-    { _stop = v; return this; }
-
-    OpenAIModel presencePenalty(double delegate(OpenAIModel) fn)
-    { _presencePenalty = fn(this); return this; }
-    OpenAIModel presencePenalty(double v)
-    { _presencePenalty = v; return this; }
-
-    OpenAIModel frequencyPenalty(double delegate(OpenAIModel) fn)
-    { _frequencyPenalty = fn(this); return this; }
-    OpenAIModel frequencyPenalty(double v)
-    { _frequencyPenalty = v; return this; }
-
-    OpenAIModel n(long delegate(OpenAIModel) fn)
-    { _n = fn(this); return this; }
-    OpenAIModel n(long v)
-    { _n = v; return this; }
-
-    OpenAIModel logitBias(long[long] delegate(OpenAIModel) fn)
-    { _logitBias = fn(this); return this; }
-    OpenAIModel logitBias(long[long] v)
-    { _logitBias = v; return this; }
-
-    OpenAIModel seed(long delegate(OpenAIModel) fn)
-    { _seed = fn(this); return this; }
-    OpenAIModel seed(long v)
-    { _seed = v; return this; }
-
-    OpenAIModel encodingFormat(string delegate(OpenAIModel) fn)
-    { _encodingFormat = fn(this); return this; }
-    OpenAIModel encodingFormat(string v)
-    { _encodingFormat = v; return this; }
-
-    OpenAIModel dimensions(long delegate(OpenAIModel) fn)
-    { _dimensions = fn(this); return this; }
-    OpenAIModel dimensions(long v)
-    { _dimensions = v; return this; }
-
-    OpenAIModel responseFormat(JSONValue delegate(OpenAIModel) fn)
-    { return responseFormat(fn(this)); }
-    OpenAIModel responseFormat(JSONValue v)
+    ref double temperature() => _temperature;
+    OpenAIModel temperature(double val)
     {
-        _responseFormat = v;
+        _temperature = val;
+        return this;
+    }
+
+    ref double topP() => _topP;
+    OpenAIModel topP(double val)
+    {
+        _topP = val;
+        return this;
+    }
+
+    ref long maxTokens() => _maxTokens;
+    OpenAIModel maxTokens(long val)
+    {
+        _maxTokens = val;
+        return this;
+    }
+
+
+    ref string[] stop() => _stop;
+    OpenAIModel stop(string[] val)
+    {
+        _stop = val;
+        return this;
+    }
+
+    ref double presencePenalty() => _presencePenalty;
+    OpenAIModel presencePenalty(double val)
+    {
+        _presencePenalty = val;
+        return this;
+    }
+
+    ref double frequencyPenalty() => _frequencyPenalty;
+    OpenAIModel frequencyPenalty(double val)
+    {
+        _frequencyPenalty = val;
+        return this;
+    }
+
+    ref long n() => _n;
+    OpenAIModel n(long val)
+    {
+        _n = val;
+        return this;
+    }
+
+    ref long[long] logitBias() => _logitBias;
+    OpenAIModel logitBias(long[long] val)
+    {
+        _logitBias = val;
+        return this;
+    }
+
+    ref long seed() => _seed;
+    OpenAIModel seed(long val)
+    {
+        _seed = val;
+        return this;
+    }
+
+    ref string encodingFormat() => _encodingFormat;
+    OpenAIModel encodingFormat(string val)
+    {
+        _encodingFormat = val;
+        return this;
+    }
+
+    ref long dimensions() => _dimensions;
+    OpenAIModel dimensions(long val)
+    {
+        _dimensions = val;
+        return this;
+    }
+
+    OpenAIModel responseFormat(JSONValue val)
+    {
+        _responseFormat = val;
         _hasResponseFormat = true;
         return this;
     }
@@ -126,7 +153,7 @@ class OpenAIModel : IModel
         return responseFormat(format);
     }
 
-    override JSONValue completionsJSON(JSONValue input)
+    override JSONValue completionsJSON(JSONValue input, ToolRegistry tools = ToolRegistry.init)
     {
         JSONValue ret = JSONValue.emptyObject;
         ret["model"] = JSONValue(_name);
@@ -152,10 +179,25 @@ class OpenAIModel : IModel
         if (_seed > 0) ret["seed"] = JSONValue(_seed);
         if (_hasResponseFormat) ret["response_format"] = _responseFormat;
 
-        if (input.type == JSONType.array)
+        Tool[] toolList = tools.list();
+        if (toolList.length > 0)
         {
-            ret["messages"] = input;
+            JSONValue toolsArray = JSONValue.emptyArray;
+            foreach (tool; toolList)
+            {
+                JSONValue toolObj = JSONValue.emptyObject;
+                toolObj["type"] = JSONValue("function");
+                JSONValue functionObj = JSONValue.emptyObject;
+                functionObj["name"] = JSONValue(tool.name);
+                functionObj["parameters"] = tool.schema;
+                toolObj["function"] = functionObj;
+                toolsArray.array ~= toolObj;
+            }
+            ret["tools"] = toolsArray;
         }
+
+        if (input.type == JSONType.array)
+            ret["messages"] = input;
         else
         {
             ret["messages"] = JSONValue.emptyArray;
@@ -234,6 +276,23 @@ private:
 
         if ("reasoning" in message && !message["reasoning"].isNull)
             parseContent(message["reasoning"], choice.text, choice.reasoning, true);
+
+        if ("tool_calls" in message && message["tool_calls"].type == JSONType.array)
+        {
+            foreach (toolCall; message["tool_calls"].array)
+            {
+                ToolCall tc;
+                tc.id = ("id" in toolCall) ? toolCall["id"].str : "";
+                if ("function" in toolCall && toolCall["function"].type == JSONType.object)
+                {
+                    JSONValue func = toolCall["function"];
+                    tc.name = ("name" in func) ? func["name"].str : "";
+                    if ("arguments" in func && func["arguments"].type == JSONType.string)
+                        tc.arguments = parseJSON(func["arguments"].str);
+                }
+                choice.toolCalls ~= tc;
+            }
+        }
     }
 
     static void parseContent(JSONValue value, ref string text, ref string reasoning, bool reasoningMode)

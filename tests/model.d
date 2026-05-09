@@ -1,4 +1,4 @@
-module checks.model;
+module tests.model;
 
 import intuit;
 import intuit.openai : OpenAIModel;

@@ -3,17 +3,17 @@ module intuit.endpoint;
 import intuit.context;
 import intuit.model;
 import intuit.response;
+import intuit.tool;
 import conductor.http : toJSON;
 import std.json : JSONValue, JSONType;
 import std.traits : isArray, isIntegral;
 
 interface IEndpoint
 {
-    string name();
-    void name(string value);
-    string url();
-    void url(string value);
-    void key(string value);
+    ref string name();
+    ref string url();
+    ref string key();
+    ref ToolRegistry tools();
 
     IModel[] available();
     IModel model(string name);
@@ -30,7 +30,7 @@ Completion completions(E, M, D)(E ep, M model, D data)
     else
         JSONValue input = data.toJSON();
 
-    JSONValue payload = model.completionsJSON(input);
+    JSONValue payload = model.completionsJSON(input, ep.tools);
     JSONValue resp = ep._completions(model, payload);
     return model.parseCompletions(resp);
 }
