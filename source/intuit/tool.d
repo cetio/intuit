@@ -45,7 +45,7 @@ struct ToolRegistry
     {
         if (name in tools)
             return tools[name];
-        throw new Exception("Tool not found: " ~ name);
+        throw new Exception("Tool not found: "~name);
     }
 
     Tool[] list()
@@ -71,10 +71,7 @@ static:
             static if (is(T == JSONValue))
             {
                 static if (ParamTypes.length > 1)
-                {
                     schema["properties"]["param"~i.to!string] = JSONValue("object");
-                    schema["required"].array ~= JSONValue("param"~i.to!string);
-                }
             }
             else static if (is(T == string))
                 schema["properties"]["param"~i.to!string] = JSONValue("string");
@@ -96,7 +93,7 @@ static:
 
     JSONValue delegate(JSONValue) generateWrapper(alias func)()
     {
-        enum PARAMS = (){
+        enum PARAMS = () {
             string ret = "";
             static foreach (I, T; Parameters!func)
             {
@@ -110,7 +107,7 @@ static:
             return ret;
         }();
 
-        enum ARGS = (){
+        enum ARGS = () {
             string ret = "";
             static foreach (I, T; Parameters!func)
             {
@@ -123,18 +120,18 @@ static:
 
         static if (is(ReturnType!func == void))
         {
-            return (JSONValue args) {
-                mixin(PARAMS);
-                mixin("func("~ARGS~");");
+            mixin("return (JSONValue args) {
+                "~PARAMS~";
+                func("~ARGS~");
                 return JSONValue.emptyObject;
-            };
+            };");
         }
         else
         {
-            return (JSONValue args) {
-                mixin(PARAMS);
-                return mixin("func("~ARGS~")").toJSON();
-            };
+            mixin("return (JSONValue args) {
+                "~PARAMS~";
+                return func("~ARGS~").toJSON();
+            };");
         }
     }
 

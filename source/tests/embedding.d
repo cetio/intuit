@@ -1,92 +1,60 @@
-module checks.embedding;
+module tests.embedding;
 
 import intuit.response.embedding;
+import std.exception : assertThrown;
+import std.math : isClose, sqrt;
 
 unittest
 {
-    import std.math : isClose;
-    float[] a = [1.0f, 0.0f, 0.0f];
-    float[] b = [1.0f, 0.0f, 0.0f];
-    assert(isClose(cosineSimilarity(a, b), 1.0f, 1e-5f));
+    float[] identical = [1.0f, 0.0f, 0.0f];
+    assert(isClose(cosineSimilarity(identical, identical), 1.0f, 1e-5f));
+
+    float[] orthogonal = [0.0f, 1.0f, 0.0f];
+    assert(isClose(cosineSimilarity(identical, orthogonal), 0.0f, 1e-5f));
+
+    float[] diagonal = [1.0f, 1.0f, 0.0f];
+    float[] axis = [1.0f, 0.0f, 0.0f];
+    assert(isClose(cosineSimilarity(diagonal, axis), 1.0f / sqrt(2.0f), 1e-5f));
 }
 
 unittest
 {
-    import std.math : isClose;
-    float[] a = [1.0f, 0.0f, 0.0f];
-    float[] b = [0.0f, 1.0f, 0.0f];
-    assert(isClose(cosineSimilarity(a, b), 0.0f, 1e-5f));
+    float[] first = [1.0f, 2.0f, 3.0f];
+    float[] second = [4.0f, 5.0f, 6.0f];
+    assert(isClose(dotProduct(first, second), 32.0f, 1e-5f));
+
+    float[] origin = [0.0f, 0.0f, 0.0f];
+    float[] point = [3.0f, 4.0f, 0.0f];
+    assert(isClose(euclideanDistance(origin, point), 5.0f, 1e-5f));
 }
 
 unittest
 {
-    import std.math : isClose, sqrt;
-    float[] a = [1.0f, 1.0f, 0.0f];
-    float[] b = [1.0f, 0.0f, 0.0f];
-    assert(isClose(cosineSimilarity(a, b), 1.0f / sqrt(2.0f), 1e-5f));
+    float[] vector = [3.0f, 4.0f, 0.0f];
+    ref float[] normalized = normalize(vector);
+    assert(normalized.ptr == vector.ptr);
+    assert(isClose(l2Norm(vector), 1.0f, 1e-5f));
 }
 
 unittest
 {
-    float[] a = [1.0f, 2.0f];
-    float[] b = [1.0f, 2.0f, 3.0f];
-    try
-    {
-        auto _ = cosineSimilarity(a, b);
-        assert(false);
-    }
-    catch (Exception) {}
-}
-
-unittest
-{
-    import std.math : isClose;
-    float[] a = [1.0f, 2.0f, 3.0f];
-    float[] b = [4.0f, 5.0f, 6.0f];
-    assert(isClose(dotProduct(a, b), 32.0f, 1e-5f));
-}
-
-unittest
-{
-    import std.math : isClose;
-    float[] a = [0.0f, 0.0f, 0.0f];
-    float[] b = [3.0f, 4.0f, 0.0f];
-    assert(isClose(euclideanDistance(a, b), 5.0f, 1e-5f));
-}
-
-unittest
-{
-    import std.math : isClose;
-    float[] v = [3.0f, 4.0f, 0.0f];
-    ref float[] result = normalize(v);
-    assert(result.ptr == v.ptr);
-    assert(isClose(l2Norm(v), 1.0f, 1e-5f));
-}
-
-unittest
-{
-    import std.math : isClose, sqrt;
     float[][] embeddings = [
         [1.0f, 0.0f],
         [0.0f, 1.0f]
     ];
-    float[] result = normMean(embeddings);
+    float[] mean = normMean(embeddings);
     float expected = 1.0f / sqrt(2.0f);
-    assert(result.length == 2);
-    assert(isClose(result[0], expected, 1e-5f));
-    assert(isClose(result[1], expected, 1e-5f));
+    assert(mean.length == 2);
+    assert(isClose(mean[0], expected, 1e-5f));
+    assert(isClose(mean[1], expected, 1e-5f));
 }
 
 unittest
 {
-    float[][] embeddings = [
-        [1.0f, 2.0f],
-        [1.0f, 2.0f, 3.0f]
-    ];
-    try
-    {
-        auto _ = normMean(embeddings);
-        assert(false);
-    }
-    catch (Exception) {}
+    float[] shortVec = [1.0f, 2.0f];
+    float[] longVec = [1.0f, 2.0f, 3.0f];
+    assertThrown!Exception(cosineSimilarity(shortVec, longVec));
+
+    float[][] mismatched = [[1.0f, 2.0f], [1.0f, 2.0f, 3.0f]];
+    assertThrown!Exception(normMean(mismatched));
 }
