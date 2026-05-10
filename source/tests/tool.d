@@ -176,7 +176,7 @@ unittest
 unittest
 {
     auto endpoint = new OpenAI("http://127.0.0.1:1234");
-    auto model = cast(OpenAIModel) endpoint.model("qwen/qwen3.5-9b");
+    auto model = cast(OpenAIModel)endpoint.model("qwen/qwen3.5-9b");
     
     ToolRegistry registry;
     registry.add!testGreet();

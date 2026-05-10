@@ -9,6 +9,7 @@ import conductor.http : Response, send;
 import std.net.curl : HTTP;
 import std.json : JSONType, JSONValue, parseJSON;
 import std.string : assumeUTF;
+import std.conv : to;
 
 class OpenAI : IEndpoint
 {
@@ -90,13 +91,13 @@ public:
 
         string content = response.content is null ? null : response.content.assumeUTF().idup;
         if (response.status < 200 || response.status >= 300)
-            throw new EndpointError(methodName(method), target, response.status, response.reason, content);
+            throw new EndpointError(method.to!string, target, response.status, response.reason, content);
 
         try
             return content.parseJSON();
         catch (Exception)
             throw new EndpointError(
-                methodName(method),
+                method.to!string,
                 target,
                 response.status,
                 response.reason,
@@ -128,34 +129,5 @@ public:
         if (ret.length >= 3 && ret[$-3..$] == "/v1")
             ret = ret[0..$-3];
         return ret;
-    }
-
-    static string methodName(HTTP.Method method)
-    {
-        switch (method)
-        {
-        case HTTP.Method.undefined:
-            return "UNDEFINED";
-        case HTTP.Method.get:
-            return "GET";
-        case HTTP.Method.post:
-            return "POST";
-        case HTTP.Method.put:
-            return "PUT";
-        case HTTP.Method.patch:
-            return "PATCH";
-        case HTTP.Method.del:
-            return "DELETE";
-        case HTTP.Method.head:
-            return "HEAD";
-        case HTTP.Method.options:
-            return "OPTIONS";
-        case HTTP.Method.trace:
-            return "TRACE";
-        case HTTP.Method.connect:
-            return "CONNECT";
-        default:
-            return "UNKNOWN";
-        }
     }
 }
