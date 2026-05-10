@@ -55,6 +55,7 @@ struct ToolRegistry
     }
 
 private:
+static:
     JSONValue generateSchema(alias func)()
     {
         JSONValue schema = JSONValue.emptyObject;
@@ -95,14 +96,12 @@ private:
         static if (ParamTypes.length == 0)
         {
             return delegate(JSONValue args) {
-                static if (is(ReturnType!func == void))
+                static if (!is(ReturnType!func == void))
+                    return func().toJSON();
+                else
                 {
                     func();
                     return JSONValue.emptyObject;
-                }
-                else
-                {
-                    return func().toJSON();
                 }
             };
         }
