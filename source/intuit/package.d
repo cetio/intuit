@@ -6,4 +6,5 @@ public import intuit.response;
 public import intuit.model;
 public import intuit.endpoint;
 public import intuit.openai;
+public import intuit.qwen;
 public import intuit.tool;
