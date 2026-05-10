@@ -5,9 +5,9 @@ import intuit.endpoint;
 import intuit.model;
 import intuit.openai.model;
 import intuit.tool;
-import conductor.http : JSONValue, Response, parseJSON, send;
+import conductor.http : Response, send;
 import std.net.curl : HTTP;
-import std.json : JSONType;
+import std.json : JSONType, JSONValue, parseJSON;
 import std.string : assumeUTF;
 
 class OpenAI : IEndpoint
@@ -18,6 +18,8 @@ private:
     string _key;
     ToolRegistry _tools;
     HTTP http;
+
+    IModel[string] models;
 
 public:
     this(string url, string key = null, string name = "OpenAI")
@@ -30,31 +32,36 @@ public:
 
     override ref string name() 
         => _name;
+
     override ref string url() 
         => _url;
+
     override ref string key() 
         => _key;
+
     override ref ToolRegistry tools() 
         => _tools;
 
     override IModel[] available()
     {
         JSONValue json = request(HTTP.Method.get, "models");
-        IModel[] models;
         if ("data" in json && json["data"].type == JSONType.array)
         {
             foreach (m; json["data"].array)
             {
                 string name = "id" in m ? m["id"].str : null;
-                string owner = "owned_by" in m ? m["owned_by"].str : null;
-                models ~= new OpenAIModel(name, owner);
+                if (name !in models)
+                {
+                    string owner = "owned_by" in m ? m["owned_by"].str : null;
+                    models[name] = cast(IModel)(new OpenAIModel(name, owner));
+                }
             }
         }
-        return models;
+        return models.values;
     }
 
     override IModel model(string name)
-        => new OpenAIModel(name);
+        => name in models ? models[name] : new OpenAIModel(name, null);
 
     override JSONValue _completions(IModel model, JSONValue payload)
         => request(HTTP.Method.post, "chat/completions", payload);
@@ -69,9 +76,7 @@ private:
         Response response;
 
         if (payload.type == JSONType.null_)
-        {
             response = send(http, method, target, null, null, requestHeaders());
-        }
         else
         {
             response = send(
