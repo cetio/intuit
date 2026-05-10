@@ -25,12 +25,12 @@ public:
         IModel[] models;
         if ("data" in json && json["data"].type == JSONType.array)
         {
-            foreach (m; json["data"].array)
+            foreach (item; json["data"].array)
             {
-                string name = "id" in m ? m["id"].str : null;
+                string name = "id" in item ? item["id"].str : null;
                 if (name !is null)
                 {
-                    string owner = "owned_by" in m ? m["owned_by"].str : null;
+                    string owner = "owned_by" in item ? item["owned_by"].str : null;
                     models ~= new QwenModel(name, owner);
                 }
             }

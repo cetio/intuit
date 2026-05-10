@@ -38,31 +38,38 @@ public:
         this._owner = owner;
     }
 
-    override ref string name() 
+    override ref string name()
         => _name;
-    override ref string owner() 
-    => _owner;
+
+    override ref string owner()
+        => _owner;
 
     override string toString() const
         => "OpenAIModel("~_name~", "~_owner~")";
 
     // Chainable and accessor properties for model settings.
 
-    ref double temperature() => _temperature;
+    ref double temperature()
+        => _temperature;
+
     OpenAIModel temperature(double val)
     {
         _temperature = val;
         return this;
     }
 
-    ref double topP() => _topP;
+    ref double topP()
+        => _topP;
+
     OpenAIModel topP(double val)
     {
         _topP = val;
         return this;
     }
 
-    ref long maxTokens() => _maxTokens;
+    ref long maxTokens()
+        => _maxTokens;
+
     OpenAIModel maxTokens(long val)
     {
         _maxTokens = val;
@@ -70,56 +77,72 @@ public:
     }
 
 
-    ref string[] stop() => _stop;
+    ref string[] stop()
+        => _stop;
+
     OpenAIModel stop(string[] val)
     {
         _stop = val;
         return this;
     }
 
-    ref double presencePenalty() => _presencePenalty;
+    ref double presencePenalty()
+        => _presencePenalty;
+
     OpenAIModel presencePenalty(double val)
     {
         _presencePenalty = val;
         return this;
     }
 
-    ref double frequencyPenalty() => _frequencyPenalty;
+    ref double frequencyPenalty()
+        => _frequencyPenalty;
+
     OpenAIModel frequencyPenalty(double val)
     {
         _frequencyPenalty = val;
         return this;
     }
 
-    ref long n() => _n;
+    ref long n()
+        => _n;
+
     OpenAIModel n(long val)
     {
         _n = val;
         return this;
     }
 
-    ref long[long] logitBias() => _logitBias;
+    ref long[long] logitBias()
+        => _logitBias;
+
     OpenAIModel logitBias(long[long] val)
     {
         _logitBias = val;
         return this;
     }
 
-    ref long seed() => _seed;
+    ref long seed()
+        => _seed;
+
     OpenAIModel seed(long val)
     {
         _seed = val;
         return this;
     }
 
-    ref string encodingFormat() => _encodingFormat;
+    ref string encodingFormat()
+        => _encodingFormat;
+
     OpenAIModel encodingFormat(string val)
     {
         _encodingFormat = val;
         return this;
     }
 
-    ref long dimensions() => _dimensions;
+    ref long dimensions()
+        => _dimensions;
+
     OpenAIModel dimensions(long val)
     {
         _dimensions = val;
@@ -227,18 +250,22 @@ public:
 
         if ("choices" in json && json["choices"].type == JSONType.array)
         {
-            foreach (c; json["choices"].array)
+            foreach (entry; json["choices"].array)
             {
                 Choice choice;
-                choice.raw = c;
-                JSONValue message = ("message" in c) ? c["message"] : (("delta" in c) ? c["delta"] : JSONValue.init);
-                parseMessage(choice, message);
-                choice.finishReason = parseFinishReason("finish_reason" in c ? c["finish_reason"] : JSONValue.init);
+                choice.raw = entry;
+                JSONValue msg = ("message" in entry)
+                    ? entry["message"]
+                    : (("delta" in entry) ? entry["delta"] : JSONValue.init);
+                parseMessage(choice, msg);
+                choice.finishReason = parseFinishReason(
+                    "finish_reason" in entry ? entry["finish_reason"] : JSONValue.init
+                );
 
-                if ("logprobs" in c && !c["logprobs"].isNull)
-                    choice.logProbs = c["logprobs"];
-                else if ("log_probs" in c && !c["log_probs"].isNull)
-                    choice.logProbs = c["log_probs"];
+                if ("logprobs" in entry && !entry["logprobs"].isNull)
+                    choice.logProbs = entry["logprobs"];
+                else if ("log_probs" in entry && !entry["log_probs"].isNull)
+                    choice.logProbs = entry["log_probs"];
 
                 ret.choices ~= choice;
             }

@@ -25,13 +25,13 @@ struct ToolRegistry
 {
     private Tool[string] tools;
 
-    void add(alias func)(bool autoexec = false)
-        if (__traits(compiles, &func))
+    void add(alias F)(bool autoexec = false)
+        if (__traits(compiles, &F))
     {
-        tools[__traits(identifier, func)] = new Tool(
-            __traits(identifier, func),
-            generateSchema!func(),
-            generateWrapper!func(),
+        tools[__traits(identifier, F)] = new Tool(
+            __traits(identifier, F),
+            generateSchema!F(),
+            generateWrapper!F(),
             autoexec
         );
     }
@@ -58,14 +58,14 @@ struct ToolRegistry
 
 private:
 static:
-    JSONValue generateSchema(alias func)()
+    JSONValue generateSchema(alias F)()
     {
         JSONValue schema = JSONValue.emptyObject;
         schema["type"] = JSONValue("object");
         schema["properties"] = JSONValue.emptyObject;
         schema["required"] = JSONValue.emptyArray;
 
-        alias ParamTypes = Parameters!func;
+        alias ParamTypes = Parameters!F;
         static foreach (i, T; ParamTypes)
         {
             static if (is(T == JSONValue))
@@ -91,46 +91,48 @@ static:
         return schema;
     }
 
-    JSONValue delegate(JSONValue) generateWrapper(alias func)()
+    JSONValue delegate(JSONValue) generateWrapper(alias F)()
     {
-        enum PARAMS = () {
+        enum ParamDecl = () {
             string ret = "";
-            static foreach (I, T; Parameters!func)
+            static foreach (I, T; Parameters!F)
             {
-                static if (is(T == JSONValue) && Parameters!func.length == 1)
+                static if (is(T == JSONValue) && Parameters!F.length == 1)
                     ret ~= "JSONValue param"~I.to!string~" = args;";
                 else static if (is(T == JSONValue))
                     ret ~= "JSONValue param"~I.to!string~" = args[\"param"~I.to!string~"\"];";
                 else
-                    ret ~= T.stringof~" param"~I.to!string~" = extractParam!"~T.stringof~"(args, \"param"~I.to!string~"\");";
+                    ret ~= T.stringof~" param"~I.to!string~
+                        ~" = extractParam!"~T.stringof~"(args, \"param"~
+                        ~I.to!string~"\");";
             }
             return ret;
         }();
 
-        enum ARGS = () {
+        enum ArgDecl = () {
             string ret = "";
-            static foreach (I, T; Parameters!func)
+            static foreach (I, T; Parameters!F)
             {
                 ret ~= "param"~I.to!string;
-                if (I < cast(ptrdiff_t)Parameters!func.length - 1)
+                if (I < cast(ptrdiff_t)Parameters!F.length - 1)
                     ret ~= ", ";
             }
             return ret;
         }();
 
-        static if (is(ReturnType!func == void))
+        static if (is(ReturnType!F == void))
         {
             mixin("return (JSONValue args) {
-                "~PARAMS~";
-                func("~ARGS~");
+                "~ParamDecl~";
+                F("~ArgDecl~");
                 return JSONValue.emptyObject;
             };");
         }
         else
         {
             mixin("return (JSONValue args) {
-                "~PARAMS~";
-                return func("~ARGS~").toJSON();
+                "~ParamDecl~";
+                return F("~ArgDecl~").toJSON();
             };");
         }
     }

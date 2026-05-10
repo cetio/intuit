@@ -7,7 +7,7 @@ import std.conv : to;
 struct Embedding(T)
 {
     alias value this;
-    
+
     T[] value;
 }
 
@@ -19,7 +19,7 @@ package float hsum(__m256 v)
     hi = _mm_add_ps(lo, hi);
     hi = _mm_hadd_ps(hi, hi);
     hi = _mm_hadd_ps(hi, hi);
-    
+
     return hi[0];
 }
 
@@ -28,10 +28,10 @@ float cosineSimilarity(T : U[], U)(T a, T b)
 {
     if (a.length != b.length)
         throw new Exception("Vectors must be of the same length for cosine similarity!");
-    
+
     if (a.length == 0)
         throw new Exception("Cannot compute cosine similarity of empty vectors!");
-    
+
     float dot = 0;
     float ma = 0;
     float mb = 0;
@@ -80,17 +80,17 @@ float[] normMean(T : U[][], U)(T embeddings)
         return new float[0];
 
     size_t d = embeddings[0].length;
-    
+
     foreach (e; embeddings)
     {
         if (e.length != d)
         {
-            string msg = "All embeddings must have the same length! Expected " ~ 
+            string msg = "All embeddings must have the same length! Expected " ~
                          d.to!string ~ ", got " ~ e.length.to!string;
             throw new Exception(msg);
         }
     }
-    
+
     float[] sum = new float[d];
     sum[] = 0.0;
 
@@ -99,7 +99,7 @@ float[] normMean(T : U[][], U)(T embeddings)
         float* pe = e.ptr;
         float* ps = sum.ptr;
         size_t simdCount = d / 8;
-        
+
         foreach (i; 0..simdCount)
         {
             __m256 ve = _mm256_loadu_ps(pe);
@@ -109,7 +109,7 @@ float[] normMean(T : U[][], U)(T embeddings)
             pe += 8;
             ps += 8;
         }
-        
+
         size_t remainder = d - (simdCount * 8);
         if (remainder > 0)
         {
@@ -126,7 +126,7 @@ float[] normMean(T : U[][], U)(T embeddings)
     __m256 invNVec = _mm256_set1_ps(invN);
     float* ps = sum.ptr;
     size_t simdCount = d / 8;
-    
+
     foreach (i; 0..simdCount)
     {
         __m256 vs = _mm256_loadu_ps(ps);
@@ -134,7 +134,7 @@ float[] normMean(T : U[][], U)(T embeddings)
         _mm256_storeu_ps(ps, result);
         ps += 8;
     }
-    
+
     size_t remainder = d - (simdCount * 8);
     if (remainder > 0)
     {
@@ -148,7 +148,7 @@ float[] normMean(T : U[][], U)(T embeddings)
     double sq = 0.0;
     float* psum = sum.ptr;
     size_t simdCountNorm = d / 8;
-    
+
     foreach (i; 0..simdCountNorm)
     {
         __m256 vs = _mm256_loadu_ps(psum);
@@ -157,7 +157,7 @@ float[] normMean(T : U[][], U)(T embeddings)
         sq += cast(double)partial;
         psum += 8;
     }
-    
+
     size_t remainderNorm = d - (simdCountNorm * 8);
     if (remainderNorm > 0)
     {
@@ -177,7 +177,7 @@ float[] normMean(T : U[][], U)(T embeddings)
     __m256 invNormVec = _mm256_set1_ps(invNorm);
     float* pnorm = sum.ptr;
     size_t simdCountFinal = d / 8;
-    
+
     foreach (i; 0..simdCountFinal)
     {
         __m256 vs = _mm256_loadu_ps(pnorm);
@@ -185,7 +185,7 @@ float[] normMean(T : U[][], U)(T embeddings)
         _mm256_storeu_ps(pnorm, result);
         pnorm += 8;
     }
-    
+
     size_t remainderFinal = d - (simdCountFinal * 8);
     if (remainderFinal > 0)
     {
@@ -204,7 +204,7 @@ float dotProduct(T : U[], U)(T a, T b)
 {
     if (a.length != b.length)
         throw new Exception("Vectors must be of the same length for dot product!");
-    
+
     float dot = 0;
 
     float* pa = a.ptr;
@@ -239,7 +239,7 @@ float euclideanDistance(T : U[], U)(T a, T b)
 {
     if (a.length != b.length)
         throw new Exception("Vectors must be of the same length for Euclidean distance!");
-    
+
     float sqDist = 0;
 
     float* pa = a.ptr;
@@ -277,7 +277,7 @@ float l2Norm(T : U[], U)(T v)
 {
     if (v.length == 0)
         return 0.0f;
-    
+
     double sq = 0.0;
 
     float* pv = v.ptr;
@@ -311,12 +311,12 @@ ref T normalize(T : U[], U)(ref T v)
     float norm = l2Norm(v);
     if (norm <= 1e-12)
         throw new Exception("Cannot normalize zero vector!");
-    
+
     float invNorm = 1.0f / norm;
     __m256 invNormVec = _mm256_set1_ps(invNorm);
     float* pv = v.ptr;
     size_t simdCount = v.length / 8;
-    
+
     foreach (i; 0..simdCount)
     {
         __m256 vv = _mm256_loadu_ps(pv);
@@ -324,7 +324,7 @@ ref T normalize(T : U[], U)(ref T v)
         _mm256_storeu_ps(pv, result);
         pv += 8;
     }
-    
+
     size_t remainder = v.length - (simdCount * 8);
     if (remainder > 0)
     {
@@ -334,6 +334,6 @@ ref T normalize(T : U[], U)(ref T v)
             pv++;
         }
     }
-    
+
     return v;
 }

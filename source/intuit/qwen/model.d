@@ -49,9 +49,10 @@ public:
         this._owner = owner;
     }
 
-    override ref string name() 
+    override ref string name()
         => _name;
-    override ref string owner() 
+
+    override ref string owner()
         => _owner;
 
     override string toString() const
@@ -59,77 +60,99 @@ public:
 
     // Standard OpenAI parameters (chainable and accessor properties)
 
-    ref double temperature() => _temperature;
+    ref double temperature()
+        => _temperature;
+
     QwenModel temperature(double val)
     {
         _temperature = val;
         return this;
     }
 
-    ref double topP() => _topP;
+    ref double topP()
+        => _topP;
+
     QwenModel topP(double val)
     {
         _topP = val;
         return this;
     }
 
-    ref long maxTokens() => _maxTokens;
+    ref long maxTokens()
+        => _maxTokens;
+
     QwenModel maxTokens(long val)
     {
         _maxTokens = val;
         return this;
     }
 
-    ref string[] stop() => _stop;
+    ref string[] stop()
+        => _stop;
+
     QwenModel stop(string[] val)
     {
         _stop = val;
         return this;
     }
 
-    ref double presencePenalty() => _presencePenalty;
+    ref double presencePenalty()
+        => _presencePenalty;
+
     QwenModel presencePenalty(double val)
     {
         _presencePenalty = val;
         return this;
     }
 
-    ref double frequencyPenalty() => _frequencyPenalty;
+    ref double frequencyPenalty()
+        => _frequencyPenalty;
+
     QwenModel frequencyPenalty(double val)
     {
         _frequencyPenalty = val;
         return this;
     }
 
-    ref long n() => _n;
+    ref long n()
+        => _n;
+
     QwenModel n(long val)
     {
         _n = val;
         return this;
     }
 
-    ref long[long] logitBias() => _logitBias;
+    ref long[long] logitBias()
+        => _logitBias;
+
     QwenModel logitBias(long[long] val)
     {
         _logitBias = val;
         return this;
     }
 
-    ref long seed() => _seed;
+    ref long seed()
+        => _seed;
+
     QwenModel seed(long val)
     {
         _seed = val;
         return this;
     }
 
-    ref string encodingFormat() => _encodingFormat;
+    ref string encodingFormat()
+        => _encodingFormat;
+
     QwenModel encodingFormat(string val)
     {
         _encodingFormat = val;
         return this;
     }
 
-    ref long dimensions() => _dimensions;
+    ref long dimensions()
+        => _dimensions;
+
     QwenModel dimensions(long val)
     {
         _dimensions = val;
@@ -165,21 +188,27 @@ public:
 
     // Qwen-specific parameters (chainable and accessor properties)
 
-    ref bool enableThinking() => _enableThinking;
+    ref bool enableThinking()
+        => _enableThinking;
+
     QwenModel enableThinking(bool val)
     {
         _enableThinking = val;
         return this;
     }
 
-    ref long topK() => _topK;
+    ref long topK()
+        => _topK;
+
     QwenModel topK(long val)
     {
         _topK = val;
         return this;
     }
 
-    ref JSONValue extraBody() => _extraBody;
+    ref JSONValue extraBody()
+        => _extraBody;
+
     QwenModel extraBody(JSONValue val)
     {
         _extraBody = val;
@@ -187,7 +216,9 @@ public:
         return this;
     }
 
-    ref JSONValue chatTemplateKwargs() => _chatTemplateKwargs;
+    ref JSONValue chatTemplateKwargs()
+        => _chatTemplateKwargs;
+
     QwenModel chatTemplateKwargs(JSONValue val)
     {
         _chatTemplateKwargs = val;
@@ -195,7 +226,9 @@ public:
         return this;
     }
 
-    ref JSONValue mmProcessorKwargs() => _mmProcessorKwargs;
+    ref JSONValue mmProcessorKwargs()
+        => _mmProcessorKwargs;
+
     QwenModel mmProcessorKwargs(JSONValue val)
     {
         _mmProcessorKwargs = val;
@@ -203,7 +236,9 @@ public:
         return this;
     }
 
-    ref long thinkingBudget() => _thinkingBudget;
+    ref long thinkingBudget()
+        => _thinkingBudget;
+
     QwenModel thinkingBudget(long val)
     {
         _thinkingBudget = val;
@@ -240,7 +275,7 @@ public:
         // Qwen-specific parameters
         if (_topK >= 0) ret["top_k"] = JSONValue(_topK);
         if (_thinkingBudget >= 0) ret["thinking_budget"] = JSONValue(_thinkingBudget);
-        
+
         // enable_thinking can be at top level (Alibaba Cloud) or in chat_template_kwargs (vLLM)
         // We'll add it to chat_template_kwargs if that's being used, otherwise at top level
         if (_hasChatTemplateKwargs)
@@ -300,18 +335,22 @@ public:
 
         if ("choices" in json && json["choices"].type == JSONType.array)
         {
-            foreach (c; json["choices"].array)
+            foreach (entry; json["choices"].array)
             {
                 Choice choice;
-                choice.raw = c;
-                JSONValue message = ("message" in c) ? c["message"] : (("delta" in c) ? c["delta"] : JSONValue.init);
-                parseMessage(choice, message);
-                choice.finishReason = parseFinishReason("finish_reason" in c ? c["finish_reason"] : JSONValue.init);
+                choice.raw = entry;
+                JSONValue msg = ("message" in entry)
+                    ? entry["message"]
+                    : (("delta" in entry) ? entry["delta"] : JSONValue.init);
+                parseMessage(choice, msg);
+                choice.finishReason = parseFinishReason(
+                    "finish_reason" in entry ? entry["finish_reason"] : JSONValue.init
+                );
 
-                if ("logprobs" in c && !c["logprobs"].isNull)
-                    choice.logProbs = c["logprobs"];
-                else if ("log_probs" in c && !c["log_probs"].isNull)
-                    choice.logProbs = c["log_probs"];
+                if ("logprobs" in entry && !entry["logprobs"].isNull)
+                    choice.logProbs = entry["logprobs"];
+                else if ("log_probs" in entry && !entry["log_probs"].isNull)
+                    choice.logProbs = entry["log_probs"];
 
                 ret.choices ~= choice;
             }

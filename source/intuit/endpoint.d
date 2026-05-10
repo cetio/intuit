@@ -53,9 +53,9 @@ Completion completions(E, M, D)(E ep, M model, auto ref D data)
             ret.choices = ret.choices[0..1];
 
         bool hasNonAutoexec;
-        foreach (tc; first.toolCalls)
+        foreach (call; first.toolCalls)
         {
-            Tool tool = ep.tools().get(tc.name);
+            Tool tool = ep.tools.get(call.name);
             if (!tool.autoexec)
             {
                 hasNonAutoexec = true;
@@ -66,11 +66,11 @@ Completion completions(E, M, D)(E ep, M model, auto ref D data)
         if (hasNonAutoexec)
             return ret;
 
-        foreach (tc; first.toolCalls)
+        foreach (call; first.toolCalls)
         {
-            Tool tool = ep.tools().get(tc.name);
-            JSONValue result = tool.impl(tc.arguments);
-            data.tool(tc.id, result);
+            Tool tool = ep.tools.get(call.name);
+            JSONValue result = tool.impl(call.arguments);
+            data.tool(call.id, result);
         }
 
         if (first.toolCalls.length > 0)

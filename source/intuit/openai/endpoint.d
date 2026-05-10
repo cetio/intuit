@@ -18,9 +18,9 @@ private:
     string _url;
     string _key;
     ToolRegistry _tools;
-    HTTP http;
+    HTTP _http;
 
-    IModel[string] models;
+    IModel[string] _models;
 
 public:
     this(string url, string key = null, string name = "OpenAI")
@@ -28,19 +28,19 @@ public:
         this._name = name;
         this._url = normalizeBaseUrl(url);
         this._key = key;
-        this.http = HTTP();
+        this._http = HTTP();
     }
 
-    override ref string name() 
+    override ref string name()
         => _name;
 
-    override ref string url() 
+    override ref string url()
         => _url;
 
-    override ref string key() 
+    override ref string key()
         => _key;
 
-    override ref ToolRegistry tools() 
+    override ref ToolRegistry tools()
         => _tools;
 
     override IModel[] available()
@@ -48,21 +48,21 @@ public:
         JSONValue json = request(HTTP.Method.get, "models");
         if ("data" in json && json["data"].type == JSONType.array)
         {
-            foreach (m; json["data"].array)
+            foreach (item; json["data"].array)
             {
-                string name = "id" in m ? m["id"].str : null;
-                if (name !in models)
+                string name = "id" in item ? item["id"].str : null;
+                if (name !in _models)
                 {
-                    string owner = "owned_by" in m ? m["owned_by"].str : null;
-                    models[name] = cast(IModel)(new OpenAIModel(name, owner));
+                    string owner = "owned_by" in item ? item["owned_by"].str : null;
+                    _models[name] = cast(IModel)(new OpenAIModel(name, owner));
                 }
             }
         }
-        return models.values;
+        return _models.values;
     }
 
     override IModel model(string name)
-        => name in models ? models[name] : new OpenAIModel(name, null);
+        => name in _models ? _models[name] : new OpenAIModel(name, null);
 
     override JSONValue _completions(IModel model, JSONValue payload)
         => request(HTTP.Method.post, "chat/completions", payload);
@@ -76,11 +76,11 @@ public:
         Response response;
 
         if (payload.type == JSONType.null_)
-            response = send(http, method, target, null, null, requestHeaders());
+            response = send(_http, method, target, null, null, requestHeaders());
         else
         {
             response = send(
-                http,
+                _http,
                 method,
                 target,
                 cast(const(ubyte)[])payload.toString(),

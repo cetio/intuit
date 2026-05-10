@@ -52,14 +52,14 @@ struct Context
         if (toolCalls.length > 0)
         {
             JSONValue callsArray = JSONValue.emptyArray;
-            foreach (tc; toolCalls)
+            foreach (toolCall; toolCalls)
             {
                 JSONValue call = JSONValue.emptyObject;
-                call["id"] = JSONValue(tc.id);
+                call["id"] = JSONValue(toolCall.id);
                 call["type"] = JSONValue("function");
                 JSONValue func = JSONValue.emptyObject;
-                func["name"] = JSONValue(tc.name);
-                func["arguments"] = JSONValue(tc.arguments.toString());
+                func["name"] = JSONValue(toolCall.name);
+                func["arguments"] = JSONValue(toolCall.arguments.toString());
                 call["function"] = func;
                 callsArray.array ~= call;
             }

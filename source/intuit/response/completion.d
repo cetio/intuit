@@ -74,10 +74,10 @@ struct Completion
 class CompletionStream
 {
 private:
-    Completion[] completions;
-    shared size_t length;
-    shared size_t index;
-    shared bool writer;
+    Completion[] _completions;
+    shared size_t _length;
+    shared size_t _index;
+    shared bool _writer;
 
 package:
     void delegate(CompletionStream) _commence;
@@ -92,10 +92,10 @@ public:
     {
         this.model = model;
         this.callback = callback;
-        this.completions = null;
-        this.length = 0;
-        this.index = 0;
-        this.writer = false;
+        this._completions = null;
+        this._length = 0;
+        this._index = 0;
+        this._writer = false;
         this.complete = false;
         this.json = JSONValue.emptyObject;
     }
@@ -105,26 +105,26 @@ public:
         if (_commence is null)
             throw new Exception("Stream not initialized");
 
-        while (atomicLoad!(MemoryOrder.acq)(writer))
+        while (atomicLoad!(MemoryOrder.acq)(_writer))
             Thread.yield();
 
-        size_t cur = atomicFetchAdd!(MemoryOrder.seq)(index, 1);
+        size_t cur = atomicFetchAdd!(MemoryOrder.seq)(_index, 1);
 
-        while (cur >= atomicLoad!(MemoryOrder.acq)(length))
+        while (cur >= atomicLoad!(MemoryOrder.acq)(_length))
         {
             if (complete)
-                return completions[atomicLoad!(MemoryOrder.acq)(length) - 1];
+                return _completions[atomicLoad!(MemoryOrder.acq)(_length) - 1];
             Thread.yield();
         }
 
         atomicFence!(MemoryOrder.acq);
-        return completions[cur];
+        return _completions[cur];
     }
 
     Completion[] collect(size_t count)
     {
         Completion[] ret;
-        foreach (i; 0 .. count)
+        foreach (i; 0..count)
             ret ~= next();
         return ret;
     }
@@ -142,13 +142,13 @@ public:
 
     void update(Completion val)
     {
-        atomicStore!(MemoryOrder.rel)(writer, true);
+        atomicStore!(MemoryOrder.rel)(_writer, true);
         atomicFence!(MemoryOrder.rel);
 
-        completions ~= val;
-        atomicFetchAdd!(MemoryOrder.rel)(length, 1);
+        _completions ~= val;
+        atomicFetchAdd!(MemoryOrder.rel)(_length, 1);
 
         atomicFence!(MemoryOrder.rel);
-        atomicStore!(MemoryOrder.rel)(writer, false);
+        atomicStore!(MemoryOrder.rel)(_writer, false);
     }
 }
