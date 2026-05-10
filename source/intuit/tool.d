@@ -4,20 +4,20 @@ import conductor.http : toJSON;
 import std.conv : to;
 import std.json : JSONValue, JSONType;
 import std.traits : Parameters, ReturnType;
-import std.meta : staticMap, Filter;
-import std.typecons : Tuple;
 
 class Tool
 {
     string name;
     JSONValue schema;
     JSONValue delegate(JSONValue) impl;
+    bool autoexec;
 
-    this(string name, JSONValue schema, JSONValue delegate(JSONValue) impl)
+    this(string name, JSONValue schema, JSONValue delegate(JSONValue) impl, bool autoexec = false)
     {
         this.name = name;
         this.schema = schema;
         this.impl = impl;
+        this.autoexec = autoexec;
     }
 }
 
@@ -25,13 +25,14 @@ struct ToolRegistry
 {
     private Tool[string] tools;
 
-    void add(alias func)()
+    void add(alias func)(bool autoexec = false)
         if (__traits(compiles, &func))
     {
         tools[__traits(identifier, func)] = new Tool(
-            __traits(identifier, func), 
-            generateSchema!func(), 
-            generateWrapper!func()
+            __traits(identifier, func),
+            generateSchema!func(),
+            generateWrapper!func(),
+            autoexec
         );
     }
 
@@ -61,124 +62,87 @@ static:
     {
         JSONValue schema = JSONValue.emptyObject;
         schema["type"] = JSONValue("object");
-        JSONValue properties = JSONValue.emptyObject;
-        string[] required;
+        schema["properties"] = JSONValue.emptyObject;
+        schema["required"] = JSONValue.emptyArray;
 
         alias ParamTypes = Parameters!func;
-        static foreach (i, Type; ParamTypes)
+        static foreach (i, T; ParamTypes)
         {
-            static if (is(Type == string))
-                properties["arg" ~ i.to!string] = JSONValue("string");
-            else static if (is(Type == int) || is(Type == long))
-                properties["arg" ~ i.to!string] = JSONValue("integer");
-            else static if (is(Type == float) || is(Type == double))
-                properties["arg" ~ i.to!string] = JSONValue("number");
-            else static if (is(Type == bool))
-                properties["arg" ~ i.to!string] = JSONValue("boolean");
+            static if (is(T == JSONValue))
+            {
+                static if (ParamTypes.length > 1)
+                {
+                    schema["properties"]["param"~i.to!string] = JSONValue("object");
+                    schema["required"].array ~= JSONValue("param"~i.to!string);
+                }
+            }
+            else static if (is(T == string))
+                schema["properties"]["param"~i.to!string] = JSONValue("string");
+            else static if (is(T == int) || is(T == long))
+                schema["properties"]["param"~i.to!string] = JSONValue("integer");
+            else static if (is(T == float) || is(T == double))
+                schema["properties"]["param"~i.to!string] = JSONValue("number");
+            else static if (is(T == bool))
+                schema["properties"]["param"~i.to!string] = JSONValue("boolean");
             else
-                static assert(false, "Unsupported parameter type: " ~ Type.stringof);
+                static assert(false, "Unsupported parameter type: "~T.stringof);
 
-            required ~= "arg" ~ i.to!string;
+            static if (!is(T == JSONValue) || ParamTypes.length > 1)
+                schema["required"].array ~= JSONValue("param"~i.to!string);
         }
-
-        schema["properties"] = properties;
-        JSONValue requiredArray = JSONValue.emptyArray;
-        foreach (req; required)
-            requiredArray.array ~= JSONValue(req);
-        schema["required"] = requiredArray;
 
         return schema;
     }
 
     JSONValue delegate(JSONValue) generateWrapper(alias func)()
     {
-        alias ParamTypes = Parameters!func;
-        
-        static if (ParamTypes.length == 0)
-        {
-            return delegate(JSONValue args) {
-                static if (!is(ReturnType!func == void))
-                    return func().toJSON();
+        enum PARAMS = (){
+            string ret = "";
+            static foreach (I, T; Parameters!func)
+            {
+                static if (is(T == JSONValue) && Parameters!func.length == 1)
+                    ret ~= "JSONValue param"~I.to!string~" = args;";
+                else static if (is(T == JSONValue))
+                    ret ~= "JSONValue param"~I.to!string~" = args[\"param"~I.to!string~"\"];";
                 else
-                {
-                    func();
-                    return JSONValue.emptyObject;
-                }
-            };
-        }
-        else
-        {
-            return delegate(JSONValue args) {
-                return impl!func(args);
-            };
-        }
-    }
+                    ret ~= T.stringof~" param"~I.to!string~" = extractParam!"~T.stringof~"(args, \"param"~I.to!string~"\");";
+            }
+            return ret;
+        }();
 
-    JSONValue impl(alias func)(JSONValue args)
-    {
-        alias ParamTypes = Parameters!func;
-        alias RetType = ReturnType!func;
-
-        static if (ParamTypes.length == 0)
-        {
-            static if (is(RetType == void))
+        enum ARGS = (){
+            string ret = "";
+            static foreach (I, T; Parameters!func)
             {
-                func();
+                ret ~= "param"~I.to!string;
+                if (I < cast(ptrdiff_t)Parameters!func.length - 1)
+                    ret ~= ", ";
+            }
+            return ret;
+        }();
+
+        static if (is(ReturnType!func == void))
+        {
+            return (JSONValue args) {
+                mixin(PARAMS);
+                mixin("func("~ARGS~");");
                 return JSONValue.emptyObject;
-            }
-            else
-            {
-                return func().toJSON();
-            }
+            };
         }
         else
         {
-            enum paramDecls = () {
-                string result = "";
-                static foreach (i, Type; ParamTypes)
-                {
-                    result ~= Type.stringof ~ " p" ~ i.to!string ~ ";";
-                }
-                return result;
-            }();
-            
-            enum paramAssigns = () {
-                string result = "";
-                static foreach (i, Type; ParamTypes)
-                {
-                    result ~= "p" ~ i.to!string ~ " = extractParam!" ~ Type.stringof ~ "(args, \"arg" ~ i.to!string ~ "\");";
-                }
-                return result;
-            }();
-            
-            enum callArgs = () {
-                string result = "";
-                static foreach (i, Type; ParamTypes)
-                {
-                    if (i > 0) result ~= ", ";
-                    result ~= "p" ~ i.to!string;
-                }
-                return result;
-            }();
-
-            enum callCode = `
-                ` ~ paramDecls ~ `
-                ` ~ paramAssigns ~ `
-                static if (is(RetType == void)) {
-                    func(` ~ callArgs ~ `);
-                    return JSONValue.emptyObject;
-                } else {
-                    return func(` ~ callArgs ~ `).toJSON();
-                }
-            `;
-
-            mixin(callCode);
+            return (JSONValue args) {
+                mixin(PARAMS);
+                return mixin("func("~ARGS~")").toJSON();
+            };
         }
     }
 
     T extractParam(T)(JSONValue args, string name)
     {
-        static if (is(T == string))
+        static if (is(T == JSONValue))
+            return args[name];
+        else static if (is(T == string))
             return args[name].str;
         else static if (is(T == byte) || is(T == short) || is(T == int) || is(T == long) ||
             is(T == ubyte) || is(T == ushort) || is(T == uint) || is(T == ulong))
@@ -198,6 +162,6 @@ static:
         else static if (is(T == bool))
             return args[name].type == JSONType.true_;
         else
-            static assert(false, "Unsupported parameter type: " ~ T.stringof);
+            static assert(false, "Unsupported parameter type: "~T.stringof);
     }
 }

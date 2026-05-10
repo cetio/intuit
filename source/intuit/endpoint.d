@@ -22,7 +22,18 @@ interface IEndpoint
     JSONValue _embeddings(IModel model, JSONValue payload);
 }
 
-Completion completions(E, M, D)(E ep, M model, D data)
+/**
+ * Send a completion request to the endpoint using a specific model.
+ *
+ * Params:
+ *   ep = The endpoint to send the request to.
+ *   model = The model to use for the completion.
+ *   data = The input data. If this is a Context, it will be mutated
+ *          in-place with the assistant response.
+ *
+ * Returns: The completion response.
+ */
+Completion completions(E, M, D)(E ep, M model, auto ref D data)
     if (is(E : IEndpoint) && is(M : IModel))
 {
     static if (is(D == Context))
@@ -32,15 +43,71 @@ Completion completions(E, M, D)(E ep, M model, D data)
 
     JSONValue payload = model.completionsJSON(input, ep.tools);
     JSONValue resp = ep._completions(model, payload);
-    return model.parseCompletions(resp);
+    Completion ret = model.parseCompletions(resp);
+
+    static if (is(D == Context))
+    {
+        Choice first = ret.choice(0);
+        data.assistant(first.text, first.toolCalls);
+        if (ret.choices.length > 1)
+            ret.choices = ret.choices[0..1];
+
+        bool hasNonAutoexec;
+        foreach (tc; first.toolCalls)
+        {
+            Tool tool = ep.tools().get(tc.name);
+            if (!tool.autoexec)
+            {
+                hasNonAutoexec = true;
+                break;
+            }
+        }
+
+        if (hasNonAutoexec)
+            return ret;
+
+        foreach (tc; first.toolCalls)
+        {
+            Tool tool = ep.tools().get(tc.name);
+            JSONValue result = tool.impl(tc.arguments);
+            data.tool(tc.id, result);
+        }
+
+        if (first.toolCalls.length > 0)
+            return completions(ep, model, data);
+    }
+
+    return ret;
 }
 
-Completion completions(E, D)(E ep, string modelName, D data)
+/**
+ * Convenience overload that resolves the model by name before calling
+ * completions.
+ *
+ * Params:
+ *   ep = The endpoint to send the request to.
+ *   model = The name of the model to use.
+ *   data = The input data. If this is a Context, it will be mutated
+ *          in-place with the assistant response.
+ *
+ * Returns: The completion response.
+ */
+Completion completions(E, D)(E ep, string model, auto ref D data)
     if (is(E : IEndpoint))
 {
-    return completions(ep, ep.model(modelName), data);
+    return completions(ep, ep.model(model), data);
 }
 
+/**
+ * Request a single embedding vector from the endpoint.
+ *
+ * Params:
+ *   ep = The endpoint to send the request to.
+ *   model = The model to use for the embedding.
+ *   data = The input data to embed.
+ *
+ * Returns: A single embedding vector.
+ */
 Embedding!T embeddings(T = float, E, M, D)(E ep, M model, D data)
     if (is(E : IEndpoint) && is(M : IModel)
         && (is(D == string) || !isArray!D))
@@ -55,13 +122,34 @@ Embedding!T embeddings(T = float, E, M, D)(E ep, M model, D data)
     return ret;
 }
 
-Embedding!T embeddings(T = float, E, D)(E ep, string modelName, D data)
+/**
+ * Convenience overload that resolves the model by name before calling
+ * embeddings.
+ *
+ * Params:
+ *   ep = The endpoint to send the request to.
+ *   model = The name of the model to use.
+ *   data = The input data to embed.
+ *
+ * Returns: A single embedding vector.
+ */
+Embedding!T embeddings(T = float, E, D)(E ep, string model, D data)
     if (is(E : IEndpoint)
         && (is(D == string) || !isArray!D))
 {
-    return embeddings!T(ep, ep.model(modelName), data);
+    return embeddings!T(ep, ep.model(model), data);
 }
 
+/**
+ * Request embedding vectors for an array of inputs.
+ *
+ * Params:
+ *   ep = The endpoint to send the request to.
+ *   model = The model to use for the embeddings.
+ *   data = An array of input data to embed.
+ *
+ * Returns: An array of embedding vectors.
+ */
 Embedding!T[] embeddings(T = float, E, M, D)(E ep, M model, D data)
     if (is(E : IEndpoint) && is(M : IModel)
         && isArray!D && !is(D == string))
@@ -80,11 +168,22 @@ Embedding!T[] embeddings(T = float, E, M, D)(E ep, M model, D data)
     return ret;
 }
 
-Embedding!T[] embeddings(T = float, E, D)(E ep, string modelName, D data)
+/**
+ * Convenience overload that resolves the model by name before calling
+ * embeddings with an array of inputs.
+ *
+ * Params:
+ *   ep = The endpoint to send the request to.
+ *   model = The name of the model to use.
+ *   data = An array of input data to embed.
+ *
+ * Returns: An array of embedding vectors.
+ */
+Embedding!T[] embeddings(T = float, E, D)(E ep, string model, D data)
     if (is(E : IEndpoint)
         && isArray!D && !is(D == string))
 {
-    return embeddings!T(ep, ep.model(modelName), data);
+    return embeddings!T(ep, ep.model(model), data);
 }
 
 private T[] toVector(T)(JSONValue arr)

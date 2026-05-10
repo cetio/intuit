@@ -44,7 +44,11 @@ struct Context
     {
         JSONValue msg = JSONValue.emptyObject;
         msg["role"] = JSONValue(Role.Assistant);
-        msg["content"] = data.toJSON();
+
+        JSONValue content = data.toJSON();
+        if (toolCalls.length == 0 || content.type != JSONType.string || content.str.length > 0)
+            msg["content"] = content;
+
         if (toolCalls.length > 0)
         {
             JSONValue callsArray = JSONValue.emptyArray;
@@ -55,7 +59,7 @@ struct Context
                 call["type"] = JSONValue("function");
                 JSONValue func = JSONValue.emptyObject;
                 func["name"] = JSONValue(tc.name);
-                func["arguments"] = JSONValue(tc.arguments);
+                func["arguments"] = JSONValue(tc.arguments.toString());
                 call["function"] = func;
                 callsArray.array ~= call;
             }
