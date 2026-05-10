@@ -102,9 +102,7 @@ static:
                 else static if (is(T == JSONValue))
                     ret ~= "JSONValue param"~I.to!string~" = args[\"param"~I.to!string~"\"];";
                 else
-                    ret ~= T.stringof~" param"~I.to!string~
-                        ~" = extractParam!"~T.stringof~"(args, \"param"~
-                        ~I.to!string~"\");";
+                    ret ~= T.stringof~" param"~I.to!string~" = extractParam!"~T.stringof~"(args, \"param"~I.to!string~"\");";
             }
             return ret;
         }();
