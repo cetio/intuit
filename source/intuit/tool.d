@@ -11,13 +11,13 @@ class Tool
 {
     string name;
     JSONValue schema;
-    JSONValue delegate(JSONValue) execute;
+    JSONValue delegate(JSONValue) impl;
 
-    this(string name, JSONValue schema, JSONValue delegate(JSONValue) execute)
+    this(string name, JSONValue schema, JSONValue delegate(JSONValue) impl)
     {
         this.name = name;
         this.schema = schema;
-        this.execute = execute;
+        this.impl = impl;
     }
 }
 
@@ -26,12 +26,13 @@ struct ToolRegistry
     private Tool[string] tools;
 
     void add(alias func)()
+        if (__traits(compiles, &func))
     {
-        static assert(__traits(compiles, &func), "Function must be callable");
-        enum functionName = __traits(identifier, func);
-        JSONValue schema = generateSchema!func();
-        JSONValue delegate(JSONValue) wrapper = generateWrapper!func();
-        tools[functionName] = new Tool(functionName, schema, wrapper);
+        tools[__traits(identifier, func)] = new Tool(
+            __traits(identifier, func), 
+            generateSchema!func(), 
+            generateWrapper!func()
+        );
     }
 
     void remove(string name)

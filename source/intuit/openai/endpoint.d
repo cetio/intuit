@@ -69,7 +69,6 @@ public:
     override JSONValue _embeddings(IModel model, JSONValue payload)
         => request(HTTP.Method.post, "embeddings", payload);
 
-private:
     JSONValue request(HTTP.Method method, string tail, JSONValue payload = JSONValue.init)
     {
         string target = route(tail);

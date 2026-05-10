@@ -61,7 +61,7 @@ unittest
 
     JSONValue args = JSONValue.emptyObject;
     args["arg0"] = JSONValue("World");
-    JSONValue result = tool.execute(args);
+    JSONValue result = tool.impl(args);
     assert(result.str == "Hello, World!");
 }
 
@@ -77,7 +77,7 @@ unittest
     JSONValue args = JSONValue.emptyObject;
     args["arg0"] = JSONValue(3);
     args["arg1"] = JSONValue(4);
-    JSONValue result = tool.execute(args);
+    JSONValue result = tool.impl(args);
     assert(result.integer == 12);
 }
 
@@ -92,7 +92,7 @@ unittest
 
     JSONValue args = JSONValue.emptyObject;
     args["arg0"] = JSONValue(5);
-    JSONValue result = tool.execute(args);
+    JSONValue result = tool.impl(args);
     assert(result.type == JSONType.true_);
 }
 
@@ -108,7 +108,7 @@ unittest
     JSONValue args = JSONValue.emptyObject;
     args["arg0"] = JSONValue(10.0);
     args["arg1"] = JSONValue(2.0);
-    JSONValue result = tool.execute(args);
+    JSONValue result = tool.impl(args);
     assert(result.floating == 5.0);
 }
 
@@ -125,7 +125,7 @@ unittest
     args["arg0"] = JSONValue("Hello");
     args["arg1"] = JSONValue("World");
     args["arg2"] = JSONValue("Today");
-    JSONValue result = tool.execute(args);
+    JSONValue result = tool.impl(args);
     assert(result.str == "Hello World Today");
 }
 
@@ -139,7 +139,7 @@ unittest
     assert(tool.name == "testNoParams");
 
     JSONValue args = JSONValue.emptyObject;
-    JSONValue result = tool.execute(args);
+    JSONValue result = tool.impl(args);
     assert(result.str == "no params");
 }
 
@@ -192,7 +192,7 @@ unittest
     assert(result.choice.toolCalls[0].name == "testGreet", "Tool name should be testGreet");
     
     Tool tool = registry.get("testGreet");
-    JSONValue toolResult = tool.execute(result.choice.toolCalls[0].arguments);
+    JSONValue toolResult = tool.impl(result.choice.toolCalls[0].arguments);
     
     assert(toolResult.str == "Hello, Bob!", "Tool should execute correctly");
     
