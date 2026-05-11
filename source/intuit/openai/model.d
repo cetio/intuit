@@ -387,6 +387,7 @@ private:
         case "refusal":
             return FinishReason.Refusal;
         case "tool_call":
+        case "tool_calls":
             return FinishReason.ToolCall;
         case "tool_use":
             return FinishReason.ToolUse;

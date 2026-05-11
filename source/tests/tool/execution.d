@@ -23,6 +23,22 @@ string mixedJSONValue(string name, JSONValue extra)
     return name~":"~extra["key"].str;
 }
 
+string concat(string[] parts)
+{
+    string ret;
+    foreach (part; parts)
+        ret ~= part;
+    return ret;
+}
+
+int sum(int[] nums)
+{
+    int ret;
+    foreach (num; nums)
+        ret += num;
+    return ret;
+}
+
 unittest
 {
     ToolRegistry registry;
@@ -72,4 +88,28 @@ unittest
     JSONValue result = registry.get("mixedJSONValue").impl(args);
 
     assert(result.str == "Alice:value");
+}
+
+unittest
+{
+    ToolRegistry registry;
+    registry.add!concat();
+
+    JSONValue args = JSONValue.emptyObject;
+    args["param0"] = JSONValue([JSONValue("Hello"), JSONValue(", "), JSONValue("World")]);
+    JSONValue result = registry.get("concat").impl(args);
+
+    assert(result.str == "Hello, World");
+}
+
+unittest
+{
+    ToolRegistry registry;
+    registry.add!sum();
+
+    JSONValue args = JSONValue.emptyObject;
+    args["param0"] = JSONValue([JSONValue(1), JSONValue(2), JSONValue(3)]);
+    JSONValue result = registry.get("sum").impl(args);
+
+    assert(result.integer == 6);
 }

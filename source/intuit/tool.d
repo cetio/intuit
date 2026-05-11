@@ -58,6 +58,29 @@ struct ToolRegistry
 
 private:
 static:
+    JSONValue typeSchema(T)()
+    {
+        static if (is(T == JSONValue))
+            return JSONValue("object");
+        else static if (is(T == string))
+            return JSONValue("string");
+        else static if (is(T == int) || is(T == long))
+            return JSONValue("integer");
+        else static if (is(T == float) || is(T == double))
+            return JSONValue("number");
+        else static if (is(T == bool))
+            return JSONValue("boolean");
+        else static if (is(T : E[], E))
+        {
+            JSONValue arr = JSONValue.emptyObject;
+            arr["type"] = JSONValue("array");
+            arr["items"] = typeSchema!E();
+            return arr;
+        }
+        else
+            static assert(false, "Unsupported parameter type: "~T.stringof);
+    }
+
     JSONValue generateSchema(alias F)()
     {
         JSONValue schema = JSONValue.emptyObject;
@@ -71,18 +94,10 @@ static:
             static if (is(T == JSONValue))
             {
                 static if (ParamTypes.length > 1)
-                    schema["properties"]["param"~i.to!string] = JSONValue("object");
+                    schema["properties"]["param"~i.to!string] = typeSchema!T();
             }
-            else static if (is(T == string))
-                schema["properties"]["param"~i.to!string] = JSONValue("string");
-            else static if (is(T == int) || is(T == long))
-                schema["properties"]["param"~i.to!string] = JSONValue("integer");
-            else static if (is(T == float) || is(T == double))
-                schema["properties"]["param"~i.to!string] = JSONValue("number");
-            else static if (is(T == bool))
-                schema["properties"]["param"~i.to!string] = JSONValue("boolean");
             else
-                static assert(false, "Unsupported parameter type: "~T.stringof);
+                schema["properties"]["param"~i.to!string] = typeSchema!T();
 
             static if (!is(T == JSONValue) || ParamTypes.length > 1)
                 schema["required"].array ~= JSONValue("param"~i.to!string);
@@ -102,7 +117,7 @@ static:
                 else static if (is(T == JSONValue))
                     ret ~= "JSONValue param"~I.to!string~" = args[\"param"~I.to!string~"\"];";
                 else
-                    ret ~= T.stringof~" param"~I.to!string~" = extractParam!"~T.stringof~"(args, \"param"~I.to!string~"\");";
+                    ret ~= T.stringof~" param"~I.to!string~" = parseValue!("~T.stringof~")(args[\"param"~I.to!string~"\"]);";
             }
             return ret;
         }();
@@ -135,30 +150,38 @@ static:
         }
     }
 
-    T extractParam(T)(JSONValue args, string name)
+    T parseValue(T)(JSONValue value)
     {
         static if (is(T == JSONValue))
-            return args[name];
+            return value;
         else static if (is(T == string))
-            return args[name].str;
+            return value.str;
         else static if (is(T == byte) || is(T == short) || is(T == int) || is(T == long) ||
             is(T == ubyte) || is(T == ushort) || is(T == uint) || is(T == ulong))
         {
-            if (args[name].type == JSONType.integer)
-                return cast(T)args[name].integer;
+            if (value.type == JSONType.integer)
+                return cast(T)value.integer;
             else
-                return cast(T)args[name].floating;
+                return cast(T)value.floating;
         }
         else static if (is(T == float) || is(T == double))
         {
-            if (args[name].type == JSONType.integer)
-                return cast(T)args[name].integer;
+            if (value.type == JSONType.integer)
+                return cast(T)value.integer;
             else
-                return cast(T)args[name].floating;
+                return cast(T)value.floating;
         }
         else static if (is(T == bool))
-            return args[name].type == JSONType.true_;
+            return value.type == JSONType.true_;
+        else static if (is(T : E[], E))
+        {
+            E[] ret;
+            foreach (item; value.array)
+                ret ~= parseValue!E(item);
+            return ret;
+        }
         else
             static assert(false, "Unsupported parameter type: "~T.stringof);
     }
+
 }

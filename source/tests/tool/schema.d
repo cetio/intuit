@@ -23,6 +23,22 @@ string mixedJSONValue(string name, JSONValue extra)
     return name;
 }
 
+string concat(string[] parts)
+{
+    string ret;
+    foreach (part; parts)
+        ret ~= part;
+    return ret;
+}
+
+int sum(int[] nums)
+{
+    int ret;
+    foreach (num; nums)
+        ret += num;
+    return ret;
+}
+
 unittest
 {
     ToolRegistry registry;
@@ -69,4 +85,26 @@ unittest
     assert(schema["properties"]["param0"].str == "string");
     assert(schema["properties"]["param1"].str == "object");
     assert(schema["required"].array.length == 2);
+}
+
+unittest
+{
+    ToolRegistry registry;
+    registry.add!concat();
+
+    JSONValue schema = registry.get("concat").schema;
+    assert(schema["properties"]["param0"]["type"].str == "array");
+    assert(schema["properties"]["param0"]["items"].str == "string");
+    assert(schema["required"].array.length == 1);
+}
+
+unittest
+{
+    ToolRegistry registry;
+    registry.add!sum();
+
+    JSONValue schema = registry.get("sum").schema;
+    assert(schema["properties"]["param0"]["type"].str == "array");
+    assert(schema["properties"]["param0"]["items"].str == "integer");
+    assert(schema["required"].array.length == 1);
 }
