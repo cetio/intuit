@@ -7,7 +7,7 @@
 		"conductor": "~>2.0.0",
 		"intel-intrinsics": "~>1.14.2"
 	},
-	"description": "Small, pragmatic D bindings for OpenAI-compatible language and embedding APIs.",
+	"description": "Library for LLM integration with tools, embeddings, and more.",
 	"license": "AGPL-3.0-only",
 	"name": "intuit"
 }
