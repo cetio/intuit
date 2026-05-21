@@ -1,15 +1,19 @@
 # Intuit
 
-Intuit is a small D library for interacting with OpenAI-compatible language and embedding endpoints. Intuit keeps the surface direct, JSON-native, and pragmatic, while still providing native D response types and SIMD-optimized embedding operations.
+Intuit is a library for interacting with various AI endpoints/models, with a focus on local models. Intuit endpoints and models are highly extensible through interfaces, but primarily supports:
+
+- OpenAI-compatible API (e.g. Ollama, Mistral, Deepseek)
+- OpenAI API (e.g. ChatGPT)
+- Qwen API (e.g. Qwen3, Qwen3.5)
 
 ## Features
 
-- **Chat Completions** - Generate text completions with configurable model parameters.
-- **Structured Output** - Parse JSON from completion text with balanced extraction for fenced or prose-wrapped responses.
-- **Embeddings** - Generate vector embeddings with support for batch processing.
-- **SIMD-Optimized Vector Operations** - High-performance cosine similarity, dot product, Euclidean distance, and normalization using AVX intrinsics.
-- **Model Management** - Lightweight model discovery and provider-native model configuration.
-- **Type-Safe Metaprogramming** - Uses D's native types and JSON interop instead of large wrapper layers.
+- **Completions**: Text completions, with choices and easy parsing to D types.
+- **Structured Output**: JSON schema (model options) as well as JSON parsing for responses.
+- **Context Management**: System/user/assistant messages and preserved context via `Context`.
+- **Streaming Support**: Real-time completions streaming (*currently not public API*)
+- **Embeddings**: Embeddings with variable float sizes and SIMD math utilities.
+- **Tool Use**: Native D functions as tools with automatic JSON schema generation.
 
 ## Usage
 
@@ -74,6 +78,65 @@ model
 
 // Parameters are automatically applied to requests
 Completion result = completions(endpoint, model, "Hello!");
+```
+
+### Tool Use
+
+Intuit can register native D functions as tools and expose them to models with automatically generated JSON schemas.
+
+```d
+import intuit;
+
+// Define functions to expose as tools
+string greet(string name)
+{
+    return "Hello, "~name~"!";
+}
+
+int add(int a, int b)
+{
+    return a + b;
+}
+
+auto endpoint = new OpenAI("http://127.0.0.1:1234");
+auto model = cast(OpenAIModel)endpoint.model("qwen/qwen3.5-9b");
+
+// Register tools on the endpoint
+endpoint.tools.add!greet();
+endpoint.tools.add!add();
+
+Context ctx;
+ctx.user("Say hello to Bob and also compute 7 + 5");
+
+// Manual tool execution (default)
+Completion result = completions(endpoint, model, ctx);
+
+if (result.choice.toolCalls.length > 0)
+{
+    foreach (call; result.choice.toolCalls)
+    {
+        Tool tool = endpoint.tools.get(call.name);
+        JSONValue output = tool.impl(call.arguments);
+        ctx.tool(call.id, output);
+    }
+
+    // Send tool results back to the model
+    Completion finalResult = completions(endpoint, model, ctx);
+}
+```
+
+For fully automatic tool execution, register with `autoexec = true`:
+
+```d
+endpoint.tools.add!greet(true);
+endpoint.tools.add!add(true);
+
+Context ctx;
+ctx.user("Say hello to Bob and also compute 7 + 5");
+
+// The library automatically executes tool calls and recurses until
+// the model returns a plain text response.
+Completion result = completions(endpoint, model, ctx);
 ```
 
 ### Embeddings

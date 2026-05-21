@@ -70,7 +70,8 @@ Completion completions(E, M, D)(E ep, M model, auto ref D data)
         {
             Tool tool = ep.tools.get(call.name);
             JSONValue result = tool.impl(call.arguments);
-            data.tool(call.id, result);
+            string serialized = result.type == JSONType.string ? result.str : result.toString();
+            data.tool(call.id, serialized);
         }
 
         if (first.toolCalls.length > 0)
