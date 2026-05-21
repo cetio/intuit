@@ -7,7 +7,7 @@
 		"conductor": "~>2.0.0",
 		"intel-intrinsics": "~>1.14.2"
 	},
-	"description": "Library for LLM integration with tools, embeddings, and more.",
+	"description": "Language and embedding model interface for completions, streaming, computation, and tool usage.",
 	"license": "AGPL-3.0-only",
 	"name": "intuit"
 }
