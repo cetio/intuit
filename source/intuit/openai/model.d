@@ -5,7 +5,7 @@ import intuit.error : EndpointError;
 import intuit.model;
 import intuit.response;
 import intuit.tool;
-import conductor.http : toJSON;
+import conductor.serialize : toJSON;
 import std.conv : to;
 import std.json : JSONValue, JSONType, parseJSON;
 import std.math : isNaN;

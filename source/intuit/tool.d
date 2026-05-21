@@ -1,6 +1,6 @@
 module intuit.tool;
 
-import conductor.http : toJSON;
+import conductor.serialize : toJSON;
 import std.conv : to;
 import std.json : JSONValue, JSONType;
 import std.traits : Parameters, ReturnType;

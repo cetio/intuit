@@ -1,6 +1,6 @@
 module intuit.context;
 
-import conductor.http : toJSON;
+import conductor.serialize : toJSON;
 import intuit.response;
 import std.json;
 

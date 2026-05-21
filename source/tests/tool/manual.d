@@ -11,7 +11,7 @@ string greet(string name)
 unittest
 {
     OpenAI endpoint = new OpenAI("http://127.0.0.1:1234");
-    OpenAIModel model = cast(OpenAIModel)endpoint.model("qwen/qwen3.5-9b");
+    OpenAIModel model = cast(OpenAIModel)endpoint.model("google/gemma-4-e4b");
 
     endpoint.tools.add!greet();
 
