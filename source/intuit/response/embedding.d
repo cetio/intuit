@@ -1,16 +1,20 @@
+/// Embedding vector type and SIMD-accelerated vector operations.
 module intuit.response.embedding;
 
 import inteli.avxintrin;
 import std.math : sqrt;
 import std.conv : to;
 
+/// Wrapper around an embedding vector that implicitly converts to its value.
 struct Embedding(T)
 {
     alias value this;
 
+    /// The embedding vector values.
     T[] value;
 }
 
+/// Horizontally sums the elements of an AVX register.
 package float hsum(__m256 v)
 {
     __m128 lo = _mm256_castps256_ps128(v);
@@ -23,6 +27,19 @@ package float hsum(__m256 v)
     return hi[0];
 }
 
+/**
+ * Computes the cosine similarity between two float vectors using AVX.
+ *
+ * Params:
+ *  a = The first vector.
+ *  b = The second vector.
+ *
+ * Returns:
+ *  The cosine similarity in the range [-1, 1].
+ *
+ * Throws:
+ *  Exception if the vectors are empty, of different lengths, or have zero norm.
+ */
 float cosineSimilarity(T : U[], U)(T a, T b)
     if (is(U == float))
 {
@@ -72,6 +89,18 @@ float cosineSimilarity(T : U[], U)(T a, T b)
     return dot / (sqrt(ma) * sqrt(mb));
 }
 
+/**
+ * Computes the normalized mean of an array of float embedding vectors.
+ *
+ * Params:
+ *  embeddings = An array of embedding vectors.
+ *
+ * Returns:
+ *  The L2-normalized mean vector.
+ *
+ * Throws:
+ *  Exception if the embeddings have differing lengths.
+ */
 float[] normMean(T : U[][], U)(T embeddings)
     if (is(U == float))
 {
@@ -199,6 +228,19 @@ float[] normMean(T : U[][], U)(T embeddings)
     return sum;
 }
 
+/**
+ * Computes the dot product of two float vectors using AVX.
+ *
+ * Params:
+ *  a = The first vector.
+ *  b = The second vector.
+ *
+ * Returns:
+ *  The dot product.
+ *
+ * Throws:
+ *  Exception if the vectors are of different lengths.
+ */
 float dotProduct(T : U[], U)(T a, T b)
     if (is(U == float))
 {
@@ -234,6 +276,19 @@ float dotProduct(T : U[], U)(T a, T b)
     return dot;
 }
 
+/**
+ * Computes the Euclidean distance between two float vectors using AVX.
+ *
+ * Params:
+ *  a = The first vector.
+ *  b = The second vector.
+ *
+ * Returns:
+ *  The Euclidean distance.
+ *
+ * Throws:
+ *  Exception if the vectors are of different lengths.
+ */
 float euclideanDistance(T : U[], U)(T a, T b)
     if (is(U == float))
 {
@@ -272,6 +327,15 @@ float euclideanDistance(T : U[], U)(T a, T b)
     return sqrt(sqDist);
 }
 
+/**
+ * Computes the L2 norm (magnitude) of a float vector using AVX.
+ *
+ * Params:
+ *  v = The vector.
+ *
+ * Returns:
+ *  The L2 norm of the vector.
+ */
 float l2Norm(T : U[], U)(T v)
     if (is(U == float))
 {
@@ -305,6 +369,18 @@ float l2Norm(T : U[], U)(T v)
     return cast(float)sqrt(sq);
 }
 
+/**
+ * Normalizes a float vector to unit length in-place using AVX.
+ *
+ * Params:
+ *  v = The vector to normalize.
+ *
+ * Returns:
+ *  A reference to the normalized vector.
+ *
+ * Throws:
+ *  Exception if the vector has zero norm.
+ */
 ref T normalize(T : U[], U)(ref T v)
     if (is(U == float))
 {
