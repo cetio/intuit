@@ -1,3 +1,4 @@
+/// Unified LLM client library for OpenAI and Qwen-compatible endpoints.
 module intuit;
 
 public import intuit.context;
