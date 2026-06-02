@@ -1,3 +1,4 @@
+/// OpenAI-compatible endpoint implementation.
 module intuit.openai.endpoint;
 
 import intuit.error : EndpointError;
@@ -11,6 +12,7 @@ import std.json : JSONType, JSONValue, parseJSON;
 import std.string : assumeUTF;
 import std.conv : to;
 
+/// OpenAI-compatible LLM endpoint.
 class OpenAI : IEndpoint
 {
 private:
@@ -23,6 +25,14 @@ private:
     IModel[string] _models;
 
 public:
+    /**
+     * Constructs an OpenAI endpoint.
+     *
+     * Params:
+     *  url = The base URL of the endpoint.
+     *  key = Optional API key.
+     *  name = Display name for the endpoint.
+     */
     this(string url, string key = null, string name = "OpenAI")
     {
         this._name = name;
@@ -70,6 +80,20 @@ public:
     override JSONValue _embeddings(IModel model, JSONValue payload)
         => request(HTTP.Method.post, "embeddings", payload);
 
+    /**
+     * Sends an HTTP request to the endpoint.
+     *
+     * Params:
+     *  method = The HTTP method.
+     *  tail = The API path tail.
+     *  payload = Optional JSON payload for POST requests.
+     *
+     * Returns:
+     *  The parsed JSON response.
+     *
+     * Throws:
+     *  EndpointError on HTTP or JSON parse failures.
+     */
     JSONValue request(HTTP.Method method, string tail, JSONValue payload = JSONValue.init)
     {
         string target = route(tail);
@@ -106,6 +130,7 @@ public:
             );
     }
 
+    /// Builds request headers including authorization if a key is set.
     string[string] requestHeaders()
     {
         string[string] headers;
@@ -114,6 +139,7 @@ public:
         return headers;
     }
 
+    /// Constructs a full route from a path tail.
     string route(string tail)
     {
         while (tail.length > 0 && tail[0] == '/')
@@ -121,6 +147,7 @@ public:
         return _url~"/v1/"~tail;
     }
 
+    /// Normalizes a base URL by stripping trailing slashes and /v1 suffixes.
     static string normalizeBaseUrl(string url)
     {
         string ret = url;
