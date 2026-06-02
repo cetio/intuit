@@ -1,17 +1,35 @@
+/// Exception types for LLM endpoint and parsing errors.
 module intuit.error;
 
 import std.format : format;
 
 public:
 
+/// Thrown when an endpoint returns a non-success status or invalid response.
 class EndpointError : Exception
 {
+    /// HTTP method used for the request.
     string method;
+    /// Target route of the request.
     string route;
+    /// HTTP status code returned by the endpoint.
     ushort status;
+    /// Reason phrase from the HTTP response.
     string reason;
+    /// Raw response body content.
     string content;
 
+    /**
+     * Constructs an EndpointError.
+     *
+     * Params:
+     *  method = The HTTP method.
+     *  route = The request route.
+     *  status = The HTTP status code.
+     *  reason = The HTTP reason phrase.
+     *  content = The raw response body.
+     *  detail = Optional detail message to prepend over content.
+     */
     this(
         string method,
         string route,
@@ -48,11 +66,22 @@ private:
     }
 }
 
+/// Thrown when parsing a completion response fails.
 class CompletionParseError : Exception
 {
+    /// The raw text that could not be parsed.
     string rawText;
+    /// The candidate text that triggered the parse failure.
     string candidateText;
 
+    /**
+     * Constructs a CompletionParseError.
+     *
+     * Params:
+     *  message = The error message.
+     *  rawText = The raw unparsable text.
+     *  candidateText = The candidate text that caused the failure.
+     */
     this(string message, string rawText, string candidateText)
     {
         super(message);
