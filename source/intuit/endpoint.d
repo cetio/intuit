@@ -44,6 +44,9 @@ interface IEndpoint
 /**
  * Send a completion request to the endpoint using a specific model.
  *
+ * Enables for autoexec tool use if providing a Context instance.
+ * All autoexec tools are always run if requested by the model.
+ *
  * Params:
  *   ep = The endpoint to send the request to.
  *   model = The model to use for the completion.
@@ -71,29 +74,20 @@ Completion completions(E, M, D)(E ep, M model, auto ref D data)
         if (ret.choices.length > 1)
             ret.choices = ret.choices[0..1];
 
-        bool hasNonAutoexec;
+        bool cycle = first.toolCalls.length > 0;
         foreach (call; first.toolCalls)
         {
             Tool tool = ep.tools.get(call.name);
+            cycle &= tool.autoexec;
             if (!tool.autoexec)
-            {
-                hasNonAutoexec = true;
-                break;
-            }
-        }
-
-        if (hasNonAutoexec)
-            return ret;
-
-        foreach (call; first.toolCalls)
-        {
-            Tool tool = ep.tools.get(call.name);
+                continue;
+            
             JSONValue result = tool.impl(call.arguments);
             string serialized = result.type == JSONType.string ? result.str : result.toString();
             data.tool(call.id, serialized);
         }
 
-        if (first.toolCalls.length > 0)
+        if (cycle)
             return completions(ep, model, data);
     }
 

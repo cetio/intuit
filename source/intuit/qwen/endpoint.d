@@ -1,8 +1,8 @@
 /// Qwen-compatible endpoint implementation.
 module intuit.qwen.endpoint;
 
+public import intuit.endpoint;
 import intuit.error : EndpointError;
-import intuit.endpoint;
 import intuit.model;
 import intuit.openai.endpoint;
 import intuit.qwen.model;

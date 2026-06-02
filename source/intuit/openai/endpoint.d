@@ -1,8 +1,8 @@
 /// OpenAI-compatible endpoint implementation.
 module intuit.openai.endpoint;
 
+public import intuit.endpoint;
 import intuit.error : EndpointError;
-import intuit.endpoint;
 import intuit.model;
 import intuit.openai.model;
 import intuit.tool;
