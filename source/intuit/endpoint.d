@@ -1,3 +1,4 @@
+/// High-level endpoint interface and request functions for completions and embeddings.
 module intuit.endpoint;
 
 import intuit.context;
@@ -8,17 +9,35 @@ import conductor.serialize : toJSON;
 import std.json : JSONValue, JSONType;
 import std.traits : isArray, isIntegral;
 
+/// Interface for LLM endpoint implementations.
 interface IEndpoint
 {
+    /// Gets the endpoint name.
     ref string name();
+    /// Gets the base URL.
     ref string url();
+    /// Gets the API key.
     ref string key();
+    /// Gets the tool registry.
     ref ToolRegistry tools();
 
+    /// Fetches available models from the endpoint.
     IModel[] available();
+
+    /**
+     * Gets a model by name, creating a placeholder if unknown.
+     *
+     * Params:
+     *  name = The model name.
+     *
+     * Returns:
+     *  The requested IModel.
+     */
     IModel model(string name);
 
+    /// Sends a raw completions request. Use `completions` instead.
     JSONValue _completions(IModel model, JSONValue payload);
+    /// Sends a raw embeddings request. Use `embeddings` instead.
     JSONValue _embeddings(IModel model, JSONValue payload);
 }
 
@@ -187,6 +206,7 @@ Embedding!T[] embeddings(T = float, E, D)(E ep, string model, D data)
     return embeddings!T(ep, ep.model(model), data);
 }
 
+/// Converts a JSON array into a typed vector.
 private T[] toVector(T)(JSONValue arr)
 {
     if (arr.type != JSONType.array)
