@@ -1,3 +1,4 @@
+/// OpenAI model implementation with chainable parameter configuration.
 module intuit.openai.model;
 
 import std.algorithm.searching : canFind;
@@ -11,6 +12,7 @@ import std.json : JSONValue, JSONType, parseJSON;
 import std.math : isNaN;
 import std.string : toLower;
 
+/// OpenAI-compatible model with configurable generation and embedding parameters.
 class OpenAIModel : IModel
 {
 private:
@@ -32,6 +34,13 @@ private:
     bool _hasResponseFormat;
 
 public:
+    /**
+     * Constructs an OpenAIModel.
+     *
+     * Params:
+     *  name = The model name.
+     *  owner = The model owner, if known.
+     */
     this(string name, string owner = null)
     {
         this._name = name;
@@ -47,108 +56,128 @@ public:
     override string toString() const
         => "OpenAIModel("~_name~", "~_owner~")";
 
-    // Chainable and accessor properties for model settings.
-
+    /// Gets or sets the sampling temperature.
     ref double temperature()
         => _temperature;
 
+    /// ditto
     OpenAIModel temperature(double val)
     {
         _temperature = val;
         return this;
     }
 
+    /// Gets or sets the nucleus sampling probability.
     ref double topP()
         => _topP;
 
+    /// ditto
     OpenAIModel topP(double val)
     {
         _topP = val;
         return this;
     }
 
+    /// Gets or sets the maximum number of tokens to generate.
     ref long maxTokens()
         => _maxTokens;
 
+    /// ditto
     OpenAIModel maxTokens(long val)
     {
         _maxTokens = val;
         return this;
     }
 
-
+    /// Gets or sets the stop sequences.
     ref string[] stop()
         => _stop;
 
+    /// ditto
     OpenAIModel stop(string[] val)
     {
         _stop = val;
         return this;
     }
 
+    /// Gets or sets the presence penalty.
     ref double presencePenalty()
         => _presencePenalty;
 
+    /// ditto
     OpenAIModel presencePenalty(double val)
     {
         _presencePenalty = val;
         return this;
     }
 
+    /// Gets or sets the frequency penalty.
     ref double frequencyPenalty()
         => _frequencyPenalty;
 
+    /// ditto
     OpenAIModel frequencyPenalty(double val)
     {
         _frequencyPenalty = val;
         return this;
     }
 
+    /// Gets or sets the number of completions to generate.
     ref long n()
         => _n;
 
+    /// ditto
     OpenAIModel n(long val)
     {
         _n = val;
         return this;
     }
 
+    /// Gets or sets the logit bias map.
     ref long[long] logitBias()
         => _logitBias;
 
+    /// ditto
     OpenAIModel logitBias(long[long] val)
     {
         _logitBias = val;
         return this;
     }
 
+    /// Gets or sets the random seed.
     ref long seed()
         => _seed;
 
+    /// ditto
     OpenAIModel seed(long val)
     {
         _seed = val;
         return this;
     }
 
+    /// Gets or sets the embedding encoding format.
     ref string encodingFormat()
         => _encodingFormat;
 
+    /// ditto
     OpenAIModel encodingFormat(string val)
     {
         _encodingFormat = val;
         return this;
     }
 
+    /// Gets or sets the embedding dimensions.
     ref long dimensions()
         => _dimensions;
 
+    /// ditto
     OpenAIModel dimensions(long val)
     {
         _dimensions = val;
         return this;
     }
 
+    /// Sets the response format JSON.
     OpenAIModel responseFormat(JSONValue val)
     {
         _responseFormat = val;
@@ -156,6 +185,7 @@ public:
         return this;
     }
 
+    /// Enables JSON object response mode.
     OpenAIModel jsonMode()
     {
         JSONValue format = JSONValue.emptyObject;
@@ -163,6 +193,17 @@ public:
         return responseFormat(format);
     }
 
+    /**
+     * Enables JSON schema response mode.
+     *
+     * Params:
+     *  name = The schema name.
+     *  schema = The JSON schema object.
+     *  strict = Whether to enforce strict schema adherence.
+     *
+     * Returns:
+     *  A reference to this model for chaining.
+     */
     OpenAIModel jsonSchema(string name, JSONValue schema, bool strict = true)
     {
         JSONValue format = JSONValue.emptyObject;
@@ -176,6 +217,16 @@ public:
         return responseFormat(format);
     }
 
+    /**
+     * Builds the completions request payload from configured parameters.
+     *
+     * Params:
+     *  input = The input messages or raw content.
+     *  tools = Registered tools to include.
+     *
+     * Returns:
+     *  The JSON payload for the completions endpoint.
+     */
     override JSONValue completionsJSON(JSONValue input, ToolRegistry tools = ToolRegistry.init)
     {
         JSONValue ret = JSONValue.emptyObject;
@@ -232,6 +283,15 @@ public:
         return ret;
     }
 
+    /**
+     * Builds the embeddings request payload from configured parameters.
+     *
+     * Params:
+     *  input = The input data to embed.
+     *
+     * Returns:
+     *  The JSON payload for the embeddings endpoint.
+     */
     override JSONValue embeddingsJSON(JSONValue input)
     {
         JSONValue ret = JSONValue.emptyObject;
@@ -242,6 +302,15 @@ public:
         return ret;
     }
 
+    /**
+     * Parses a raw completions JSON response into a Completion struct.
+     *
+     * Params:
+     *  json = The raw JSON response.
+     *
+     * Returns:
+     *  The parsed Completion.
+     */
     override Completion parseCompletions(JSONValue json)
     {
         Completion ret;
@@ -273,6 +342,15 @@ public:
         return ret;
     }
 
+    /**
+     * Parses a raw embeddings JSON response into a JSON array of embeddings.
+     *
+     * Params:
+     *  json = The raw JSON response.
+     *
+     * Returns:
+     *  A JSON array containing the embedding vectors.
+     */
     override JSONValue parseEmbeddings(JSONValue json)
     {
         checkError(json);
@@ -290,6 +368,7 @@ public:
     }
 
 private:
+    /// Extracts text, reasoning, and tool calls from a message JSON object.
     static void parseMessage(ref Choice choice, JSONValue message)
     {
         if (message.type != JSONType.object)
@@ -322,6 +401,7 @@ private:
         }
     }
 
+    /// Recursively extracts text or reasoning content from a JSON value.
     static void parseContent(JSONValue value, ref string text, ref string reasoning, bool reasoningMode)
     {
         switch (value.type)
@@ -355,6 +435,7 @@ private:
         }
     }
 
+    /// Checks if a content type string indicates reasoning content.
     static bool isReasoningType(string raw)
     {
         string kind = raw.toLower;
@@ -363,12 +444,14 @@ private:
             || kind.canFind("summary");
     }
 
+    /// Appends text to a target string if non-empty.
     static void appendText(ref string target, string value)
     {
         if (value.length > 0)
             target ~= value;
     }
 
+    /// Maps a JSON finish reason string to the FinishReason enum.
     static FinishReason parseFinishReason(JSONValue value)
     {
         if (value.type != JSONType.string)
@@ -408,6 +491,7 @@ private:
         }
     }
 
+    /// Throws if the JSON response contains an error field.
     static void checkError(JSONValue json)
     {
         if ("error" !in json)
