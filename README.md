@@ -1,5 +1,7 @@
 # Intuit
 
+[![License](https://img.shields.io/badge/License-AGPL--3-blue)](LICENSE.txt)
+
 Intuit is a library for interacting with various AI endpoints/models, with a focus on local models. Intuit endpoints and models are highly extensible through interfaces, but primarily supports:
 
 - OpenAI-compatible API (e.g. Ollama, Mistral, Deepseek)
