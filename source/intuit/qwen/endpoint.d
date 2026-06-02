@@ -1,3 +1,4 @@
+/// Qwen-compatible endpoint implementation.
 module intuit.qwen.endpoint;
 
 import intuit.error : EndpointError;
@@ -11,9 +12,18 @@ import std.net.curl : HTTP;
 import std.json : JSONType, JSONValue, parseJSON;
 import std.string : assumeUTF;
 
+/// Qwen-compatible LLM endpoint, extending OpenAI with Qwen-specific models.
 class Qwen : OpenAI
 {
 public:
+    /**
+     * Constructs a Qwen endpoint.
+     *
+     * Params:
+     *  url = The base URL of the endpoint.
+     *  key = Optional API key.
+     *  name = Display name for the endpoint.
+     */
     this(string url, string key = null, string name = "Qwen")
     {
         super(url, key, name);
@@ -38,6 +48,7 @@ public:
         return models;
     }
 
+    /// Creates a QwenModel by name.
     override IModel model(string name)
         => new QwenModel(name);
 }
