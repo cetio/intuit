@@ -1,3 +1,4 @@
+/// Tool definition, schema generation, and registration.
 module intuit.tool;
 
 import conductor.serialize : toJSON;
@@ -5,13 +6,27 @@ import std.conv : to;
 import std.json : JSONValue, JSONType;
 import std.traits : Parameters, ReturnType;
 
+/// Represents a callable tool with a JSON schema and implementation delegate.
 class Tool
 {
+    /// The tool name.
     string name;
+    /// The JSON schema describing the tool's parameters.
     JSONValue schema;
+    /// The implementation delegate invoked with parsed arguments.
     JSONValue delegate(JSONValue) impl;
+    /// Whether the tool should be executed automatically without returning to the caller.
     bool autoexec;
 
+    /**
+     * Constructs a Tool.
+     *
+     * Params:
+     *  name = The tool name.
+     *  schema = The JSON schema for the tool's parameters.
+     *  impl = The delegate that implements the tool.
+     *  autoexec = Whether to auto-execute the tool.
+     */
     this(string name, JSONValue schema, JSONValue delegate(JSONValue) impl, bool autoexec = false)
     {
         this.name = name;
@@ -21,10 +36,17 @@ class Tool
     }
 }
 
+/// Registry for managing tools and generating JSON schemas from D functions.
 struct ToolRegistry
 {
     private Tool[string] tools;
 
+    /**
+     * Registers a D function as a tool, generating its schema automatically.
+     *
+     * Params:
+     *  autoexec = Whether the tool should be auto-executed.
+     */
     void add(alias F)(bool autoexec = false)
         if (__traits(compiles, &F))
     {
@@ -36,11 +58,24 @@ struct ToolRegistry
         );
     }
 
+    /// Removes a tool by name.
     void remove(string name)
     {
         tools.remove(name);
     }
 
+    /**
+     * Gets a registered tool by name.
+     *
+     * Params:
+     *  name = The tool name.
+     *
+     * Returns:
+     *  The requested Tool.
+     *
+     * Throws:
+     *  Exception if the tool is not registered.
+     */
     Tool get(string name)
     {
         if (name in tools)
@@ -48,6 +83,7 @@ struct ToolRegistry
         throw new Exception("Tool not found: "~name);
     }
 
+    /// Lists all registered tools.
     Tool[] list()
     {
         Tool[] result;
@@ -58,6 +94,7 @@ struct ToolRegistry
 
 private:
 static:
+    /// Generates a JSON schema fragment for type T.
     JSONValue typeSchema(T)()
     {
         static if (is(T == JSONValue))
@@ -81,6 +118,7 @@ static:
             static assert(false, "Unsupported parameter type: "~T.stringof);
     }
 
+    /// Generates a JSON schema object describing the parameters of function F.
     JSONValue generateSchema(alias F)()
     {
         JSONValue schema = JSONValue.emptyObject;
@@ -106,6 +144,7 @@ static:
         return schema;
     }
 
+    /// Generates a JSONValue delegate that parses arguments and invokes function F.
     JSONValue delegate(JSONValue) generateWrapper(alias F)()
     {
         enum ParamDecl = () {
@@ -117,7 +156,10 @@ static:
                 else static if (is(T == JSONValue))
                     ret ~= "JSONValue param"~I.to!string~" = args[\"param"~I.to!string~"\"];";
                 else
-                    ret ~= T.stringof~" param"~I.to!string~" = parseValue!("~T.stringof~")(args[\"param"~I.to!string~"\"]);";
+                {
+                    ret ~= T.stringof~" param"~I.to!string~
+                        " = parseValue!("~T.stringof~")(args[\"param"~I.to!string~"\"]);";
+                }
             }
             return ret;
         }();
@@ -150,6 +192,7 @@ static:
         }
     }
 
+    /// Parses a JSONValue into type T.
     T parseValue(T)(JSONValue value)
     {
         static if (is(T == JSONValue))
