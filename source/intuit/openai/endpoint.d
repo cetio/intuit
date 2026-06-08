@@ -22,6 +22,7 @@ private:
     ToolRegistry _tools;
     HTTP _http;
 
+protected:
     IModel[string] _models;
 
 public:
@@ -64,7 +65,7 @@ public:
                 if (name !in _models)
                 {
                     string owner = "owned_by" in item ? item["owned_by"].str : null;
-                    _models[name] = cast(IModel)(new OpenAIModel(name, owner));
+                    _models[name] = new OpenAIModel(name, owner);
                 }
             }
         }

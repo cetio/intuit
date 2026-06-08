@@ -170,7 +170,7 @@ public:
         while (cur >= atomicLoad!(MemoryOrder.acq)(_length))
         {
             if (complete)
-                return _completions[atomicLoad!(MemoryOrder.acq)(_length) - 1];
+                throw new Exception("Stream exhausted");
             Thread.yield();
         }
 

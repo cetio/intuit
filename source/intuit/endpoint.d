@@ -71,8 +71,6 @@ Completion completions(E, M, D)(E ep, M model, auto ref D data)
     {
         Choice first = ret.choice(0);
         data.assistant(first.text, first.toolCalls);
-        if (ret.choices.length > 1)
-            ret.choices = ret.choices[0..1];
 
         bool cycle = first.toolCalls.length > 0;
         foreach (call; first.toolCalls)
@@ -209,13 +207,16 @@ private T[] toVector(T)(JSONValue arr)
     T[] ret = new T[](arr.array.length);
     foreach (i, v; arr.array)
     {
+        if (v.type == JSONType.null_)
+            continue;
+
         static if (isIntegral!T)
         {
             if (v.type == JSONType.integer)
                 ret[i] = cast(T)v.integer;
             else if (v.type == JSONType.uinteger)
                 ret[i] = cast(T)v.uinteger;
-            else
+            else if (v.type == JSONType.float_)
                 ret[i] = cast(T)v.floating;
         }
         else

@@ -33,6 +33,8 @@ private:
     long _dimensions = 0;
     JSONValue _responseFormat;
     bool _hasResponseFormat;
+    JSONValue _toolChoice;
+    bool _hasToolChoice;
 
     // Qwen-specific parameters
     bool _enableThinking = true;
@@ -199,6 +201,35 @@ public:
         return this;
     }
 
+    /// Sets the tool_choice parameter.
+    QwenModel toolChoice(JSONValue val)
+    {
+        _toolChoice = val;
+        _hasToolChoice = true;
+        return this;
+    }
+
+    /// ditto
+    QwenModel toolChoice(string val)
+    {
+        _toolChoice = JSONValue(val);
+        _hasToolChoice = true;
+        return this;
+    }
+
+    /// Forces the model to call a specific tool.
+    QwenModel forceTool(string toolName)
+    {
+        JSONValue choice = JSONValue.emptyObject;
+        choice["type"] = JSONValue("function");
+        JSONValue func = JSONValue.emptyObject;
+        func["name"] = JSONValue(toolName);
+        choice["function"] = func;
+        _toolChoice = choice;
+        _hasToolChoice = true;
+        return this;
+    }
+
     /// Enables JSON object response mode.
     QwenModel jsonMode()
     {
@@ -338,6 +369,7 @@ public:
         }
         if (_seed > 0) ret["seed"] = JSONValue(_seed);
         if (_hasResponseFormat) ret["response_format"] = _responseFormat;
+        if (_hasToolChoice) ret["tool_choice"] = _toolChoice;
 
         // Qwen-specific parameters
         if (_topK >= 0) ret["top_k"] = JSONValue(_topK);

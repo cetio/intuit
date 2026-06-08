@@ -50,5 +50,5 @@ public:
 
     /// Creates a QwenModel by name.
     override IModel model(string name)
-        => new QwenModel(name);
+        => name in _models ? _models[name] : new QwenModel(name);
 }
