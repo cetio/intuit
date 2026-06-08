@@ -15,3 +15,4 @@ intuit-test-*
 *.obj
 *.lst
 libintuit*
+bin/*
