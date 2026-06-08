@@ -1,6 +1,8 @@
 module tests.tool.execution;
 
 import intuit;
+import unit_threaded;
+
 import std.json : JSONValue;
 
 string greet(string name)
@@ -39,6 +41,7 @@ int sum(int[] nums)
     return ret;
 }
 
+@Name("single string parameter delegates correctly")
 unittest
 {
     ToolRegistry registry;
@@ -51,6 +54,7 @@ unittest
     assert(result.str == "Hello, World!");
 }
 
+@Name("two int parameters sum correctly")
 unittest
 {
     ToolRegistry registry;
@@ -64,6 +68,7 @@ unittest
     assert(result.integer == 7);
 }
 
+@Name("sole JSONValue parameter receives whole object")
 unittest
 {
     ToolRegistry registry;
@@ -76,6 +81,7 @@ unittest
     assert(result.str == "from whole object");
 }
 
+@Name("mixed string and JSONValue parameters")
 unittest
 {
     ToolRegistry registry;
@@ -90,6 +96,7 @@ unittest
     assert(result.str == "Alice:value");
 }
 
+@Name("string array parameter concatenates")
 unittest
 {
     ToolRegistry registry;
@@ -102,6 +109,7 @@ unittest
     assert(result.str == "Hello, World");
 }
 
+@Name("int array parameter sums correctly")
 unittest
 {
     ToolRegistry registry;

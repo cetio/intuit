@@ -1,6 +1,8 @@
 module tests.tool.schema;
 
 import intuit;
+import unit_threaded;
+
 import std.json : JSONValue;
 
 string greet(string name)
@@ -39,6 +41,7 @@ int sum(int[] nums)
     return ret;
 }
 
+@Name("single string parameter schema")
 unittest
 {
     ToolRegistry registry;
@@ -54,6 +57,7 @@ unittest
     assert(schema["required"][0].str == "param0");
 }
 
+@Name("multiple typed parameters schema")
 unittest
 {
     ToolRegistry registry;
@@ -66,6 +70,7 @@ unittest
     assert(schema["required"].array.length == 3);
 }
 
+@Name("sole JSONValue parameter omits properties")
 unittest
 {
     ToolRegistry registry;
@@ -76,6 +81,7 @@ unittest
         "Sole JSONValue param should not generate schema properties");
 }
 
+@Name("mixed string and JSONValue parameters schema")
 unittest
 {
     ToolRegistry registry;
@@ -87,6 +93,7 @@ unittest
     assert(schema["required"].array.length == 2);
 }
 
+@Name("string array parameter schema")
 unittest
 {
     ToolRegistry registry;
@@ -98,6 +105,7 @@ unittest
     assert(schema["required"].array.length == 1);
 }
 
+@Name("int array parameter schema")
 unittest
 {
     ToolRegistry registry;

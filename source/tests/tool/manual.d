@@ -1,6 +1,8 @@
 module tests.tool.manual;
 
 import intuit;
+import unit_threaded;
+
 import std.json : JSONValue;
 
 string greet(string name)
@@ -8,6 +10,7 @@ string greet(string name)
     return "Hello, "~name~"!";
 }
 
+@Name("manual tool call round-trip yields final text response")
 unittest
 {
     OpenAI endpoint = new OpenAI("http://127.0.0.1:1234");
