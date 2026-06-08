@@ -2,6 +2,7 @@
 	"fileVersion": 1,
 	"versions": {
 		"conductor": "2.0.0",
-		"intel-intrinsics": "1.14.4"
+		"intel-intrinsics": "1.14.4",
+		"unit-threaded": "2.2.4"
 	}
 }

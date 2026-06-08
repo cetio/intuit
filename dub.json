@@ -10,5 +10,23 @@
 	"description": "Language and embedding model interface for completions, streaming, computation, and tool usage.",
 	"license": "AGPL-3.0-only",
 	"name": "intuit",
-	"targetType": "library"
+	"targetType": "library",
+	"configurations": [
+		{
+			"name": "library",
+			"targetType": "library"
+		},
+		{
+			"name": "unittest",
+			"targetType": "executable",
+			"preBuildCommands": [
+				"$DUB run --compiler=$$DC unit-threaded -c gen_ut_main -- -f bin/ut.d"
+			],
+			"mainSourceFile": "bin/ut.d",
+			"buildOptions": ["unittests"],
+			"dependencies": {
+				"unit-threaded": "~>2.2.0"
+			}
+		}
+	]
 }
