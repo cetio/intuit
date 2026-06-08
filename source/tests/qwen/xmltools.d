@@ -1,13 +1,15 @@
 module tests.qwen.xmltools;
 
-import std.algorithm.searching : canFind;
 import intuit.qwen.model;
 import intuit.response;
-import std.json : JSONValue, JSONType;
+import unit_threaded;
 
+import std.algorithm.searching : canFind;
+import std.json : JSONValue;
+
+@Name("standard OpenAI-style tool_calls array")
 unittest
 {
-    // Standard OpenAI-style tool_calls array still works.
     QwenModel model = new QwenModel("qwen-test");
     JSONValue response = JSONValue.emptyObject;
     JSONValue choices = JSONValue.emptyArray;
@@ -38,9 +40,9 @@ unittest
     assert(completion.choices[0].text.length == 0);
 }
 
+@Name("Qwen3-Coder custom XML format")
 unittest
 {
-    // Qwen3-Coder custom XML format.
     QwenModel model = new QwenModel("qwen3-coder-test");
     JSONValue response = JSONValue.emptyObject;
     JSONValue choices = JSONValue.emptyArray;
@@ -69,9 +71,9 @@ unittest
     assert(completion.choices[0].text.length == 0);
 }
 
+@Name("Qwen2.5/Qwen3 Hermes JSON-in-XML format")
 unittest
 {
-    // Qwen2.5/Qwen3 Hermes JSON-in-XML format.
     QwenModel model = new QwenModel("qwen2.5-test");
     JSONValue response = JSONValue.emptyObject;
     JSONValue choices = JSONValue.emptyArray;
@@ -94,9 +96,9 @@ unittest
     assert(completion.choices[0].text.length == 0);
 }
 
+@Name("mixed text and XML tool calls preserves surrounding prose")
 unittest
 {
-    // Mixed text and XML tool calls: text should be preserved.
     QwenModel model = new QwenModel("qwen-test");
     JSONValue response = JSONValue.emptyObject;
     JSONValue choices = JSONValue.emptyArray;
@@ -122,9 +124,9 @@ Here are the results.`;
     assert(!completion.choices[0].text.canFind("<tool_call>"));
 }
 
+@Name("multiple JSON-in-XML tool calls in parallel")
 unittest
 {
-    // Multiple JSON-in-XML tool calls (parallel).
     QwenModel model = new QwenModel("qwen-test");
     JSONValue response = JSONValue.emptyObject;
     JSONValue choices = JSONValue.emptyArray;
@@ -146,9 +148,9 @@ unittest
     assert(completion.choices[0].toolCalls[1].name == "b");
 }
 
+@Name("no tool calls in content leaves text untouched")
 unittest
 {
-    // No tool calls in content: text should be untouched.
     QwenModel model = new QwenModel("qwen-test");
     JSONValue response = JSONValue.emptyObject;
     JSONValue choices = JSONValue.emptyArray;

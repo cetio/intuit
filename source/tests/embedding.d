@@ -1,9 +1,12 @@
 module tests.embedding;
 
 import intuit.response.embedding;
+import unit_threaded;
+
 import std.exception : assertThrown;
 import std.math : isClose, sqrt;
 
+@Name("cosine similarity of identical, orthogonal, and diagonal vectors")
 unittest
 {
     float[] identical = [1.0f, 0.0f, 0.0f];
@@ -17,6 +20,7 @@ unittest
     assert(isClose(cosineSimilarity(diagonal, axis), 1.0f / sqrt(2.0f), 1e-5f));
 }
 
+@Name("dot product and euclidean distance")
 unittest
 {
     float[] first = [1.0f, 2.0f, 3.0f];
@@ -28,6 +32,7 @@ unittest
     assert(isClose(euclideanDistance(origin, point), 5.0f, 1e-5f));
 }
 
+@Name("in-place normalization preserves pointer and yields unit norm")
 unittest
 {
     float[] vector = [3.0f, 4.0f, 0.0f];
@@ -36,6 +41,7 @@ unittest
     assert(isClose(l2Norm(vector), 1.0f, 1e-5f));
 }
 
+@Name("norm mean of two orthogonal unit vectors")
 unittest
 {
     float[][] embeddings = [
@@ -49,6 +55,7 @@ unittest
     assert(isClose(mean[1], expected, 1e-5f));
 }
 
+@Name("mismatched vector lengths throw")
 unittest
 {
     float[] shortVec = [1.0f, 2.0f];
