@@ -70,6 +70,9 @@ unittest
     assert(completion.choices.length == 1);
     assert(completion.choices[0].text == "Hello!");
     assert(completion.choices[0].finishReason == FinishReason.EndTurn);
+    assert(completion.usage.promptTokens == 12);
+    assert(completion.usage.completionTokens == 6);
+    assert(completion.usage.totalTokens == 18);
 }
 
 @Name("parseCompletions extracts tool use blocks")

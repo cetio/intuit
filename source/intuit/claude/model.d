@@ -281,6 +281,7 @@ public:
         Completion ret;
         ret.raw = json;
         checkError(json);
+        ret.usage = parseUsage(json);
 
         Choice choice;
         choice.raw = json;

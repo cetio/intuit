@@ -451,6 +451,7 @@ public:
         Completion ret;
         ret.raw = json;
         checkError(json);
+        ret.usage = parseUsage(json);
 
         if ("choices" in json && json["choices"].type == JSONType.array)
         {
