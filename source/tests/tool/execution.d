@@ -48,7 +48,7 @@ unittest
     registry.add!greet();
 
     JSONValue args = JSONValue.emptyObject;
-    args["param0"] = JSONValue("World");
+    args["name"] = JSONValue("World");
     JSONValue result = registry.get("greet").impl(args);
 
     assert(result.str == "Hello, World!");
@@ -61,8 +61,8 @@ unittest
     registry.add!add();
 
     JSONValue args = JSONValue.emptyObject;
-    args["param0"] = JSONValue(3);
-    args["param1"] = JSONValue(4);
+    args["a"] = JSONValue(3);
+    args["b"] = JSONValue(4);
     JSONValue result = registry.get("add").impl(args);
 
     assert(result.integer == 7);
@@ -88,9 +88,9 @@ unittest
     registry.add!mixedJSONValue();
 
     JSONValue args = JSONValue.emptyObject;
-    args["param0"] = JSONValue("Alice");
-    args["param1"] = JSONValue.emptyObject;
-    args["param1"]["key"] = JSONValue("value");
+    args["name"] = JSONValue("Alice");
+    args["extra"] = JSONValue.emptyObject;
+    args["extra"]["key"] = JSONValue("value");
     JSONValue result = registry.get("mixedJSONValue").impl(args);
 
     assert(result.str == "Alice:value");
@@ -103,7 +103,7 @@ unittest
     registry.add!concat();
 
     JSONValue args = JSONValue.emptyObject;
-    args["param0"] = JSONValue([JSONValue("Hello"), JSONValue(", "), JSONValue("World")]);
+    args["parts"] = JSONValue([JSONValue("Hello"), JSONValue(", "), JSONValue("World")]);
     JSONValue result = registry.get("concat").impl(args);
 
     assert(result.str == "Hello, World");
@@ -116,7 +116,7 @@ unittest
     registry.add!sum();
 
     JSONValue args = JSONValue.emptyObject;
-    args["param0"] = JSONValue([JSONValue(1), JSONValue(2), JSONValue(3)]);
+    args["nums"] = JSONValue([JSONValue(1), JSONValue(2), JSONValue(3)]);
     JSONValue result = registry.get("sum").impl(args);
 
     assert(result.integer == 6);

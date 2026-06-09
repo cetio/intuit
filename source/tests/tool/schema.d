@@ -58,9 +58,9 @@ unittest
 
     JSONValue schema = tool.schema;
     assert(schema["type"].str == "object");
-    assert(schema["properties"]["param0"].str == "string");
+    assert(schema["properties"]["name"].str == "string");
     assert(schema["required"].array.length == 1);
-    assert(schema["required"][0].str == "param0");
+    assert(schema["required"][0].str == "name");
 }
 
 @Name("Description UDA populates tool description")
@@ -89,9 +89,9 @@ unittest
     registry.add!multiParam();
 
     JSONValue schema = registry.get("multiParam").schema;
-    assert(schema["properties"]["param0"].str == "integer");
-    assert(schema["properties"]["param1"].str == "string");
-    assert(schema["properties"]["param2"].str == "boolean");
+    assert(schema["properties"]["a"].str == "integer");
+    assert(schema["properties"]["b"].str == "string");
+    assert(schema["properties"]["c"].str == "boolean");
     assert(schema["required"].array.length == 3);
 }
 
@@ -113,8 +113,8 @@ unittest
     registry.add!mixedJSONValue();
 
     JSONValue schema = registry.get("mixedJSONValue").schema;
-    assert(schema["properties"]["param0"].str == "string");
-    assert(schema["properties"]["param1"].str == "object");
+    assert(schema["properties"]["name"].str == "string");
+    assert(schema["properties"]["extra"].str == "object");
     assert(schema["required"].array.length == 2);
 }
 
@@ -125,8 +125,8 @@ unittest
     registry.add!concat();
 
     JSONValue schema = registry.get("concat").schema;
-    assert(schema["properties"]["param0"]["type"].str == "array");
-    assert(schema["properties"]["param0"]["items"].str == "string");
+    assert(schema["properties"]["parts"]["type"].str == "array");
+    assert(schema["properties"]["parts"]["items"].str == "string");
     assert(schema["required"].array.length == 1);
 }
 
@@ -137,7 +137,7 @@ unittest
     registry.add!sum();
 
     JSONValue schema = registry.get("sum").schema;
-    assert(schema["properties"]["param0"]["type"].str == "array");
-    assert(schema["properties"]["param0"]["items"].str == "integer");
+    assert(schema["properties"]["nums"]["type"].str == "array");
+    assert(schema["properties"]["nums"]["items"].str == "integer");
     assert(schema["required"].array.length == 1);
 }

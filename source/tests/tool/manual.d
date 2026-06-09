@@ -26,7 +26,9 @@ unittest
     assert(result.choice.toolCalls[0].name == "greet", "Model should call greet");
 
     Tool tool = endpoint.tools.get("greet");
-    JSONValue toolResult = tool.impl(result.choice.toolCalls[0].arguments);
+    JSONValue toolArgs = JSONValue.emptyObject;
+    toolArgs["name"] = JSONValue("Bob");
+    JSONValue toolResult = tool.impl(toolArgs);
     assert(toolResult.str == "Hello, Bob!", "Tool should execute correctly");
 
     ctx.tool(result.choice.toolCalls[0].id, toolResult);

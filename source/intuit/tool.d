@@ -4,7 +4,7 @@ module intuit.tool;
 import conductor.serialize : toJSON;
 import std.conv : to;
 import std.json : JSONValue, JSONType;
-import std.traits : Parameters, ReturnType;
+import std.traits : Parameters, ParameterIdentifierTuple, ReturnType;
 
 /// User-defined attribute that documents a tool function for the model.
 struct Description
@@ -117,6 +117,15 @@ static:
         return null;
     }
 
+    /// Resolves the schema key for parameter I of F, falling back to paramN when unnamed.
+    template paramName(alias F, size_t I)
+    {
+        static if (ParameterIdentifierTuple!F[I].length > 0)
+            enum paramName = ParameterIdentifierTuple!F[I];
+        else
+            enum paramName = "param"~I.to!string;
+    }
+
     /// Generates a JSON schema fragment for type T.
     JSONValue typeSchema(T)()
     {
@@ -155,13 +164,13 @@ static:
             static if (is(T == JSONValue))
             {
                 static if (ParamTypes.length > 1)
-                    schema["properties"]["param"~i.to!string] = typeSchema!T();
+                    schema["properties"][paramName!(F, i)] = typeSchema!T();
             }
             else
-                schema["properties"]["param"~i.to!string] = typeSchema!T();
+                schema["properties"][paramName!(F, i)] = typeSchema!T();
 
             static if (!is(T == JSONValue) || ParamTypes.length > 1)
-                schema["required"].array ~= JSONValue("param"~i.to!string);
+                schema["required"].array ~= JSONValue(paramName!(F, i));
         }
 
         return schema;
@@ -177,11 +186,11 @@ static:
                 static if (is(T == JSONValue) && Parameters!F.length == 1)
                     ret ~= "JSONValue param"~I.to!string~" = args;";
                 else static if (is(T == JSONValue))
-                    ret ~= "JSONValue param"~I.to!string~" = args[\"param"~I.to!string~"\"];";
+                    ret ~= "JSONValue param"~I.to!string~" = args[\""~paramName!(F, I)~"\"];";
                 else
                 {
                     ret ~= T.stringof~" param"~I.to!string~
-                        " = parseValue!("~T.stringof~")(args[\"param"~I.to!string~"\"]);";
+                        " = parseValue!("~T.stringof~")(args[\""~paramName!(F, I)~"\"]);";
                 }
             }
             return ret;
