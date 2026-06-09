@@ -527,7 +527,7 @@ private:
                     JSONValue func = toolCall["function"];
                     tc.name = ("name" in func) ? func["name"].str : "";
                     if ("arguments" in func && func["arguments"].type == JSONType.string)
-                        tc.arguments = parseJSON(func["arguments"].str);
+                        tc.arguments = func["arguments"].str.parseJSON();
                 }
                 choice.toolCalls ~= tc;
             }

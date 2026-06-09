@@ -9,6 +9,7 @@ import intuit.response;
 import intuit.stream.sse : SseParser;
 import intuit.tool;
 import conductor.http : Response, send;
+import conductor.serialize.json : toJSON;
 import core.thread : Thread;
 import std.net.curl : HTTP;
 import std.json : JSONType, JSONValue, parseJSON;
@@ -151,15 +152,13 @@ public:
 
                     try
                     {
-                        JSONValue json = parseJSON(event.data);
+                        JSONValue json = event.data.parseJSON();
 
                         if (event.event == "content_block_delta" && "delta" in json)
                         {
                             JSONValue delta = json["delta"];
-                            if (
-                                "type" in delta && delta["type"].str == "text_delta"
-                                && "text" in delta
-                            )
+                            if ("type" in delta && delta["type"].str == "text_delta"
+                                && "text" in delta)
                             {
                                 Completion completion;
                                 completion.choices = [Choice.init];
@@ -168,13 +167,9 @@ public:
                                 if (stream.callback !is null)
                                     stream.callback(completion);
                             }
-                            else if (
-                                "type" in delta && delta["type"].str == "input_json_delta"
-                                && "partial_json" in delta
-                            )
-                            {
+                            else if ("type" in delta && delta["type"].str == "input_json_delta"
+                                && "partial_json" in delta)
                                 toolInputBuffer ~= delta["partial_json"].str;
-                            }
                         }
                         else if (event.event == "message_delta" && "delta" in json)
                         {
@@ -206,14 +201,8 @@ public:
                                 ToolCall tc;
                                 tc.id = currentToolId;
                                 tc.name = currentToolName;
-                                try
-                                {
-                                    tc.arguments = parseJSON(toolInputBuffer);
-                                }
-                                catch (Exception)
-                                {
-                                    tc.arguments = JSONValue(toolInputBuffer);
-                                }
+                                tc.arguments = toolInputBuffer.toJSON();
+
                                 completion.choices[0].toolCalls ~= tc;
                                 stream.update(completion);
                                 if (stream.callback !is null)

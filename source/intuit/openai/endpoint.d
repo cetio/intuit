@@ -138,7 +138,7 @@ public:
                     }
                     try
                     {
-                        JSONValue json = parseJSON(event.data);
+                        JSONValue json = event.data.parseJSON();
                         Completion completion = model.parseCompletions(json);
                         stream.update(completion);
                         if (stream.callback !is null)
@@ -184,7 +184,7 @@ public:
                     }
                     try
                     {
-                        JSONValue json = parseJSON(event.data);
+                        JSONValue json = event.data.parseJSON();
                         Completion completion = model.parseCompletions(json);
                         stream.update(completion);
                         if (stream.callback !is null)
