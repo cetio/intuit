@@ -1,12 +1,13 @@
 /// Anthropic Claude model implementation with Messages API parameters.
 module intuit.claude.model;
 
-import std.algorithm.searching : canFind;
 import intuit.error : EndpointError;
 import intuit.model;
 import intuit.response;
 import intuit.tool;
 import conductor.serialize : toJSON;
+
+import std.algorithm.searching : canFind;
 import std.conv : to;
 import std.json : JSONValue, JSONType, parseJSON;
 import std.math : isNaN;

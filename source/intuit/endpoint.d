@@ -6,6 +6,7 @@ import intuit.model;
 import intuit.response;
 import intuit.tool;
 import conductor.serialize : toJSON;
+
 import std.json : JSONValue, JSONType;
 import std.traits : isArray, isIntegral;
 
@@ -65,10 +66,7 @@ interface IEndpoint
 Completion completions(E, M, D)(E ep, M model, auto ref D data)
     if (is(E : IEndpoint) && is(M : IModel))
 {
-    static if (is(D == Context))
-        JSONValue input = data.messages;
-    else
-        JSONValue input = data.toJSON();
+    JSONValue input = data.toJSON();
 
     JSONValue payload = model.completionsJSON(input, ep.tools);
     JSONValue resp = ep._completions(model, payload);
@@ -76,9 +74,9 @@ Completion completions(E, M, D)(E ep, M model, auto ref D data)
 
     static if (is(D == Context))
     {
-        Choice first = ret.choice(0);
-        data.assistant(first.text, first.toolCalls);
+        data.assistant(ret);
 
+        Choice first = ret.choice(0);
         bool cycle = first.toolCalls.length > 0;
         foreach (call; first.toolCalls)
         {
@@ -86,7 +84,7 @@ Completion completions(E, M, D)(E ep, M model, auto ref D data)
             cycle &= tool.autoexec;
             if (!tool.autoexec)
                 continue;
-            
+
             JSONValue result;
             try
                 result = tool.impl(call.arguments);
@@ -134,10 +132,7 @@ Completion completions(E, D)(E ep, string model, auto ref D data)
 CompletionStream streamCompletions(E, M, D)(E ep, M model, auto ref D data)
     if (is(E : IEndpoint) && is(M : IModel))
 {
-    static if (is(D == Context))
-        JSONValue input = data.messages;
-    else
-        JSONValue input = data.toJSON();
+    JSONValue input = data.toJSON();
 
     JSONValue payload = model.completionsJSON(input, ep.tools);
     if ("stream" !in payload || payload["stream"].type != JSONType.true_)

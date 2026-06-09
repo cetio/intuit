@@ -6,10 +6,11 @@ import intuit.error : EndpointError;
 import intuit.model;
 import intuit.claude.model;
 import intuit.response;
-import intuit.stream.sse : SseParser;
+import intuit.stream.sse : SSEParser;
 import intuit.tool;
 import conductor.http : Response, send;
-import conductor.serialize.json : toJSON;
+import conductor.serialize : toJSON;
+
 import core.thread : Thread;
 import std.net.curl : HTTP;
 import std.json : JSONType, JSONValue, parseJSON;
@@ -129,7 +130,7 @@ public:
         string currentToolId;
         string currentToolName;
 
-        SseParser parser = new SseParser();
+        SSEParser parser = new SSEParser();
         http.onReceive = (ubyte[] chunk) {
             try
             {

@@ -7,7 +7,9 @@ import intuit.model;
 import intuit.openai.model;
 import intuit.response;
 import intuit.tool;
+import intuit.stream.sse : SSEParser;
 import conductor.http : Response, send;
+
 import core.thread : Thread;
 import std.net.curl : HTTP;
 import std.json : JSONType, JSONValue, parseJSON;
@@ -85,9 +87,6 @@ public:
 
     override CompletionStream _stream(IModel model, JSONValue payload)
     {
-        import intuit.stream.sse : SseParser;
-        import core.thread : Thread;
-
         string target = route("chat/completions");
 
         string[string] headers = requestHeaders();
@@ -124,7 +123,7 @@ public:
             reason = line.reason.idup;
         };
 
-        SseParser parser = new SseParser();
+        SSEParser parser = new SSEParser();
         http.onReceive = (ubyte[] chunk) {
             try
             {

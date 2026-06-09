@@ -6,7 +6,7 @@ import unit_threaded;
 @Name("parses complete event in single chunk")
 unittest
 {
-    auto parser = new SseParser();
+    auto parser = new SSEParser();
     auto events = parser.feed(cast(const(ubyte)[])"data: hello\n\n");
 
     assert(events.length == 1);
@@ -16,7 +16,7 @@ unittest
 @Name("parses event split across chunks")
 unittest
 {
-    auto parser = new SseParser();
+    auto parser = new SSEParser();
     auto first = parser.feed(cast(const(ubyte)[])"data: hel");
     assert(first.length == 0);
 
@@ -28,7 +28,7 @@ unittest
 @Name("captures event type and data lines")
 unittest
 {
-    auto parser = new SseParser();
+    auto parser = new SSEParser();
     auto events = parser.feed(cast(const(ubyte)[])"event: message_start\ndata: {\"type\":\"start\"}\n\n");
 
     assert(events.length == 1);
@@ -39,7 +39,7 @@ unittest
 @Name("ignores id lines")
 unittest
 {
-    auto parser = new SseParser();
+    auto parser = new SSEParser();
     auto events = parser.feed(cast(const(ubyte)[])"id: 1\ndata: hello\n\n");
 
     assert(events.length == 1);
@@ -50,7 +50,7 @@ unittest
 @Name("concatenates multiple data lines")
 unittest
 {
-    auto parser = new SseParser();
+    auto parser = new SSEParser();
     auto events = parser.feed(cast(const(ubyte)[])"data: line1\ndata: line2\n\n");
 
     assert(events.length == 1);
@@ -60,7 +60,7 @@ unittest
 @Name("handles [DONE] event")
 unittest
 {
-    auto parser = new SseParser();
+    auto parser = new SSEParser();
     auto events = parser.feed(cast(const(ubyte)[])"data: [DONE]\n\n");
 
     assert(events.length == 1);
@@ -70,7 +70,7 @@ unittest
 @Name("handles CRLF line endings")
 unittest
 {
-    auto parser = new SseParser();
+    auto parser = new SSEParser();
     auto events = parser.feed(cast(const(ubyte)[])"data: hello\r\n\r\n");
 
     assert(events.length == 1);
@@ -80,7 +80,7 @@ unittest
 @Name("flush returns trailing partial event")
 unittest
 {
-    auto parser = new SseParser();
+    auto parser = new SSEParser();
     auto events = parser.feed(cast(const(ubyte)[])"data: hello");
     assert(events.length == 0);
 
@@ -92,7 +92,7 @@ unittest
 @Name("flush returns empty when nothing buffered")
 unittest
 {
-    auto parser = new SseParser();
+    auto parser = new SSEParser();
     auto flushed = parser.flush();
     assert(flushed.length == 0);
 }
@@ -100,7 +100,7 @@ unittest
 @Name("handles multiple events in one chunk")
 unittest
 {
-    auto parser = new SseParser();
+    auto parser = new SSEParser();
     auto events = parser.feed(cast(const(ubyte)[])"data: a\n\ndata: b\n\n");
 
     assert(events.length == 2);

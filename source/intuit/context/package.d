@@ -6,6 +6,7 @@ public import intuit.context.compactor;
 
 import conductor.serialize : toJSON;
 import intuit.response;
+import std.json : JSONValue;
 
 /// Mutable conversation context that accumulates typed messages for LLM requests.
 struct Context
@@ -86,10 +87,19 @@ struct Context
     ref Context tool(T)(string toolCallId, T data)
         => append(new ToolMessage(toolCallId, data.toJSON()));
 
+    /// Serializes all messages into a JSONValue array.
+    JSONValue toJSON()
+    {
+        JSONValue ret = JSONValue.emptyArray;
+        foreach (message; messages)
+            ret.array ~= message.toJSON();
+        return ret;
+    }
+
     /// Clears all messages from the context.
     ref Context clear()
     {
-        _messages = null;
+        messages = null;
         return this;
     }
 

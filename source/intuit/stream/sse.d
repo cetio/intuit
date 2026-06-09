@@ -5,7 +5,7 @@ import std.string;
 import std.array;
 
 /// A single parsed SSE event.
-struct SseEvent
+struct SSEEvent
 {
     /// Event type/name (e.g., "message_start", "content_block_delta").
     string event;
@@ -14,7 +14,7 @@ struct SseEvent
 }
 
 /// Parses raw HTTP chunks into discrete SSE events.
-class SseParser
+class SSEParser
 {
     private string _buffer;
 
@@ -27,7 +27,7 @@ class SseParser
      * Returns:
      *  An array of complete events parsed since the last feed.
      */
-    SseEvent[] feed(const(ubyte)[] chunk)
+    SSEEvent[] feed(const(ubyte)[] chunk)
     {
         _buffer ~= cast(string)chunk;
         return extractEvents();
@@ -37,14 +37,14 @@ class SseParser
      * Flush any trailing buffered data as a final event.
      *
      * Returns:
-     *  Zero or one final SseEvent.
+     *  Zero or one final SSEEvent.
      */
-    SseEvent[] flush()
+    SSEEvent[] flush()
     {
-        SseEvent[] ret;
+        SSEEvent[] ret;
         if (_buffer.length > 0)
         {
-            SseEvent event = parseEvent(_buffer);
+            SSEEvent event = parseEvent(_buffer);
             if (event.data.length > 0 || event.event.length > 0)
                 ret ~= event;
             _buffer = null;
@@ -53,9 +53,9 @@ class SseParser
     }
 
 private:
-    SseEvent[] extractEvents()
+    SSEEvent[] extractEvents()
     {
-        SseEvent[] ret;
+        SSEEvent[] ret;
 
         while (true)
         {
@@ -69,7 +69,7 @@ private:
             string block = _buffer[0..split];
             _buffer = _buffer[split + 2..$];
 
-            SseEvent event = parseEvent(block);
+            SSEEvent event = parseEvent(block);
             if (event.data.length > 0 || event.event.length > 0)
                 ret ~= event;
         }
@@ -77,9 +77,9 @@ private:
         return ret;
     }
 
-    static SseEvent parseEvent(string block)
+    static SSEEvent parseEvent(string block)
     {
-        SseEvent ret;
+        SSEEvent ret;
         string[] dataLines;
         foreach (line; block.splitLines)
         {

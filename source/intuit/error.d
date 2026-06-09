@@ -3,8 +3,6 @@ module intuit.error;
 
 import std.format : format;
 
-public:
-
 /// Thrown when an endpoint returns a non-success status or invalid response.
 class EndpointError : Exception
 {
