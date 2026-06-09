@@ -7,6 +7,8 @@ import std.array;
 /// A single parsed SSE event.
 struct SseEvent
 {
+    /// Event type/name (e.g., "message_start", "content_block_delta").
+    string event;
     /// Concatenated data lines. Empty for heartbeats or no data.
     string data;
 }
@@ -42,9 +44,9 @@ class SseParser
         SseEvent[] ret;
         if (_buffer.length > 0)
         {
-            string eventData = parseEvent(_buffer);
-            if (eventData.length > 0)
-                ret ~= SseEvent(eventData);
+            SseEvent event = parseEvent(_buffer);
+            if (event.data.length > 0 || event.event.length > 0)
+                ret ~= event;
             _buffer = null;
         }
         return ret;
@@ -67,23 +69,27 @@ private:
             string block = _buffer[0..split];
             _buffer = _buffer[split + 2..$];
 
-            string eventData = parseEvent(block);
-            if (eventData.length > 0)
-                ret ~= SseEvent(eventData);
+            SseEvent event = parseEvent(block);
+            if (event.data.length > 0 || event.event.length > 0)
+                ret ~= event;
         }
 
         return ret;
     }
 
-    static string parseEvent(string block)
+    static SseEvent parseEvent(string block)
     {
+        SseEvent ret;
         string[] dataLines;
         foreach (line; block.splitLines)
         {
             line = line.strip;
-            if (line.startsWith("data:"))
+            if (line.startsWith("event:"))
+                ret.event = line[6..$].strip;
+            else if (line.startsWith("data:"))
                 dataLines ~= line[5..$].strip;
         }
-        return dataLines.join("\n");
+        ret.data = dataLines.join("\n");
+        return ret;
     }
 }

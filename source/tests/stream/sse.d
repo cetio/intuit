@@ -25,14 +25,26 @@ unittest
     assert(second[0].data == "hello");
 }
 
-@Name("ignores non-data lines")
+@Name("captures event type and data lines")
 unittest
 {
     auto parser = new SseParser();
-    auto events = parser.feed(cast(const(ubyte)[])"id: 1\ndata: hello\nevent: message\n\n");
+    auto events = parser.feed(cast(const(ubyte)[])"event: message_start\ndata: {\"type\":\"start\"}\n\n");
+
+    assert(events.length == 1);
+    assert(events[0].event == "message_start");
+    assert(events[0].data == "{\"type\":\"start\"}");
+}
+
+@Name("ignores id lines")
+unittest
+{
+    auto parser = new SseParser();
+    auto events = parser.feed(cast(const(ubyte)[])"id: 1\ndata: hello\n\n");
 
     assert(events.length == 1);
     assert(events[0].data == "hello");
+    assert(events[0].event == "");
 }
 
 @Name("concatenates multiple data lines")
