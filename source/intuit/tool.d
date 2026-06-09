@@ -6,11 +6,20 @@ import std.conv : to;
 import std.json : JSONValue, JSONType;
 import std.traits : Parameters, ReturnType;
 
+/// User-defined attribute that documents a tool function for the model.
+struct Description
+{
+    /// The human-readable tool description.
+    string text;
+}
+
 /// Represents a callable tool with a JSON schema and implementation delegate.
 class Tool
 {
     /// The tool name.
     string name;
+    /// The human-readable description exposed to the model.
+    string description;
     /// The JSON schema describing the tool's parameters.
     JSONValue schema;
     /// The implementation delegate invoked with parsed arguments.
@@ -23,13 +32,15 @@ class Tool
      *
      * Params:
      *  name = The tool name.
+     *  description = The human-readable tool description.
      *  schema = The JSON schema for the tool's parameters.
      *  impl = The delegate that implements the tool.
      *  autoexec = Whether to auto-execute the tool.
      */
-    this(string name, JSONValue schema, JSONValue delegate(JSONValue) impl, bool autoexec = false)
+    this(string name, string description, JSONValue schema, JSONValue delegate(JSONValue) impl, bool autoexec = false)
     {
         this.name = name;
+        this.description = description;
         this.schema = schema;
         this.impl = impl;
         this.autoexec = autoexec;
@@ -52,6 +63,7 @@ struct ToolRegistry
     {
         tools[__traits(identifier, F)] = new Tool(
             __traits(identifier, F),
+            descriptionOf!F(),
             generateSchema!F(),
             generateWrapper!F(),
             autoexec
@@ -94,6 +106,17 @@ struct ToolRegistry
 
 private:
 static:
+    /// Extracts the Description UDA text from function F, or null if absent.
+    string descriptionOf(alias F)()
+    {
+        static foreach (attr; __traits(getAttributes, F))
+        {
+            static if (is(typeof(attr) == Description))
+                return attr.text;
+        }
+        return null;
+    }
+
     /// Generates a JSON schema fragment for type T.
     JSONValue typeSchema(T)()
     {

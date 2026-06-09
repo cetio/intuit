@@ -232,6 +232,8 @@ public:
             {
                 JSONValue toolObj = JSONValue.emptyObject;
                 toolObj["name"] = JSONValue(tool.name);
+                if (tool.description.length > 0)
+                    toolObj["description"] = JSONValue(tool.description);
                 toolObj["input_schema"] = tool.schema;
                 toolsArray.array ~= toolObj;
             }

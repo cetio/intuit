@@ -10,6 +10,12 @@ string greet(string name)
     return "Hello, "~name~"!";
 }
 
+@Description("Looks up the current weather for a city.")
+string weather(string city)
+{
+    return city;
+}
+
 string multiParam(int a, string b, bool c)
 {
     return b;
@@ -55,6 +61,25 @@ unittest
     assert(schema["properties"]["param0"].str == "string");
     assert(schema["required"].array.length == 1);
     assert(schema["required"][0].str == "param0");
+}
+
+@Name("Description UDA populates tool description")
+unittest
+{
+    ToolRegistry registry;
+    registry.add!weather();
+
+    Tool tool = registry.get("weather");
+    assert(tool.description == "Looks up the current weather for a city.");
+}
+
+@Name("tool without Description UDA has empty description")
+unittest
+{
+    ToolRegistry registry;
+    registry.add!greet();
+
+    assert(registry.get("greet").description.length == 0);
 }
 
 @Name("multiple typed parameters schema")

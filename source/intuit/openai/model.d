@@ -295,6 +295,8 @@ public:
                 toolObj["type"] = JSONValue("function");
                 JSONValue functionObj = JSONValue.emptyObject;
                 functionObj["name"] = JSONValue(tool.name);
+                if (tool.description.length > 0)
+                    functionObj["description"] = JSONValue(tool.description);
                 functionObj["parameters"] = tool.schema;
                 toolObj["function"] = functionObj;
                 toolsArray.array ~= toolObj;
