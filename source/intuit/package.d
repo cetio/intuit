@@ -9,3 +9,4 @@ public import intuit.endpoint;
 public import intuit.openai;
 public import intuit.qwen;
 public import intuit.tool;
+public import intuit.stream;

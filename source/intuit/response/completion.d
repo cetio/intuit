@@ -106,7 +106,14 @@ struct Completion
         => text(index).parseJSON();
 }
 
-/// Thread-safe completion stream consumer.
+/**
+ * Thread-safe completion stream consumer.
+ *
+ * This is the frontend for all Server-Sent Events (SSE) streaming
+ * completions. Endpoint implementations feed parsed SSE chunks into
+ * a CompletionStream, and callers consume them via `next()`, `collect()`,
+ * or the per-chunk `callback` delegate.
+ */
 class CompletionStream
 {
 private:
@@ -115,17 +122,18 @@ private:
     shared size_t _index;
     shared bool _writer;
 
-package:
+public:
     /// Internal delegate to start the stream.
     void delegate(CompletionStream) _commence;
 
-public:
     /// Accumulated metadata JSON.
     JSONValue json;
     /// Model name for the stream.
     string model;
     /// True when the stream has finished.
     bool complete;
+    /// If set, an exception thrown by the background worker.
+    Exception error;
     /// Callback invoked for each completion chunk.
     void delegate(Completion) callback;
 
@@ -161,6 +169,9 @@ public:
     {
         if (_commence is null)
             throw new Exception("Stream not initialized");
+
+        if (error !is null)
+            throw error;
 
         while (atomicLoad!(MemoryOrder.acq)(_writer))
             Thread.yield();

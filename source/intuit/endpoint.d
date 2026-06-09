@@ -39,6 +39,13 @@ interface IEndpoint
     JSONValue _completions(IModel model, JSONValue payload);
     /// Sends a raw embeddings request. Use `embeddings` instead.
     JSONValue _embeddings(IModel model, JSONValue payload);
+    /**
+     * Sends a raw streaming completions request via SSE.
+     *
+     * Returns a CompletionStream that is fed by the endpoint's
+     * background worker as events arrive.
+     */
+    CompletionStream _stream(IModel model, JSONValue payload);
 }
 
 /**
@@ -108,6 +115,48 @@ Completion completions(E, D)(E ep, string model, auto ref D data)
     if (is(E : IEndpoint))
 {
     return completions(ep, ep.model(model), data);
+}
+
+/**
+ * Send a streaming completion request to the endpoint using a specific model.
+ *
+ * Params:
+ *   ep = The endpoint to send the request to.
+ *   model = The model to use for the completion.
+ *   data = The input data. Not mutated for streaming.
+ *
+ * Returns: A CompletionStream for token-by-token consumption.
+ */
+CompletionStream streamCompletions(E, M, D)(E ep, M model, auto ref D data)
+    if (is(E : IEndpoint) && is(M : IModel))
+{
+    static if (is(D == Context))
+        JSONValue input = data.messages;
+    else
+        JSONValue input = data.toJSON();
+
+    JSONValue payload = model.completionsJSON(input, ep.tools);
+    if ("stream" !in payload || payload["stream"].type != JSONType.true_)
+        payload["stream"] = JSONValue(true);
+
+    return ep._stream(model, payload);
+}
+
+/**
+ * Convenience overload that resolves the model by name before calling
+ * streamCompletions.
+ *
+ * Params:
+ *   ep = The endpoint to send the request to.
+ *   model = The name of the model to use.
+ *   data = The input data.
+ *
+ * Returns: A CompletionStream for token-by-token consumption.
+ */
+CompletionStream streamCompletions(E, D)(E ep, string model, auto ref D data)
+    if (is(E : IEndpoint))
+{
+    return streamCompletions(ep, ep.model(model), data);
 }
 
 /**

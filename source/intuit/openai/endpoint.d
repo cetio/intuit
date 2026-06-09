@@ -5,8 +5,10 @@ public import intuit.endpoint;
 import intuit.error : EndpointError;
 import intuit.model;
 import intuit.openai.model;
+import intuit.response;
 import intuit.tool;
 import conductor.http : Response, send;
+import core.thread : Thread;
 import std.net.curl : HTTP;
 import std.json : JSONType, JSONValue, parseJSON;
 import std.string : assumeUTF;
@@ -80,6 +82,131 @@ public:
 
     override JSONValue _embeddings(IModel model, JSONValue payload)
         => request(HTTP.Method.post, "embeddings", payload);
+
+    override CompletionStream _stream(IModel model, JSONValue payload)
+    {
+        import intuit.stream.sse : SseParser;
+        import core.thread : Thread;
+
+        string target = route("chat/completions");
+
+        string[string] headers = requestHeaders();
+        headers["Accept"] = "text/event-stream";
+
+        CompletionStream stream = new CompletionStream(model.name, null);
+
+        HTTP http = HTTP();
+        http.clearRequestHeaders();
+        http.url = target;
+        http.method = HTTP.Method.post;
+        foreach (k, v; headers)
+            http.addRequestHeader(k, v);
+        http.addRequestHeader("Content-Type", "application/json");
+
+        string bodyStr = payload.toString();
+        http.contentLength = bodyStr.length;
+        size_t offset;
+        http.onSend = delegate size_t(void[] buffer) {
+            if (offset >= bodyStr.length)
+                return 0;
+            size_t count = bodyStr.length - offset;
+            if (count > buffer.length)
+                count = buffer.length;
+            buffer[0..count] = cast(void[])bodyStr[offset..offset + count];
+            offset += count;
+            return count;
+        };
+
+        ushort status;
+        string reason;
+        http.onReceiveStatusLine = (HTTP.StatusLine line) {
+            status = line.code;
+            reason = line.reason.idup;
+        };
+
+        SseParser parser = new SseParser();
+        http.onReceive = (ubyte[] chunk) {
+            try
+            {
+                auto events = parser.feed(chunk);
+                foreach (event; events)
+                {
+                    if (event.data == "[DONE]")
+                    {
+                        stream.complete = true;
+                        continue;
+                    }
+                    try
+                    {
+                        JSONValue json = parseJSON(event.data);
+                        Completion completion = model.parseCompletions(json);
+                        stream.update(completion);
+                        if (stream.callback !is null)
+                            stream.callback(completion);
+                    }
+                    catch (Exception ex)
+                    {
+                        stream.error = ex;
+                        stream.complete = true;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                stream.error = ex;
+                stream.complete = true;
+            }
+            return chunk.length;
+        };
+
+        void doStream()
+        {
+            try
+            {
+                http.perform();
+
+                if (status < 200 || status >= 300)
+                {
+                    stream.error = new EndpointError(
+                        "POST", target, status, reason, null, "Streaming request failed."
+                    );
+                    stream.complete = true;
+                    return;
+                }
+
+                auto finalEvents = parser.flush();
+                foreach (event; finalEvents)
+                {
+                    if (event.data == "[DONE]")
+                    {
+                        stream.complete = true;
+                        continue;
+                    }
+                    try
+                    {
+                        JSONValue json = parseJSON(event.data);
+                        Completion completion = model.parseCompletions(json);
+                        stream.update(completion);
+                        if (stream.callback !is null)
+                            stream.callback(completion);
+                    }
+                    catch (Exception ex)
+                    {
+                        stream.error = ex;
+                    }
+                }
+                stream.complete = true;
+            }
+            catch (Exception ex)
+            {
+                stream.error = ex;
+                stream.complete = true;
+            }
+        }
+
+        stream.commence((CompletionStream) { new StreamThread(&doStream).start(); });
+        return stream;
+    }
 
     /**
      * Sends an HTTP request to the endpoint.
@@ -157,5 +284,13 @@ public:
         if (ret.length >= 3 && ret[$-3..$] == "/v1")
             ret = ret[0..$-3];
         return ret;
+    }
+}
+
+private final class StreamThread : Thread
+{
+    this(void delegate() runDg)
+    {
+        super(runDg);
     }
 }
