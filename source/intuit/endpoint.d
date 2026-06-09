@@ -87,7 +87,11 @@ Completion completions(E, M, D)(E ep, M model, auto ref D data)
             if (!tool.autoexec)
                 continue;
             
-            JSONValue result = tool.impl(call.arguments);
+            JSONValue result;
+            try
+                result = tool.impl(call.arguments);
+            catch (Exception ex)
+                result = JSONValue("Error: "~ex.msg);
             string serialized = result.type == JSONType.string ? result.str : result.toString();
             data.tool(call.id, serialized);
         }
