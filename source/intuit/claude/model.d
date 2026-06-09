@@ -210,8 +210,6 @@ public:
                 arr.array ~= JSONValue(s);
             ret["stop_sequences"] = arr;
         }
-        if (_system.length > 0)
-            ret["system"] = JSONValue(_system);
         if (_thinkingBudget >= 0)
         {
             JSONValue thinking = JSONValue.emptyObject;
@@ -240,8 +238,30 @@ public:
             ret["tools"] = toolsArray;
         }
 
+        string systemPrompt = _system;
+
         if (input.type == JSONType.array)
-            ret["messages"] = input;
+        {
+            JSONValue[] remainingMessages;
+            foreach (msg; input.array)
+            {
+                if ("role" in msg && msg["role"].type == JSONType.string && msg["role"].str == "system")
+                {
+                    if ("content" in msg && msg["content"].type == JSONType.string)
+                    {
+                        if (systemPrompt.length > 0)
+                            systemPrompt ~= "\n" ~ msg["content"].str;
+                        else
+                            systemPrompt = msg["content"].str;
+                    }
+                }
+                else
+                {
+                    remainingMessages ~= msg;
+                }
+            }
+            ret["messages"] = JSONValue(remainingMessages);
+        }
         else
         {
             ret["messages"] = JSONValue.emptyArray;
@@ -250,6 +270,9 @@ public:
             msg["content"] = input;
             ret["messages"].array ~= msg;
         }
+
+        if (systemPrompt.length > 0)
+            ret["system"] = JSONValue(systemPrompt);
 
         return ret;
     }

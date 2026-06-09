@@ -29,6 +29,31 @@ unittest
     assert(payload["messages"].array.length == 1);
 }
 
+@Name("completionsJSON extracts role system messages to top level")
+unittest
+{
+    auto model = new ClaudeModel("claude-opus-4-8");
+    model.system("Original system.");
+
+    JSONValue input = JSONValue.emptyArray;
+    
+    JSONValue sysMsg = JSONValue.emptyObject;
+    sysMsg["role"] = JSONValue("system");
+    sysMsg["content"] = JSONValue("Extracted system.");
+    input.array ~= sysMsg;
+
+    JSONValue userMsg = JSONValue.emptyObject;
+    userMsg["role"] = JSONValue("user");
+    userMsg["content"] = JSONValue("Hello");
+    input.array ~= userMsg;
+
+    JSONValue payload = model.completionsJSON(input);
+
+    assert(payload["system"].str == "Original system.\nExtracted system.");
+    assert(payload["messages"].array.length == 1);
+    assert(payload["messages"].array[0]["role"].str == "user");
+}
+
 @Name("completionsJSON wraps raw string input")
 unittest
 {
