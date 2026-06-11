@@ -9,9 +9,9 @@ import std.json : JSONValue, JSONType;
 unittest
 {
     auto model = new ClaudeModel("claude-opus-4-8");
-    model.maxTokens(1024);
-    model.temperature(0.5);
-    model.system("Be helpful.");
+    model.maxTokens = 1024;
+    model.temperature = 0.5;
+    model.system = "Be helpful.";
 
     JSONValue input = JSONValue.emptyArray;
     JSONValue msg = JSONValue.emptyObject;
@@ -33,7 +33,7 @@ unittest
 unittest
 {
     auto model = new ClaudeModel("claude-opus-4-8");
-    model.system("Original system.");
+    model.system = "Original system.";
 
     JSONValue input = JSONValue.emptyArray;
     

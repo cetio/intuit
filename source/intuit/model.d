@@ -9,9 +9,9 @@ import std.json : JSONValue;
 interface IModel
 {
     /// Gets the model name.
-    ref string name();
+    string name();
     /// Gets the model owner.
-    ref string owner();
+    string owner();
 
     /**
      * Builds the JSON payload for a completions request.

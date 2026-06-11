@@ -20,19 +20,30 @@ private:
     string _name;
     string _owner;
 
-    double _temperature = double.nan;
-    double _topP = double.nan;
-    long _topK = -1;
-    long _maxTokens = -1;
-    string[] _stopSequences;
-    string _system;
-    long _thinkingBudget = -1;
-    JSONValue _toolChoice;
-    bool _hasToolChoice;
-    JSONValue _responseFormat;
-    bool _hasResponseFormat;
-
 public:
+    /// Sampling temperature.
+    double temperature = double.nan;
+    /// Nucleus sampling probability.
+    double topP = double.nan;
+    /// Top-k sampling parameter.
+    long topK = -1;
+    /// Maximum tokens to generate.
+    long maxTokens = -1;
+    /// Stop sequences.
+    string[] stopSequences;
+    /// System prompt.
+    string system;
+    /// Thinking budget in tokens.
+    long thinkingBudget = -1;
+    /// Tool choice JSON.
+    JSONValue toolChoice;
+    /// Whether toolChoice has been set.
+    bool hasToolChoice;
+    /// Response format JSON.
+    JSONValue responseFormat;
+    /// Whether responseFormat has been set.
+    bool hasResponseFormat;
+
     /**
      * Constructs a ClaudeModel.
      *
@@ -46,129 +57,43 @@ public:
         this._owner = owner;
     }
 
-    override ref string name()
+    override string name()
         => _name;
 
-    override ref string owner()
+    override string owner()
         => _owner;
 
     override string toString() const
         => "ClaudeModel("~_name~", "~_owner~")";
 
-    /// Gets or sets the sampling temperature.
-    ref double temperature()
-        => _temperature;
-
-    /// ditto
-    ClaudeModel temperature(double val)
-    {
-        _temperature = val;
-        return this;
-    }
-
-    /// Gets or sets the nucleus sampling probability.
-    ref double topP()
-        => _topP;
-
-    /// ditto
-    ClaudeModel topP(double val)
-    {
-        _topP = val;
-        return this;
-    }
-
-    /// Gets or sets the top-k sampling parameter.
-    ref long topK()
-        => _topK;
-
-    /// ditto
-    ClaudeModel topK(long val)
-    {
-        _topK = val;
-        return this;
-    }
-
-    /// Gets or sets the maximum number of tokens to generate.
-    ref long maxTokens()
-        => _maxTokens;
-
-    /// ditto
-    ClaudeModel maxTokens(long val)
-    {
-        _maxTokens = val;
-        return this;
-    }
-
-    /// Gets or sets the stop sequences.
-    ref string[] stopSequences()
-        => _stopSequences;
-
-    /// ditto
-    ClaudeModel stopSequences(string[] val)
-    {
-        _stopSequences = val;
-        return this;
-    }
-
-    /// Gets or sets the system prompt.
-    ref string system()
-        => _system;
-
-    /// ditto
-    ClaudeModel system(string val)
-    {
-        _system = val;
-        return this;
-    }
-
-    /// Gets or sets the thinking budget in tokens.
-    ref long thinkingBudget()
-        => _thinkingBudget;
-
-    /// ditto
-    ClaudeModel thinkingBudget(long val)
-    {
-        _thinkingBudget = val;
-        return this;
-    }
-
-    /// Sets the tool_choice parameter.
-    ClaudeModel toolChoice(JSONValue val)
-    {
-        _toolChoice = val;
-        _hasToolChoice = true;
-        return this;
-    }
-
-    /// ditto
-    ClaudeModel toolChoice(string val)
-    {
-        _toolChoice = JSONValue(val);
-        _hasToolChoice = true;
-        return this;
-    }
-
     /// Forces the model to call a specific tool.
-    ClaudeModel forceTool(string toolName)
+    void forceTool(string toolName)
     {
         JSONValue choice = JSONValue.emptyObject;
         choice["type"] = JSONValue("tool");
         choice["name"] = JSONValue(toolName);
-        _toolChoice = choice;
-        _hasToolChoice = true;
-        return this;
+        toolChoice = choice;
+        hasToolChoice = true;
     }
 
-    /// Sets the response format to JSON.
-    ClaudeModel responseFormat(JSONValue val)
+    /// Enables JSON object response mode.
+    void jsonMode()
     {
-        _responseFormat = val;
-        _hasResponseFormat = true;
-        return this;
+        JSONValue format = JSONValue.emptyObject;
+        format["type"] = JSONValue("json");
+        responseFormat = format;
+        hasResponseFormat = true;
     }
 
-    /// Sets the response format to JSON with a schema.
-    ClaudeModel jsonSchema(string name, JSONValue schema, bool strict = true)
+    /**
+     * Enables JSON schema response mode.
+     *
+     * Params:
+     *  name = The schema name.
+     *  schema = The JSON schema object.
+     *  strict = Whether to enforce strict schema adherence.
+     */
+    void jsonSchema(string name, JSONValue schema, bool strict = true)
     {
         JSONValue format = JSONValue.emptyObject;
         format["type"] = JSONValue("json");
@@ -178,7 +103,8 @@ public:
         spec["schema"] = schema;
         spec["strict"] = JSONValue(strict);
         format["json"] = spec;
-        return responseFormat(format);
+        responseFormat = format;
+        hasResponseFormat = true;
     }
 
     /**
@@ -196,32 +122,32 @@ public:
         JSONValue ret = JSONValue.emptyObject;
         ret["model"] = JSONValue(_name);
 
-        if (_maxTokens >= 0)
-            ret["max_tokens"] = JSONValue(_maxTokens);
-        if (!isNaN(_temperature))
-            ret["temperature"] = JSONValue(_temperature);
-        if (!isNaN(_topP))
-            ret["top_p"] = JSONValue(_topP);
-        if (_topK >= 0)
-            ret["top_k"] = JSONValue(_topK);
-        if (_stopSequences.length > 0)
+        if (maxTokens >= 0)
+            ret["max_tokens"] = JSONValue(maxTokens);
+        if (!isNaN(temperature))
+            ret["temperature"] = JSONValue(temperature);
+        if (!isNaN(topP))
+            ret["top_p"] = JSONValue(topP);
+        if (topK >= 0)
+            ret["top_k"] = JSONValue(topK);
+        if (stopSequences.length > 0)
         {
             JSONValue arr = JSONValue.emptyArray;
-            foreach (s; _stopSequences)
+            foreach (s; stopSequences)
                 arr.array ~= JSONValue(s);
             ret["stop_sequences"] = arr;
         }
-        if (_thinkingBudget >= 0)
+        if (thinkingBudget >= 0)
         {
             JSONValue thinking = JSONValue.emptyObject;
             thinking["type"] = JSONValue("enabled");
-            thinking["budget_tokens"] = JSONValue(_thinkingBudget);
+            thinking["budget_tokens"] = JSONValue(thinkingBudget);
             ret["thinking"] = thinking;
         }
-        if (_hasResponseFormat)
-            ret["response_format"] = _responseFormat;
-        if (_hasToolChoice)
-            ret["tool_choice"] = _toolChoice;
+        if (hasResponseFormat)
+            ret["response_format"] = responseFormat;
+        if (hasToolChoice)
+            ret["tool_choice"] = toolChoice;
 
         Tool[] toolList = tools.list();
         if (toolList.length > 0)
@@ -239,7 +165,7 @@ public:
             ret["tools"] = toolsArray;
         }
 
-        string systemPrompt = _system;
+        string systemPrompt = system;
 
         if (input.type == JSONType.array)
         {

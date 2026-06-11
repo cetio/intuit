@@ -21,10 +21,10 @@ private final class StubModel : IModel
         this._name = name;
     }
 
-    override ref string name()
+    override string name()
         => _name;
 
-    override ref string owner()
+    override string owner()
         => _owner;
 
     override JSONValue completionsJSON(JSONValue input, ToolRegistry tools = ToolRegistry.init)

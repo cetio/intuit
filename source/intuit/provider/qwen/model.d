@@ -21,34 +21,58 @@ private:
     string _name;
     string _owner;
 
-    double _temperature = double.nan;
-    double _topP = double.nan;
-    long _maxTokens = -1;
-    string[] _stop;
-    double _presencePenalty = double.nan;
-    double _frequencyPenalty = double.nan;
-    long _n = 1;
-    long[long] _logitBias;
-    long _seed = 0;
-    string _encodingFormat = "float";
-    long _dimensions = 0;
-    JSONValue _responseFormat;
-    bool _hasResponseFormat;
-    JSONValue _toolChoice;
-    bool _hasToolChoice;
+public:
+    /// Sampling temperature.
+    double temperature = double.nan;
+    /// Nucleus sampling probability.
+    double topP = double.nan;
+    /// Maximum tokens to generate.
+    long maxTokens = -1;
+    /// Stop sequences.
+    string[] stop;
+    /// Presence penalty.
+    double presencePenalty = double.nan;
+    /// Frequency penalty.
+    double frequencyPenalty = double.nan;
+    /// Number of completions to generate.
+    long n = 1;
+    /// Logit bias map.
+    long[long] logitBias;
+    /// Random seed.
+    long seed = 0;
+    /// Embedding encoding format.
+    string encodingFormat = "float";
+    /// Embedding dimensions.
+    long dimensions = 0;
+    /// Response format JSON.
+    JSONValue responseFormat;
+    /// Whether responseFormat has been set.
+    bool hasResponseFormat;
+    /// Tool choice JSON.
+    JSONValue toolChoice;
+    /// Whether toolChoice has been set.
+    bool hasToolChoice;
 
     // Qwen-specific parameters
-    bool _enableThinking = true;
-    long _topK = -1;
-    JSONValue _extraBody;
-    bool _hasExtraBody;
-    JSONValue _chatTemplateKwargs;
-    bool _hasChatTemplateKwargs;
-    JSONValue _mmProcessorKwargs;
-    bool _hasMmProcessorKwargs;
-    long _thinkingBudget = -1;
+    /// Whether thinking is enabled.
+    bool enableThinking = true;
+    /// Top-k sampling value.
+    long topK = -1;
+    /// Extra body parameters.
+    JSONValue extraBody;
+    /// Whether extraBody has been set.
+    bool hasExtraBody;
+    /// Chat template keyword arguments.
+    JSONValue chatTemplateKwargs;
+    /// Whether chatTemplateKwargs has been set.
+    bool hasChatTemplateKwargs;
+    /// Multimodal processor keyword arguments.
+    JSONValue mmProcessorKwargs;
+    /// Whether mmProcessorKwargs has been set.
+    bool hasMmProcessorKwargs;
+    /// Thinking budget.
+    long thinkingBudget = -1;
 
-public:
     /**
      * Constructs a QwenModel.
      *
@@ -62,181 +86,34 @@ public:
         this._owner = owner;
     }
 
-    override ref string name()
+    override string name()
         => _name;
 
-    override ref string owner()
+    override string owner()
         => _owner;
 
     override string toString() const
         => "QwenModel("~_name~", "~_owner~")";
 
-    // Standard OpenAI parameters (chainable and accessor properties)
-
-    /// Gets or sets the sampling temperature.
-    ref double temperature()
-        => _temperature;
-
-    /// ditto
-    QwenModel temperature(double val)
-    {
-        _temperature = val;
-        return this;
-    }
-
-    /// Gets or sets the nucleus sampling probability.
-    ref double topP()
-        => _topP;
-
-    /// ditto
-    QwenModel topP(double val)
-    {
-        _topP = val;
-        return this;
-    }
-
-    /// Gets or sets the maximum number of tokens to generate.
-    ref long maxTokens()
-        => _maxTokens;
-
-    /// ditto
-    QwenModel maxTokens(long val)
-    {
-        _maxTokens = val;
-        return this;
-    }
-
-    /// Gets or sets the stop sequences.
-    ref string[] stop()
-        => _stop;
-
-    /// ditto
-    QwenModel stop(string[] val)
-    {
-        _stop = val;
-        return this;
-    }
-
-    /// Gets or sets the presence penalty.
-    ref double presencePenalty()
-        => _presencePenalty;
-
-    /// ditto
-    QwenModel presencePenalty(double val)
-    {
-        _presencePenalty = val;
-        return this;
-    }
-
-    /// Gets or sets the frequency penalty.
-    ref double frequencyPenalty()
-        => _frequencyPenalty;
-
-    /// ditto
-    QwenModel frequencyPenalty(double val)
-    {
-        _frequencyPenalty = val;
-        return this;
-    }
-
-    /// Gets or sets the number of completions to generate.
-    ref long n()
-        => _n;
-
-    /// ditto
-    QwenModel n(long val)
-    {
-        _n = val;
-        return this;
-    }
-
-    /// Gets or sets the logit bias map.
-    ref long[long] logitBias()
-        => _logitBias;
-
-    /// ditto
-    QwenModel logitBias(long[long] val)
-    {
-        _logitBias = val;
-        return this;
-    }
-
-    /// Gets or sets the random seed.
-    ref long seed()
-        => _seed;
-
-    /// ditto
-    QwenModel seed(long val)
-    {
-        _seed = val;
-        return this;
-    }
-
-    /// Gets or sets the embedding encoding format.
-    ref string encodingFormat()
-        => _encodingFormat;
-
-    /// ditto
-    QwenModel encodingFormat(string val)
-    {
-        _encodingFormat = val;
-        return this;
-    }
-
-    /// Gets or sets the embedding dimensions.
-    ref long dimensions()
-        => _dimensions;
-
-    /// ditto
-    QwenModel dimensions(long val)
-    {
-        _dimensions = val;
-        return this;
-    }
-
-    /// Sets the response format JSON.
-    QwenModel responseFormat(JSONValue val)
-    {
-        _responseFormat = val;
-        _hasResponseFormat = true;
-        return this;
-    }
-
-    /// Sets the tool_choice parameter.
-    QwenModel toolChoice(JSONValue val)
-    {
-        _toolChoice = val;
-        _hasToolChoice = true;
-        return this;
-    }
-
-    /// ditto
-    QwenModel toolChoice(string val)
-    {
-        _toolChoice = JSONValue(val);
-        _hasToolChoice = true;
-        return this;
-    }
-
     /// Forces the model to call a specific tool.
-    QwenModel forceTool(string toolName)
+    void forceTool(string toolName)
     {
         JSONValue choice = JSONValue.emptyObject;
         choice["type"] = JSONValue("function");
         JSONValue func = JSONValue.emptyObject;
         func["name"] = JSONValue(toolName);
         choice["function"] = func;
-        _toolChoice = choice;
-        _hasToolChoice = true;
-        return this;
+        toolChoice = choice;
+        hasToolChoice = true;
     }
 
     /// Enables JSON object response mode.
-    QwenModel jsonMode()
+    void jsonMode()
     {
         JSONValue format = JSONValue.emptyObject;
         format["type"] = JSONValue("json_object");
-        return responseFormat(format);
+        responseFormat = format;
+        hasResponseFormat = true;
     }
 
     /**
@@ -246,11 +123,8 @@ public:
      *  name = The schema name.
      *  schema = The JSON schema object.
      *  strict = Whether to enforce strict schema adherence.
-     *
-     * Returns:
-     *  A reference to this model for chaining.
      */
-    QwenModel jsonSchema(string name, JSONValue schema, bool strict = true)
+    void jsonSchema(string name, JSONValue schema, bool strict = true)
     {
         JSONValue format = JSONValue.emptyObject;
         format["type"] = JSONValue("json_schema");
@@ -260,78 +134,8 @@ public:
         spec["schema"] = schema;
         spec["strict"] = JSONValue(strict);
         format["json_schema"] = spec;
-        return responseFormat(format);
-    }
-
-    // Qwen-specific parameters (chainable and accessor properties)
-
-    /// Gets or sets whether thinking is enabled.
-    ref bool enableThinking()
-        => _enableThinking;
-
-    /// ditto
-    QwenModel enableThinking(bool val)
-    {
-        _enableThinking = val;
-        return this;
-    }
-
-    /// Gets or sets the top-k sampling value.
-    ref long topK()
-        => _topK;
-
-    /// ditto
-    QwenModel topK(long val)
-    {
-        _topK = val;
-        return this;
-    }
-
-    /// Gets or sets extra body parameters.
-    ref JSONValue extraBody()
-        => _extraBody;
-
-    /// ditto
-    QwenModel extraBody(JSONValue val)
-    {
-        _extraBody = val;
-        _hasExtraBody = true;
-        return this;
-    }
-
-    /// Gets or sets chat template keyword arguments.
-    ref JSONValue chatTemplateKwargs()
-        => _chatTemplateKwargs;
-
-    /// ditto
-    QwenModel chatTemplateKwargs(JSONValue val)
-    {
-        _chatTemplateKwargs = val;
-        _hasChatTemplateKwargs = true;
-        return this;
-    }
-
-    /// Gets or sets multimodal processor keyword arguments.
-    ref JSONValue mmProcessorKwargs()
-        => _mmProcessorKwargs;
-
-    /// ditto
-    QwenModel mmProcessorKwargs(JSONValue val)
-    {
-        _mmProcessorKwargs = val;
-        _hasMmProcessorKwargs = true;
-        return this;
-    }
-
-    /// Gets or sets the thinking budget.
-    ref long thinkingBudget()
-        => _thinkingBudget;
-
-    /// ditto
-    QwenModel thinkingBudget(long val)
-    {
-        _thinkingBudget = val;
-        return this;
+        responseFormat = format;
+        hasResponseFormat = true;
     }
 
     /**
@@ -350,41 +154,41 @@ public:
         ret["model"] = JSONValue(_name);
 
         // Standard OpenAI parameters
-        if (_maxTokens >= 0) ret["max_tokens"] = JSONValue(_maxTokens);
-        if (!isNaN(_temperature)) ret["temperature"] = JSONValue(_temperature);
-        if (!isNaN(_topP)) ret["top_p"] = JSONValue(_topP);
-        if (_stop.length > 0)
+        if (maxTokens >= 0) ret["max_tokens"] = JSONValue(maxTokens);
+        if (!isNaN(temperature)) ret["temperature"] = JSONValue(temperature);
+        if (!isNaN(topP)) ret["top_p"] = JSONValue(topP);
+        if (stop.length > 0)
         {
             JSONValue arr = JSONValue.emptyArray;
-            foreach (s; _stop) arr.array ~= JSONValue(s);
+            foreach (s; stop) arr.array ~= JSONValue(s);
             ret["stop"] = arr;
         }
-        if (!isNaN(_presencePenalty)) ret["presence_penalty"] = JSONValue(_presencePenalty);
-        if (!isNaN(_frequencyPenalty)) ret["frequency_penalty"] = JSONValue(_frequencyPenalty);
-        if (_n > 1) ret["n"] = JSONValue(_n);
-        if (_logitBias.length > 0)
+        if (!isNaN(presencePenalty)) ret["presence_penalty"] = JSONValue(presencePenalty);
+        if (!isNaN(frequencyPenalty)) ret["frequency_penalty"] = JSONValue(frequencyPenalty);
+        if (n > 1) ret["n"] = JSONValue(n);
+        if (logitBias.length > 0)
         {
             JSONValue bias = JSONValue.emptyObject;
-            foreach (k, v; _logitBias) bias[k.to!string] = JSONValue(v);
+            foreach (k, v; logitBias) bias[k.to!string] = JSONValue(v);
             ret["logit_bias"] = bias;
         }
-        if (_seed > 0) ret["seed"] = JSONValue(_seed);
-        if (_hasResponseFormat) ret["response_format"] = _responseFormat;
-        if (_hasToolChoice) ret["tool_choice"] = _toolChoice;
+        if (seed > 0) ret["seed"] = JSONValue(seed);
+        if (hasResponseFormat) ret["response_format"] = responseFormat;
+        if (hasToolChoice) ret["tool_choice"] = toolChoice;
 
         // Qwen-specific parameters
-        if (_topK >= 0) ret["top_k"] = JSONValue(_topK);
-        if (_thinkingBudget >= 0) ret["thinking_budget"] = JSONValue(_thinkingBudget);
+        if (topK >= 0) ret["top_k"] = JSONValue(topK);
+        if (thinkingBudget >= 0) ret["thinking_budget"] = JSONValue(thinkingBudget);
 
         // enable_thinking can be at top level (Alibaba Cloud) or in chat_template_kwargs (vLLM)
         // We'll add it to chat_template_kwargs if that's being used, otherwise at top level
-        if (_hasChatTemplateKwargs)
-            ret["chat_template_kwargs"] = _chatTemplateKwargs;
-        else if (!_enableThinking)
+        if (hasChatTemplateKwargs)
+            ret["chat_template_kwargs"] = chatTemplateKwargs;
+        else if (!enableThinking)
             ret["enable_thinking"] = JSONValue(false);
 
-        if (_hasMmProcessorKwargs) ret["mm_processor_kwargs"] = _mmProcessorKwargs;
-        if (_hasExtraBody) ret["extra_body"] = _extraBody;
+        if (hasMmProcessorKwargs) ret["mm_processor_kwargs"] = mmProcessorKwargs;
+        if (hasExtraBody) ret["extra_body"] = extraBody;
 
         // Tools support
         Tool[] toolList = tools.list();
@@ -432,8 +236,8 @@ public:
     {
         JSONValue ret = JSONValue.emptyObject;
         ret["model"] = JSONValue(_name);
-        if (_encodingFormat != "float") ret["encoding_format"] = JSONValue(_encodingFormat);
-        if (_dimensions > 0) ret["dimensions"] = JSONValue(_dimensions);
+        if (encodingFormat != "float") ret["encoding_format"] = JSONValue(encodingFormat);
+        if (dimensions > 0) ret["dimensions"] = JSONValue(dimensions);
         ret["input"] = input;
         return ret;
     }
