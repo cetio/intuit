@@ -2,6 +2,7 @@
 module intuit.router;
 
 public import intuit.router.local;
+public import intuit.router.openrouter;
 
 import intuit.context;
 import intuit.model;
