@@ -24,9 +24,9 @@ Intuit provides endpoint and model definitions for the following providers:
 
 | Endpoint | Module |
 |----------|--------|
-| Claude | `intuit.claude` |
-| OpenAI | `intuit.openai` |
-| Qwen | `intuit.qwen` |
+| Claude | `intuit.provider.claude` |
+| OpenAI | `intuit.provider.openai` |
+| Qwen | `intuit.provider.qwen` |
 
 Support does NOT mean that Intuit will work with every model from these providers or ONLY these providers, but rather that the endpoint and model definitions are provided and tested for those API styles. OpenAI endpoints are likely to work with most models, but will vary based on the model version and capabilities.
 
@@ -177,6 +177,33 @@ Tools marked with `autoexec = true` are invoked automatically and the conversati
 ep.tools.add!getWeather(true);
 Completion result = completions(ep, model, ctx); // loops internally
 ```
+
+### Routers
+
+Routers sit beside endpoints with their own interface (`IRouter`) and request functions. A router juggles one or more endpoints internally, maintains its own `Context`, and operates on a single active model at a time. Setting the active model adjusts the maintained context's `Compactor` token limit to match the model's context window.
+
+`LocalRouter` wraps a single backing endpoint and exposes a static catalog of model metadata:
+
+```d
+import intuit;
+
+auto router = new LocalRouter(new OpenAI("http://localhost:1234"));
+router.active("gpt-4o");
+
+LocalModelDetails details = router.details("gpt-4o");
+LocalModelDetails[] withTools = router.filter(d => d.capabilities.canFind("tools"));
+```
+
+Router request functions omit the `model` parameter. When data is provided it is appended to the maintained context; when omitted, the existing context state is used:
+
+```d
+Completion result = completions(router, "Why is the sky blue?");
+
+router.context.user("And why are sunsets red?");
+Completion followUp = completions(router);
+```
+
+`streamCompletions` and `embeddings` are also available for routers, and all three throw if no active model has been set.
 
 ### Response Types
 

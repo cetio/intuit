@@ -1,6 +1,6 @@
 module tests.qwen.xmltools;
 
-import intuit.qwen.model;
+import intuit.provider.qwen.model;
 import intuit.response;
 import unit_threaded;
 

@@ -1,6 +1,6 @@
 module tests.claude.model;
 
-import intuit.claude.model;
+import intuit.provider.claude.model;
 import intuit.response;
 import unit_threaded;
 import std.json : JSONValue, JSONType;

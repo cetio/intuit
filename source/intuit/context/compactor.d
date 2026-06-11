@@ -14,9 +14,9 @@ enum CompactorStrategy
 /// Compacts a message list when configured token or message limits are exceeded.
 class Compactor
 {
-    /// Maximum number of messages before compaction; 0 disables this limit.
+    /// Maximum number of messages before compaction. Disabled if set to 0.
     size_t maxMessages;
-    /// Maximum number of tokens before compaction; 0 disables this limit.
+    /// Maximum number of tokens before compaction. Disabled if set to 0.
     size_t maxTokens = 250_000;
     /// The compaction strategy to apply.
     CompactorStrategy strategy = CompactorStrategy.Trim;
