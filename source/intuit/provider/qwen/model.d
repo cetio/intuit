@@ -53,7 +53,6 @@ public:
     /// Whether toolChoice has been set.
     bool hasToolChoice;
 
-    // Qwen-specific parameters
     /// Whether thinking is enabled.
     bool enableThinking = true;
     /// Top-k sampling value.
