@@ -1,7 +1,6 @@
 /// Router interface and request functions operating on a maintained context.
 module intuit.router;
 
-public import intuit.router.local;
 public import intuit.router.openrouter;
 
 import intuit.context;
