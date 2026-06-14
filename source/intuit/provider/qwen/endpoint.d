@@ -2,7 +2,7 @@
 module intuit.provider.qwen.endpoint;
 
 public import intuit.provider;
-import intuit.error : EndpointError;
+import intuit.exception : EndpointException;
 import intuit.model;
 import intuit.provider.openai;
 import intuit.provider.qwen.model;

@@ -1,10 +1,11 @@
-/// Exception types for LLM endpoint and parsing errors.
-module intuit.error;
+/// Exception types for LLM endpoint and parsing exceptions.
+module intuit.exception;
 
 import std.format : format;
+import std.exception : basicExceptionCtors;
 
 /// Thrown when an endpoint returns a non-success status or invalid response.
-class EndpointError : Exception
+class EndpointException : Exception
 {
     /// HTTP method used for the request.
     string method;
@@ -18,7 +19,7 @@ class EndpointError : Exception
     string content;
 
     /**
-     * Constructs an EndpointError.
+     * Constructs an EndpointException.
      *
      * Params:
      *  method = The HTTP method.
@@ -65,7 +66,7 @@ private:
 }
 
 /// Thrown when parsing a completion response fails.
-class CompletionParseError : Exception
+class ResponseFormatException : Exception
 {
     /// The raw text that could not be parsed.
     string rawText;
@@ -73,10 +74,10 @@ class CompletionParseError : Exception
     string candidateText;
 
     /**
-     * Constructs a CompletionParseError.
+     * Constructs a ResponseFormatException.
      *
      * Params:
-     *  message = The error message.
+     *  message = The exception message.
      *  rawText = The raw unparsable text.
      *  candidateText = The candidate text that caused the failure.
      */
@@ -88,11 +89,15 @@ class CompletionParseError : Exception
     }
 }
 
-/// Thrown when formatting (JSON schema) validation fails.
-class FormatError : Exception
+/// Thrown when a stream encounters a (protocol) fault.
+/// This does not apply to streaming exceptions related to content.
+class StreamException : Exception
 {
-    this(string message)
-    {
-        super(message);
-    }
+    mixin basicExceptionCtors;
+}
+
+/// Thrown when formatting (JSON schema) validation fails.
+class FormatException : Exception
+{
+    mixin basicExceptionCtors;
 }

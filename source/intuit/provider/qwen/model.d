@@ -1,7 +1,7 @@
 /// Qwen model implementation with Qwen-specific parameters.
 module intuit.provider.qwen.model;
 
-import intuit.error : EndpointError;
+import intuit.exception : EndpointException;
 import intuit.model;
 import intuit.response;
 import intuit.tool;

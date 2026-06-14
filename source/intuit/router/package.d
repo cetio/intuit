@@ -83,7 +83,7 @@ Completion completions(R)(R router)
         try
             result = tool.impl(call.arguments);
         catch (Exception ex)
-            result = JSONValue("Error: "~ex.msg);
+            result = JSONValue("Exception: "~ex.msg);
         string serialized = result.type == JSONType.string ? result.str : result.toString();
         router.context.tool(call.id, serialized);
     }

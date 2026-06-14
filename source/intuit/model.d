@@ -1,7 +1,7 @@
 /// Base model configuration class for LLM providers.
 module intuit.model;
 
-import intuit.error : EndpointError, FormatError;
+import intuit.exception : EndpointException, FormatException;
 import intuit.response;
 import intuit.tool;
 
@@ -69,13 +69,13 @@ class ModelConfig
      *  liability = The tool liability (required, auto, none).
      * 
      * Throws:
-     *  FormatError if liability is not one of the allowed values.
+     *  FormatException if liability is not one of the allowed values.
      */
     void setToolLiability(string liability)
     {
         if (liability != "required" && liability != "auto" && liability != "none")
         {
-            throw new FormatError(
+            throw new FormatException(
                 "Tool liability must be 'required', 'auto', or 'none', not '"~liability~"'"
             );
         }
@@ -228,7 +228,7 @@ class ModelConfig
     {
         Completion ret;
         ret.raw = json;
-        checkError(json);
+        checkException(json);
         ret.usage = parseUsage(json);
 
         if ("choices" in json && json["choices"].type == JSONType.array)
@@ -267,7 +267,7 @@ class ModelConfig
      */
     JSONValue parseEmbeddingsResponse(JSONValue json)
     {
-        checkError(json);
+        checkException(json);
 
         JSONValue ret = JSONValue.emptyArray;
         if ("data" in json && json["data"].type == JSONType.array)
@@ -410,8 +410,8 @@ private:
         }
     }
 
-    /// Throws if the JSON response contains an error field.
-    static void checkError(JSONValue json)
+    /// Throws if the JSON response contains an exception field.
+    static void checkException(JSONValue json)
     {
         if ("error" !in json)
             return;
@@ -419,8 +419,8 @@ private:
         if (json["error"].type == JSONType.string)
             throw new Exception(json["error"].str);
         else if (json["error"].type == JSONType.object && "message" in json["error"])
-            throw new EndpointError("POST", "chat/completions", 0, "error", json["error"]["message"].str);
+            throw new EndpointException("POST", "chat/completions", 0, "error", json["error"]["message"].str);
         else
-            throw new EndpointError("POST", "chat/completions", 0, "error", json.toPrettyString());
+            throw new EndpointException("POST", "chat/completions", 0, "error", json.toPrettyString());
     }
 }

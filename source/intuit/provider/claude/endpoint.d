@@ -4,7 +4,7 @@ module intuit.provider.claude.endpoint;
 public import intuit.provider;
 import intuit.provider.claude.model;
 import intuit.model;
-import intuit.error : EndpointError;
+import intuit.exception : EndpointException;
 import intuit.response.stream.sse : SSEParser, SSEEvent;
 import intuit.response;
 import intuit.tool;
@@ -107,7 +107,7 @@ public:
 
     override JSONValue _embeddings(ModelConfig cfg, JSONValue payload)
     {
-        throw new EndpointError("POST", "embeddings", 0, "not supported", "Claude does not support embeddings.");
+        throw new EndpointException("POST", "embeddings", 0, "not supported", "Claude does not support embeddings.");
     }
 
     override CompletionStream _stream(ModelConfig cfg, JSONValue payload)
@@ -238,14 +238,14 @@ public:
                     }
                     catch (Exception ex)
                     {
-                        stream.error = ex;
+                        stream.exception = ex;
                         stream.complete = true;
                     }
                 }
             }
             catch (Exception ex)
             {
-                stream.error = ex;
+                stream.exception = ex;
                 stream.complete = true;
             }
             return chunk.length;
@@ -259,7 +259,7 @@ public:
 
                 if (status < 200 || status >= 300)
                 {
-                    stream.error = new EndpointError(
+                    stream.exception = new EndpointException(
                         "POST", target, status, reason, null, "Streaming request failed."
                     );
                     stream.complete = true;
@@ -279,12 +279,12 @@ public:
             }
             catch (Exception ex)
             {
-                stream.error = ex;
+                stream.exception = ex;
                 stream.complete = true;
             }
         }
 
-        stream.commence((CompletionStream) { new StreamThread(&doStream).start(); });
+        stream.commence((CompletionStream) { new Thread(&doStream).start(); });
         return stream;
     }
 
@@ -300,7 +300,7 @@ public:
      *  The parsed JSON response.
      *
      * Throws:
-     *  EndpointError on HTTP or JSON parse failures.
+     *  EndpointException on HTTP or JSON parse failures.
      */
     JSONValue request(HTTP.Method method, string tail, JSONValue payload = JSONValue.init)
     {
@@ -323,12 +323,12 @@ public:
 
         string content = response.content is null ? null : response.content.assumeUTF().idup;
         if (response.status < 200 || response.status >= 300)
-            throw new EndpointError(method.to!string, target, response.status, response.reason, content);
+            throw new EndpointException(method.to!string, target, response.status, response.reason, content);
 
         try
             return content.parseJSON();
         catch (Exception)
-            throw new EndpointError(
+            throw new EndpointException(
                 method.to!string,
                 target,
                 response.status,
@@ -365,14 +365,6 @@ public:
         if (ret.length >= 3 && ret[$-3..$] == "/v1")
             ret = ret[0..$-3];
         return ret;
-    }
-}
-
-private final class StreamThread : Thread
-{
-    this(void delegate() runDg)
-    {
-        super(runDg);
     }
 }
 

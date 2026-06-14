@@ -2,11 +2,11 @@
 module intuit.response.stream;
 
 import intuit.response.completion;
-import intuit.error : EndpointError;
+import intuit.exception : StreamException;
 
 import core.atomic;
 import core.thread;
-import std.json : JSONValue, JSONValue, parseJSON;
+import std.json : JSONValue, parseJSON;
 
 /**
  * Thread-safe completion stream consumer.
@@ -35,7 +35,7 @@ public:
     /// True when the stream has finished.
     bool complete;
     /// If set, an exception thrown by the background worker.
-    Exception error;
+    Exception exception;
     /// Callback invoked for each completion chunk.
     void delegate(Completion) callback;
 
@@ -71,10 +71,10 @@ public:
     Completion next()
     {
         if (_commence is null)
-            throw new EndpointError("Stream not initialized");
+            throw new StreamException("Stream commence delegate must be set to retrieve chunks.");
 
-        if (error !is null)
-            throw error;
+        if (exception !is null)
+            throw exception;
 
         while (atomicLoad!(MemoryOrder.acq)(_writer))
             Thread.yield();
@@ -84,7 +84,7 @@ public:
         while (cur >= atomicLoad!(MemoryOrder.acq)(_length))
         {
             if (complete)
-                throw new Exception("Stream exhausted");
+                throw new StreamException("Stream is exhausted and has no more chunks.");
             Thread.yield();
         }
 
@@ -109,12 +109,6 @@ public:
         return ret;
     }
 
-    /// Begins streaming using the internal commence delegate.
-    void begin()
-    {
-        _commence(this);
-    }
-
     /**
      * Sets the commence delegate and starts streaming.
      *
@@ -124,7 +118,7 @@ public:
     void commence(void delegate(CompletionStream) dg)
     {
         _commence = dg;
-        begin();
+        _commence(this);
     }
 
     /**

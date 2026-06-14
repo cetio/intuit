@@ -1,7 +1,7 @@
 /// Anthropic Claude model implementation with Messages API parameters.
 module intuit.provider.claude.model;
 
-import intuit.error : EndpointError;
+import intuit.exception : EndpointException;
 import intuit.model;
 import intuit.response;
 import intuit.tool;
@@ -140,11 +140,11 @@ public:
      * Claude does not support embeddings through the Messages API.
      *
      * Throws:
-     *  EndpointError because Claude has no embeddings endpoint.
+     *  EndpointException because Claude has no embeddings endpoint.
      */
     override JSONValue buildEmbeddingsPayload(JSONValue input)
     {
-        throw new EndpointError("POST", "embeddings", 0, "not supported", "Claude does not support embeddings.");
+        throw new EndpointException("POST", "embeddings", 0, "not supported", "Claude does not support embeddings.");
     }
 
     /**
@@ -160,7 +160,7 @@ public:
     {
         Completion ret;
         ret.raw = json;
-        checkError(json);
+        checkException(json);
         ret.usage = parseUsage(json);
 
         Choice choice;
@@ -209,11 +209,11 @@ public:
      * Claude does not support embeddings.
      *
      * Throws:
-     *  EndpointError because Claude has no embeddings endpoint.
+     *  EndpointException because Claude has no embeddings endpoint.
      */
     override JSONValue parseEmbeddingsResponse(JSONValue json)
     {
-        throw new EndpointError("POST", "embeddings", 0, "not supported", "Claude does not support embeddings.");
+        throw new EndpointException("POST", "embeddings", 0, "not supported", "Claude does not support embeddings.");
     }
 
 private:
@@ -240,8 +240,8 @@ private:
         }
     }
 
-    /// Throws if the JSON response contains an error field.
-    static void checkError(JSONValue json)
+    /// Throws if the JSON response contains an exception field.
+    static void checkException(JSONValue json)
     {
         if ("error" !in json)
             return;
@@ -249,8 +249,8 @@ private:
         if (json["error"].type == JSONType.string)
             throw new Exception(json["error"].str);
         else if (json["error"].type == JSONType.object && "message" in json["error"])
-            throw new EndpointError("POST", "messages", 0, "error", json["error"]["message"].str);
+            throw new EndpointException("POST", "messages", 0, "error", json["error"]["message"].str);
         else
-            throw new EndpointError("POST", "messages", 0, "error", json.toPrettyString());
+            throw new EndpointException("POST", "messages", 0, "error", json.toPrettyString());
     }
 }
