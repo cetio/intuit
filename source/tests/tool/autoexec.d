@@ -15,13 +15,13 @@ version(integration)
     @Name("auto-executed tool call recurses to final text response") @Serial
     unittest
     {
-        testOnce((endpoint, model) {
+        testOnce((endpoint, modelName) {
             endpoint.tools.add!greet(true);
 
             Context ctx;
             ctx.user("Say hello to Bob");
 
-            Completion result = completions(endpoint, model, ctx);
+            Completion result = completions(endpoint, modelName, ctx);
 
             assert(result.choice.text.length > 0, "Autoexec should recurse and return final text response");
             assert(ctx.length >= 3, "Context should contain user, assistant with tool call, and tool result");

@@ -7,8 +7,12 @@ version(integration)
 
     struct TestConfig
     {
+        /// Since tests are very likely to be impure, we use a delegate to create the instance.
+        /// This is called for every run with the endpoint.
+        /// Must return a Variant containing an uncast IEndpoint.
         Variant delegate() instance;
-        string model;
+        /// The name of the model to use for this endpoint.
+        string modelName;
     }
 
     static TestConfig[] configs;
@@ -20,16 +24,18 @@ version(integration)
         configs ~= TestConfig(() => Variant(new Claude("https://api.anthropic.com", null)), "claude-sonnet-4-5");
     }
 
-    void testOnce(void delegate(IEndpoint endpoint, string model) dg)
+    /// Run a test with the first available endpoint.
+    void testOnce(void delegate(IEndpoint endpoint, string modelName) dg)
     {
         foreach (config; configs)
         {
-            dg(config.instance().get!IEndpoint, config.model);
+            dg(config.instance().get!IEndpoint, config.modelName);
             return;
         }
     }
 
-    void testOnce(E)(void delegate(E endpoint, string model) dg)
+    /// Run a test with the first available endpoint of type E.
+    void testOnce(E)(void delegate(E endpoint, string modelName) dg)
         if (is(E : IEndpoint))
     {
         foreach (config; configs)
@@ -37,7 +43,7 @@ version(integration)
             E* instance = config.instance().peek!E;
             if (instance != null)
             {
-                dg(instance, config.model);
+                dg(instance, config.modelName);
                 return;
             }
         }
