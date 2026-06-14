@@ -1,10 +1,9 @@
 /// OpenAI-compatible endpoint implementation.
-module intuit.provider.openai.endpoint;
+module intuit.provider.openai;
 
 public import intuit.provider;
 import intuit.error : EndpointError;
 import intuit.model;
-import intuit.provider.openai.model;
 import intuit.response;
 import intuit.tool;
 import intuit.stream.sse : SSEParser;
@@ -27,7 +26,7 @@ private:
     HTTP _http;
 
 protected:
-    IModel[string] _models;
+    ModelConfig[] _configs;
 
 public:
     /**
@@ -40,10 +39,10 @@ public:
      */
     this(string url, string key = null, string name = "OpenAI")
     {
-        this._name = name;
-        this._url = normalizeBaseUrl(url);
-        this._key = key;
-        this._http = HTTP();
+        _name = name;
+        _url = normalizeBaseUrl(url);
+        _key = key;
+        _http = HTTP();
     }
 
     override ref string name()
@@ -58,7 +57,7 @@ public:
     override ref ToolRegistry tools()
         => _tools;
 
-    override IModel[] available()
+    override ModelConfig[] available()
     {
         JSONValue json = request(HTTP.Method.get, "models");
         if ("data" in json && json["data"].type == JSONType.array)
@@ -66,40 +65,62 @@ public:
             foreach (item; json["data"].array)
             {
                 string name = "id" in item ? item["id"].str : null;
-                if (name !in _models)
+                if (name is null)
+                    continue;
+
+                bool found = false;
+                foreach (cfg; _configs)
                 {
-                    string owner = "owned_by" in item ? item["owned_by"].str : null;
-                    _models[name] = new OpenAIModel(name, owner);
+                    if (cfg.name == name)
+                    {
+                        found = true;
+                        break;
+                    }
                 }
+                if (!found)
+                    _configs ~= new ModelConfig(name);
             }
         }
-        return _models.values;
+        return _configs;
     }
 
-    override IModel model(string name)
-        => name in _models ? _models[name] : new OpenAIModel(name, null);
+    override ModelConfig config(string modelName)
+    {
+        foreach (cfg; _configs)
+        {
+            if (cfg.name == modelName)
+                return cfg;
+        }
+        
+        ModelConfig cfg = new ModelConfig(modelName);
+        _configs ~= cfg;
+        return cfg;
+    }
 
-    override JSONValue _completions(IModel model, JSONValue payload)
+    override ModelConfig[] configs()
+        => _configs;
+
+    override JSONValue _completions(ModelConfig cfg, JSONValue payload)
         => request(HTTP.Method.post, "chat/completions", payload);
 
-    override JSONValue _embeddings(IModel model, JSONValue payload)
+    override JSONValue _embeddings(ModelConfig cfg, JSONValue payload)
         => request(HTTP.Method.post, "embeddings", payload);
 
-    override CompletionStream _stream(IModel model, JSONValue payload)
+    override CompletionStream _stream(ModelConfig cfg, JSONValue payload)
     {
         string target = route("chat/completions");
 
         string[string] headers = requestHeaders();
         headers["Accept"] = "text/event-stream";
 
-        CompletionStream stream = new CompletionStream(model.name, null);
+        CompletionStream stream = new CompletionStream(cfg.name, null);
 
         HTTP http = HTTP();
         http.clearRequestHeaders();
         http.url = target;
         http.method = HTTP.Method.post;
-        foreach (k, v; headers)
-            http.addRequestHeader(k, v);
+        foreach (key, value; headers)
+            http.addRequestHeader(key, value);
         http.addRequestHeader("Content-Type", "application/json");
 
         string bodyStr = payload.toString();
@@ -138,7 +159,7 @@ public:
                     try
                     {
                         JSONValue json = event.data.parseJSON();
-                        Completion completion = model.parseCompletions(json);
+                        Completion completion = cfg.parseResponse(json);
                         stream.update(completion);
                         if (stream.callback !is null)
                             stream.callback(completion);
@@ -184,7 +205,7 @@ public:
                     try
                     {
                         JSONValue json = event.data.parseJSON();
-                        Completion completion = model.parseCompletions(json);
+                        Completion completion = cfg.parseResponse(json);
                         stream.update(completion);
                         if (stream.callback !is null)
                             stream.callback(completion);

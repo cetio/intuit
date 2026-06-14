@@ -13,9 +13,6 @@ import std.string : toLower;
 /// Configuration and request/response logic for an LLM model.
 class ModelConfig
 {
-private:
-
-public:
     /// Model identifier, e.g. "gpt-4o".
     string name;
     /// Sampling temperature.
@@ -150,10 +147,10 @@ public:
         }
         if (seed > 0)
             ret["seed"] = JSONValue(seed);
-        if (_schema.type == JSONType.object)
-            ret["response_format"] = _schema;
-        if (_toolConfig.type == JSONType.object)
-            ret["tool_choice"] = _toolConfig;
+        if (!responseSchema.isNull)
+            ret["response_format"] = responseSchema;
+        if (!toolConfig.isNull)
+            ret["tool_choice"] = toolConfig;
 
         Tool[] toolList = tools.list();
         if (toolList.length > 0)

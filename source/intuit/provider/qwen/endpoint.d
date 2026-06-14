@@ -4,8 +4,7 @@ module intuit.provider.qwen.endpoint;
 public import intuit.provider;
 import intuit.error : EndpointError;
 import intuit.model;
-import intuit.provider.openai.endpoint;
-import intuit.provider.qwen.model;
+import intuit.provider.openai;
 import intuit.tool;
 import conductor.http : Response, send;
 
@@ -16,7 +15,6 @@ import std.string : assumeUTF;
 /// Qwen-compatible LLM endpoint, extending OpenAI with Qwen-specific models.
 class Qwen : OpenAI
 {
-public:
     /**
      * Constructs a Qwen endpoint.
      *
@@ -30,26 +28,46 @@ public:
         super(url, key, name);
     }
 
-    override IModel[] available()
+    override ModelConfig[] available()
     {
         JSONValue json = request(HTTP.Method.get, "models");
-        IModel[] models;
+        ModelConfig[] result;
         if ("data" in json && json["data"].type == JSONType.array)
         {
             foreach (item; json["data"].array)
             {
                 string name = "id" in item ? item["id"].str : null;
-                if (name !is null)
+                if (name is null)
+                    continue;
+
+                bool found = false;
+                foreach (cfg; _configs)
                 {
-                    string owner = "owned_by" in item ? item["owned_by"].str : null;
-                    models ~= new QwenModel(name, owner);
+                    if (cfg.name == name)
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
+                {
+                    ModelConfig cfg = new ModelConfig(name);
+                    _configs ~= cfg;
                 }
             }
         }
-        return models;
+        return _configs;
     }
 
-    /// Creates a QwenModel by name.
-    override IModel model(string name)
-        => name in _models ? _models[name] : new QwenModel(name);
+    override ModelConfig config(string modelName)
+    {
+        foreach (cfg; _configs)
+        {
+            if (cfg.name == modelName)
+                return cfg;
+        }
+        ModelConfig cfg = new ModelConfig(modelName);
+        _configs ~= cfg;
+        return cfg;
+    }
 }

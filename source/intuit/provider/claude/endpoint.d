@@ -28,7 +28,7 @@ private:
     HTTP _http;
 
 protected:
-    IModel[string] _models;
+    ModelConfig[] _configs;
 
 public:
     /**
@@ -41,10 +41,10 @@ public:
      */
     this(string url, string key = null, string name = "Claude")
     {
-        this._name = name;
-        this._url = normalizeBaseUrl(url);
-        this._key = key;
-        this._http = HTTP();
+        _name = name;
+        _url = normalizeBaseUrl(url);
+        _key = key;
+        _http = HTTP();
     }
 
     override ref string name()
@@ -59,7 +59,7 @@ public:
     override ref ToolRegistry tools()
         => _tools;
 
-    override IModel[] available()
+    override ModelConfig[] available()
     {
         JSONValue json = request(HTTP.Method.get, "models");
         if ("data" in json && json["data"].type == JSONType.array)
@@ -67,35 +67,56 @@ public:
             foreach (item; json["data"].array)
             {
                 string name = "id" in item ? item["id"].str : null;
-                if (name !in _models)
+                if (name is null)
+                    continue;
+
+                bool found = false;
+                foreach (cfg; _configs)
                 {
-                    string owner = "anthropic";
-                    _models[name] = new ClaudeModel(name, owner);
+                    if (cfg.name == name)
+                    {
+                        found = true;
+                        break;
+                    }
                 }
+                if (!found)
+                    _configs ~= new ClaudeModel(name);
             }
         }
-        return _models.values;
+        return _configs;
     }
 
-    override IModel model(string name)
-        => name in _models ? _models[name] : new ClaudeModel(name, null);
+    override ModelConfig config(string modelName)
+    {
+        foreach (cfg; _configs)
+        {
+            if (cfg.name == modelName)
+                return cfg;
+        }
+        ModelConfig cfg = new ClaudeModel(modelName);
+        _configs ~= cfg;
+        return cfg;
+    }
 
-    override JSONValue _completions(IModel model, JSONValue payload)
+    override ModelConfig[] configs()
+        => _configs;
+
+    override JSONValue _completions(ModelConfig cfg, JSONValue payload)
         => request(HTTP.Method.post, "messages", payload);
 
-    override JSONValue _embeddings(IModel model, JSONValue payload)
+    override JSONValue _embeddings(ModelConfig cfg, JSONValue payload)
     {
         throw new EndpointError("POST", "embeddings", 0, "not supported", "Claude does not support embeddings.");
     }
 
-    override CompletionStream _stream(IModel model, JSONValue payload)
+    override CompletionStream _stream(ModelConfig cfg, JSONValue payload)
     {
         string target = route("messages");
 
         string[string] headers = requestHeaders();
         headers["Accept"] = "text/event-stream";
 
-        CompletionStream stream = new CompletionStream(model.name, null);
+        CompletionStream stream = new CompletionStream(cfg.name, null);
 
         HTTP http = HTTP();
         http.clearRequestHeaders();

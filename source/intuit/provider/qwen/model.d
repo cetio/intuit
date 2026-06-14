@@ -14,45 +14,10 @@ import std.math : isNaN;
 import std.regex;
 import std.string : indexOf, toLower, strip;
 
-/// Qwen-compatible model with standard OpenAI and Qwen-specific parameters.
-class QwenModel : IModel
+/// Qwen-compatible model with Qwen-specific parameters.
+class QwenModel : ModelConfig
 {
-private:
-    string _name;
-    string _owner;
-
 public:
-    /// Sampling temperature.
-    double temperature = double.nan;
-    /// Nucleus sampling probability.
-    double topP = double.nan;
-    /// Maximum tokens to generate.
-    long maxTokens = -1;
-    /// Stop sequences.
-    string[] stop;
-    /// Presence penalty.
-    double presencePenalty = double.nan;
-    /// Frequency penalty.
-    double frequencyPenalty = double.nan;
-    /// Number of completions to generate.
-    long n = 1;
-    /// Logit bias map.
-    long[long] logitBias;
-    /// Random seed.
-    long seed = 0;
-    /// Embedding encoding format.
-    string encodingFormat = "float";
-    /// Embedding dimensions.
-    long dimensions = 0;
-    /// Response format JSON.
-    JSONValue responseFormat;
-    /// Whether responseFormat has been set.
-    bool hasResponseFormat;
-    /// Tool choice JSON.
-    JSONValue toolChoice;
-    /// Whether toolChoice has been set.
-    bool hasToolChoice;
-
     /// Whether thinking is enabled.
     bool enableThinking = true;
     /// Top-k sampling value.
@@ -71,70 +36,20 @@ public:
     bool hasMmProcessorKwargs;
     /// Thinking budget.
     long thinkingBudget = -1;
+    /// Embedding encoding format.
+    string encodingFormat = "float";
+    /// Embedding dimensions.
+    long dimensions = 0;
 
     /**
      * Constructs a QwenModel.
      *
      * Params:
      *  name = The model name.
-     *  owner = The model owner, if known.
      */
-    this(string name, string owner = null)
+    this(string name)
     {
-        this._name = name;
-        this._owner = owner;
-    }
-
-    override string name()
-        => _name;
-
-    override string owner()
-        => _owner;
-
-    override string toString() const
-        => "QwenModel("~_name~", "~_owner~")";
-
-    /// Forces the model to call a specific tool.
-    void forceTool(string toolName)
-    {
-        JSONValue choice = JSONValue.emptyObject;
-        choice["type"] = JSONValue("function");
-        JSONValue func = JSONValue.emptyObject;
-        func["name"] = JSONValue(toolName);
-        choice["function"] = func;
-        toolChoice = choice;
-        hasToolChoice = true;
-    }
-
-    /// Enables JSON object response mode.
-    void jsonMode()
-    {
-        JSONValue format = JSONValue.emptyObject;
-        format["type"] = JSONValue("json_object");
-        responseFormat = format;
-        hasResponseFormat = true;
-    }
-
-    /**
-     * Enables JSON schema response mode.
-     *
-     * Params:
-     *  name = The schema name.
-     *  schema = The JSON schema object.
-     *  strict = Whether to enforce strict schema adherence.
-     */
-    void jsonSchema(string name, JSONValue schema, bool strict = true)
-    {
-        JSONValue format = JSONValue.emptyObject;
-        format["type"] = JSONValue("json_schema");
-
-        JSONValue spec = JSONValue.emptyObject;
-        spec["name"] = JSONValue(name);
-        spec["schema"] = schema;
-        spec["strict"] = JSONValue(strict);
-        format["json_schema"] = spec;
-        responseFormat = format;
-        hasResponseFormat = true;
+        super(name);
     }
 
     /**
@@ -147,78 +62,23 @@ public:
      * Returns:
      *  The JSON payload for the completions endpoint.
      */
-    override JSONValue completionsJSON(JSONValue input, ToolRegistry tools = ToolRegistry.init)
+    override JSONValue buildPayload(JSONValue input, ToolRegistry tools = ToolRegistry.init)
     {
-        JSONValue ret = JSONValue.emptyObject;
-        ret["model"] = JSONValue(_name);
+        JSONValue ret = super.buildPayload(input, tools);
 
-        // Standard OpenAI parameters
-        if (maxTokens >= 0) ret["max_tokens"] = JSONValue(maxTokens);
-        if (!isNaN(temperature)) ret["temperature"] = JSONValue(temperature);
-        if (!isNaN(topP)) ret["top_p"] = JSONValue(topP);
-        if (stop.length > 0)
-        {
-            JSONValue arr = JSONValue.emptyArray;
-            foreach (s; stop) arr.array ~= JSONValue(s);
-            ret["stop"] = arr;
-        }
-        if (!isNaN(presencePenalty)) ret["presence_penalty"] = JSONValue(presencePenalty);
-        if (!isNaN(frequencyPenalty)) ret["frequency_penalty"] = JSONValue(frequencyPenalty);
-        if (n > 1) ret["n"] = JSONValue(n);
-        if (logitBias.length > 0)
-        {
-            JSONValue bias = JSONValue.emptyObject;
-            foreach (k, v; logitBias) bias[k.to!string] = JSONValue(v);
-            ret["logit_bias"] = bias;
-        }
-        if (seed > 0) ret["seed"] = JSONValue(seed);
-        if (hasResponseFormat) ret["response_format"] = responseFormat;
-        if (hasToolChoice) ret["tool_choice"] = toolChoice;
-
-        // Qwen-specific parameters
-        if (topK >= 0) ret["top_k"] = JSONValue(topK);
-        if (thinkingBudget >= 0) ret["thinking_budget"] = JSONValue(thinkingBudget);
-
-        // enable_thinking can be at top level (Alibaba Cloud) or in chat_template_kwargs (vLLM)
-        // We'll add it to chat_template_kwargs if that's being used, otherwise at top level
+        if (topK >= 0)
+            ret["top_k"] = JSONValue(topK);
+        if (thinkingBudget >= 0)
+            ret["thinking_budget"] = JSONValue(thinkingBudget);
         if (hasChatTemplateKwargs)
             ret["chat_template_kwargs"] = chatTemplateKwargs;
         else if (!enableThinking)
             ret["enable_thinking"] = JSONValue(false);
+        if (hasMmProcessorKwargs)
+            ret["mm_processor_kwargs"] = mmProcessorKwargs;
+        if (hasExtraBody)
+            ret["extra_body"] = extraBody;
 
-        if (hasMmProcessorKwargs) ret["mm_processor_kwargs"] = mmProcessorKwargs;
-        if (hasExtraBody) ret["extra_body"] = extraBody;
-
-        // Tools support
-        Tool[] toolList = tools.list();
-        if (toolList.length > 0)
-        {
-            JSONValue toolsArray = JSONValue.emptyArray;
-            foreach (tool; toolList)
-            {
-                JSONValue toolObj = JSONValue.emptyObject;
-                toolObj["type"] = JSONValue("function");
-                JSONValue functionObj = JSONValue.emptyObject;
-                functionObj["name"] = JSONValue(tool.name);
-                if (tool.description.length > 0)
-                    functionObj["description"] = JSONValue(tool.description);
-                functionObj["parameters"] = tool.schema;
-                toolObj["function"] = functionObj;
-                toolsArray.array ~= toolObj;
-            }
-            ret["tools"] = toolsArray;
-        }
-
-        if (input.type == JSONType.array)
-            ret["messages"] = input;
-        else
-        {
-            ret["messages"] = JSONValue.emptyArray;
-            JSONValue msg = JSONValue.emptyObject;
-            msg["role"] = JSONValue("user");
-            msg["content"] = input;
-            ret["messages"].array ~= msg;
-        }
         return ret;
     }
 
@@ -231,13 +91,13 @@ public:
      * Returns:
      *  The JSON payload for the embeddings endpoint.
      */
-    override JSONValue embeddingsJSON(JSONValue input)
+    override JSONValue buildEmbeddingsPayload(JSONValue input)
     {
-        JSONValue ret = JSONValue.emptyObject;
-        ret["model"] = JSONValue(_name);
-        if (encodingFormat != "float") ret["encoding_format"] = JSONValue(encodingFormat);
-        if (dimensions > 0) ret["dimensions"] = JSONValue(dimensions);
-        ret["input"] = input;
+        JSONValue ret = super.buildEmbeddingsPayload(input);
+        if (encodingFormat != "float")
+            ret["encoding_format"] = JSONValue(encodingFormat);
+        if (dimensions > 0)
+            ret["dimensions"] = JSONValue(dimensions);
         return ret;
     }
 
@@ -250,7 +110,7 @@ public:
      * Returns:
      *  The parsed Completion.
      */
-    override Completion parseCompletions(JSONValue json)
+    override Completion parseResponse(JSONValue json)
     {
         Completion ret;
         ret.raw = json;
@@ -291,7 +151,7 @@ public:
      * Returns:
      *  A JSON array containing the embedding vectors.
      */
-    override JSONValue parseEmbeddings(JSONValue json)
+    override JSONValue parseEmbeddingsResponse(JSONValue json)
     {
         checkError(json);
 

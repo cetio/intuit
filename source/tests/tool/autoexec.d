@@ -12,14 +12,13 @@ string greet(string name)
 unittest
 {
     OpenAI endpoint = new OpenAI("http://127.0.0.1:1234");
-    OpenAIModel model = cast(OpenAIModel)endpoint.model("google/gemma-4-e4b");
 
     endpoint.tools.add!greet(true);
 
     Context ctx;
     ctx.user("Say hello to Bob");
 
-    Completion result = completions(endpoint, model, ctx);
+    Completion result = completions(endpoint, "gemma-4-e4b", ctx);
 
     assert(result.choice.text.length > 0, "Autoexec should recurse and return final text response");
     assert(ctx.length >= 3, "Context should contain user, assistant with tool call, and tool result");

@@ -27,54 +27,58 @@ interface IEndpoint
     ref ToolRegistry tools();
 
     /// Fetches available models from the endpoint.
-    IModel[] available();
+    ModelConfig[] available();
 
     /**
-     * Gets a model by name, creating a placeholder if unknown.
+     * Gets a model config by name or creating a new config if unset.
      *
      * Params:
      *  name = The model name.
      *
      * Returns:
-     *  The requested IModel.
+     *  The requested ModelConfig.
      */
-    IModel model(string name);
+    ModelConfig config(string name);
+
+    /// Gets all stored model configs.
+    ModelConfig[] configs();
 
     /// Sends a raw completions request. Use `completions` instead.
-    JSONValue _completions(IModel model, JSONValue payload);
+    JSONValue _completions(ModelConfig cfg, JSONValue payload);
     /// Sends a raw embeddings request. Use `embeddings` instead.
-    JSONValue _embeddings(IModel model, JSONValue payload);
+    JSONValue _embeddings(ModelConfig cfg, JSONValue payload);
     /**
      * Sends a raw streaming completions request via SSE.
      *
      * Returns a CompletionStream that is fed by the endpoint's
      * background worker as events arrive.
      */
-    CompletionStream _stream(IModel model, JSONValue payload);
+    CompletionStream _stream(ModelConfig cfg, JSONValue payload);
 }
 
 /**
- * Send a completion request to the endpoint using a specific model.
+ * Send a completion request to the endpoint using a specific model name.
  *
  * Enables for autoexec tool use if providing a Context instance.
  * All autoexec tools are always run if requested by the model.
  *
  * Params:
  *   ep = The endpoint to send the request to.
- *   model = The model to use for the completion.
+ *   modelName = The name of the model to use.
  *   data = The input data. If this is a Context, it will be mutated
  *          in-place with the assistant response.
  *
  * Returns: The completion response.
  */
-Completion completions(E, M, D)(E ep, M model, auto ref D data)
-    if (is(E : IEndpoint) && is(M : IModel))
+Completion completions(E, D)(E ep, string modelName, auto ref D data)
+    if (is(E : IEndpoint))
 {
+    ModelConfig cfg = ep.config(modelName);
     JSONValue input = data.toJSON();
 
-    JSONValue payload = model.completionsJSON(input, ep.tools);
-    JSONValue resp = ep._completions(model, payload);
-    Completion ret = model.parseCompletions(resp);
+    JSONValue payload = cfg.buildPayload(input, ep.tools);
+    JSONValue resp = ep._completions(cfg, payload);
+    Completion ret = cfg.parseResponse(resp);
 
     static if (is(D == Context))
     {
@@ -99,67 +103,33 @@ Completion completions(E, M, D)(E ep, M model, auto ref D data)
         }
 
         if (cycle)
-            return completions(ep, model, data);
+            return completions(ep, modelName, data);
     }
 
     return ret;
 }
 
 /**
- * Convenience overload that resolves the model by name before calling
- * completions.
+ * Send a streaming completion request to the endpoint using a specific model name.
  *
  * Params:
  *   ep = The endpoint to send the request to.
- *   model = The name of the model to use.
- *   data = The input data. If this is a Context, it will be mutated
- *          in-place with the assistant response.
- *
- * Returns: The completion response.
- */
-Completion completions(E, D)(E ep, string model, auto ref D data)
-    if (is(E : IEndpoint))
-{
-    return completions(ep, ep.model(model), data);
-}
-
-/**
- * Send a streaming completion request to the endpoint using a specific model.
- *
- * Params:
- *   ep = The endpoint to send the request to.
- *   model = The model to use for the completion.
+ *   modelName = The name of the model to use.
  *   data = The input data. Not mutated for streaming.
  *
  * Returns: A CompletionStream for token-by-token consumption.
  */
-CompletionStream streamCompletions(E, M, D)(E ep, M model, auto ref D data)
-    if (is(E : IEndpoint) && is(M : IModel))
+CompletionStream streamCompletions(E, D)(E ep, string modelName, auto ref D data)
+    if (is(E : IEndpoint))
 {
+    ModelConfig cfg = ep.config(modelName);
     JSONValue input = data.toJSON();
 
-    JSONValue payload = model.completionsJSON(input, ep.tools);
+    JSONValue payload = cfg.buildPayload(input, ep.tools);
     if ("stream" !in payload || payload["stream"].type != JSONType.true_)
         payload["stream"] = JSONValue(true);
 
-    return ep._stream(model, payload);
-}
-
-/**
- * Convenience overload that resolves the model by name before calling
- * streamCompletions.
- *
- * Params:
- *   ep = The endpoint to send the request to.
- *   model = The name of the model to use.
- *   data = The input data.
- *
- * Returns: A CompletionStream for token-by-token consumption.
- */
-CompletionStream streamCompletions(E, D)(E ep, string model, auto ref D data)
-    if (is(E : IEndpoint))
-{
-    return streamCompletions(ep, ep.model(model), data);
+    return ep._stream(cfg, payload);
 }
 
 /**
@@ -167,18 +137,19 @@ CompletionStream streamCompletions(E, D)(E ep, string model, auto ref D data)
  *
  * Params:
  *   ep = The endpoint to send the request to.
- *   model = The model to use for the embedding.
+ *   modelName = The name of the model to use.
  *   data = The input data to embed.
  *
  * Returns: A single embedding vector.
  */
-Embedding!T embeddings(T = float, E, M, D)(E ep, M model, D data)
-    if (is(E : IEndpoint) && is(M : IModel)
+Embedding!T embeddings(T = float, E, D)(E ep, string modelName, D data)
+    if (is(E : IEndpoint)
         && (is(D == string) || !isArray!D))
 {
-    JSONValue payload = model.embeddingsJSON(data.toJSON());
-    JSONValue resp = ep._embeddings(model, payload);
-    JSONValue arr = model.parseEmbeddings(resp);
+    ModelConfig cfg = ep.config(modelName);
+    JSONValue payload = cfg.buildEmbeddingsPayload(data.toJSON());
+    JSONValue resp = ep._embeddings(cfg, payload);
+    JSONValue arr = cfg.parseEmbeddingsResponse(resp);
 
     Embedding!T ret;
     if (arr.type == JSONType.array && arr.array.length > 0)
@@ -187,40 +158,23 @@ Embedding!T embeddings(T = float, E, M, D)(E ep, M model, D data)
 }
 
 /**
- * Convenience overload that resolves the model by name before calling
- * embeddings.
- *
- * Params:
- *   ep = The endpoint to send the request to.
- *   model = The name of the model to use.
- *   data = The input data to embed.
- *
- * Returns: A single embedding vector.
- */
-Embedding!T embeddings(T = float, E, D)(E ep, string model, D data)
-    if (is(E : IEndpoint)
-        && (is(D == string) || !isArray!D))
-{
-    return embeddings!T(ep, ep.model(model), data);
-}
-
-/**
  * Request embedding vectors for an array of inputs.
  *
  * Params:
  *   ep = The endpoint to send the request to.
- *   model = The model to use for the embeddings.
+ *   modelName = The name of the model to use.
  *   data = An array of input data to embed.
  *
  * Returns: An array of embedding vectors.
  */
-Embedding!T[] embeddings(T = float, E, M, D)(E ep, M model, D data)
-    if (is(E : IEndpoint) && is(M : IModel)
+Embedding!T[] embeddings(T = float, E, D)(E ep, string modelName, D data)
+    if (is(E : IEndpoint)
         && isArray!D && !is(D == string))
 {
-    JSONValue payload = model.embeddingsJSON(data.toJSON());
-    JSONValue resp = ep._embeddings(model, payload);
-    JSONValue arr = model.parseEmbeddings(resp);
+    ModelConfig cfg = ep.config(modelName);
+    JSONValue payload = cfg.buildEmbeddingsPayload(data.toJSON());
+    JSONValue resp = ep._embeddings(cfg, payload);
+    JSONValue arr = cfg.parseEmbeddingsResponse(resp);
 
     Embedding!T[] ret;
     if (arr.type == JSONType.array)
@@ -230,24 +184,6 @@ Embedding!T[] embeddings(T = float, E, M, D)(E ep, M model, D data)
             ret[i].value = toVector!T(v);
     }
     return ret;
-}
-
-/**
- * Convenience overload that resolves the model by name before calling
- * embeddings with an array of inputs.
- *
- * Params:
- *   ep = The endpoint to send the request to.
- *   model = The name of the model to use.
- *   data = An array of input data to embed.
- *
- * Returns: An array of embedding vectors.
- */
-Embedding!T[] embeddings(T = float, E, D)(E ep, string model, D data)
-    if (is(E : IEndpoint)
-        && isArray!D && !is(D == string))
-{
-    return embeddings!T(ep, ep.model(model), data);
 }
 
 /// Converts a JSON array into a typed vector.

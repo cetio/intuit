@@ -35,8 +35,8 @@ interface IRouter
      */
     void active(string name);
 
-    /// Resolves the active model to an IModel, throwing when none is set.
-    IModel model();
+    /// Resolves the active model to a ModelConfig, throwing when none is set.
+    ModelConfig config();
 
     /// Sends a raw completions request. Use `completions` instead.
     JSONValue _completions(JSONValue payload);
@@ -86,11 +86,11 @@ Completion completions(R, D)(R router, auto ref D data)
 private Completion runCompletion(R)(R router)
     if (is(R : IRouter))
 {
-    IModel model = router.model();
+    ModelConfig cfg = router.config();
 
-    JSONValue payload = model.completionsJSON(router.context.toJSON(), router.tools);
+    JSONValue payload = cfg.buildPayload(router.context.toJSON(), router.tools);
     JSONValue resp = router._completions(payload);
-    Completion ret = model.parseCompletions(resp);
+    Completion ret = cfg.parseResponse(resp);
 
     router.context.assistant(ret);
 
@@ -156,9 +156,9 @@ CompletionStream streamCompletions(R, D)(R router, auto ref D data)
 private CompletionStream runStream(R)(R router)
     if (is(R : IRouter))
 {
-    IModel model = router.model();
+    ModelConfig cfg = router.config();
 
-    JSONValue payload = model.completionsJSON(router.context.toJSON(), router.tools);
+    JSONValue payload = cfg.buildPayload(router.context.toJSON(), router.tools);
     if ("stream" !in payload || payload["stream"].type != JSONType.true_)
         payload["stream"] = JSONValue(true);
 
@@ -180,10 +180,10 @@ Embedding!T embeddings(T = float, R, D)(R router, D data)
     if (router.active is null)
         throw new Exception("Router has no active model set.");
 
-    IModel model = router.model();
-    JSONValue payload = model.embeddingsJSON(data.toJSON());
+    ModelConfig cfg = router.config();
+    JSONValue payload = cfg.buildEmbeddingsPayload(data.toJSON());
     JSONValue resp = router._embeddings(payload);
-    JSONValue arr = model.parseEmbeddings(resp);
+    JSONValue arr = cfg.parseEmbeddingsResponse(resp);
 
     Embedding!T ret;
     if (arr.type == JSONType.array && arr.array.length > 0)
@@ -206,10 +206,10 @@ Embedding!T[] embeddings(T = float, R, D)(R router, D data)
     if (router.active is null)
         throw new Exception("Router has no active model set.");
 
-    IModel model = router.model();
-    JSONValue payload = model.embeddingsJSON(data.toJSON());
+    ModelConfig cfg = router.config();
+    JSONValue payload = cfg.buildEmbeddingsPayload(data.toJSON());
     JSONValue resp = router._embeddings(payload);
-    JSONValue arr = model.parseEmbeddings(resp);
+    JSONValue arr = cfg.parseEmbeddingsResponse(resp);
 
     Embedding!T[] ret;
     if (arr.type == JSONType.array)

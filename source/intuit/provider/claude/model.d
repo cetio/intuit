@@ -14,97 +14,27 @@ import std.math : isNaN;
 import std.string : toLower;
 
 /// Anthropic Claude model with Messages API parameters.
-class ClaudeModel : IModel
+class ClaudeModel : ModelConfig
 {
-private:
-    string _name;
-    string _owner;
-
 public:
-    /// Sampling temperature.
-    double temperature = double.nan;
-    /// Nucleus sampling probability.
-    double topP = double.nan;
     /// Top-k sampling parameter.
     long topK = -1;
-    /// Maximum tokens to generate.
-    long maxTokens = -1;
     /// Stop sequences.
     string[] stopSequences;
     /// System prompt.
     string system;
     /// Thinking budget in tokens.
     long thinkingBudget = -1;
-    /// Tool choice JSON.
-    JSONValue toolChoice;
-    /// Whether toolChoice has been set.
-    bool hasToolChoice;
-    /// Response format JSON.
-    JSONValue responseFormat;
-    /// Whether responseFormat has been set.
-    bool hasResponseFormat;
 
     /**
      * Constructs a ClaudeModel.
      *
      * Params:
      *  name = The model name.
-     *  owner = The model owner, if known.
      */
-    this(string name, string owner = null)
+    this(string name)
     {
-        this._name = name;
-        this._owner = owner;
-    }
-
-    override string name()
-        => _name;
-
-    override string owner()
-        => _owner;
-
-    override string toString() const
-        => "ClaudeModel("~_name~", "~_owner~")";
-
-    /// Forces the model to call a specific tool.
-    void forceTool(string toolName)
-    {
-        JSONValue choice = JSONValue.emptyObject;
-        choice["type"] = JSONValue("tool");
-        choice["name"] = JSONValue(toolName);
-        toolChoice = choice;
-        hasToolChoice = true;
-    }
-
-    /// Enables JSON object response mode.
-    void jsonMode()
-    {
-        JSONValue format = JSONValue.emptyObject;
-        format["type"] = JSONValue("json");
-        responseFormat = format;
-        hasResponseFormat = true;
-    }
-
-    /**
-     * Enables JSON schema response mode.
-     *
-     * Params:
-     *  name = The schema name.
-     *  schema = The JSON schema object.
-     *  strict = Whether to enforce strict schema adherence.
-     */
-    void jsonSchema(string name, JSONValue schema, bool strict = true)
-    {
-        JSONValue format = JSONValue.emptyObject;
-        format["type"] = JSONValue("json");
-
-        JSONValue spec = JSONValue.emptyObject;
-        spec["name"] = JSONValue(name);
-        spec["schema"] = schema;
-        spec["strict"] = JSONValue(strict);
-        format["json"] = spec;
-        responseFormat = format;
-        hasResponseFormat = true;
+        super(name);
     }
 
     /**
@@ -117,10 +47,10 @@ public:
      * Returns:
      *  The JSON payload for the messages endpoint.
      */
-    override JSONValue completionsJSON(JSONValue input, ToolRegistry tools = ToolRegistry.init)
+    override JSONValue buildPayload(JSONValue input, ToolRegistry tools = ToolRegistry.init)
     {
         JSONValue ret = JSONValue.emptyObject;
-        ret["model"] = JSONValue(_name);
+        ret["model"] = JSONValue(name);
 
         if (maxTokens >= 0)
             ret["max_tokens"] = JSONValue(maxTokens);
@@ -132,10 +62,10 @@ public:
             ret["top_k"] = JSONValue(topK);
         if (stopSequences.length > 0)
         {
-            JSONValue arr = JSONValue.emptyArray;
-            foreach (s; stopSequences)
-                arr.array ~= JSONValue(s);
-            ret["stop_sequences"] = arr;
+            JSONValue stops = JSONValue.emptyArray;
+            foreach (seq; stopSequences)
+                stops.array ~= JSONValue(seq);
+            ret["stop_sequences"] = stops;
         }
         if (thinkingBudget >= 0)
         {
@@ -144,10 +74,10 @@ public:
             thinking["budget_tokens"] = JSONValue(thinkingBudget);
             ret["thinking"] = thinking;
         }
-        if (hasResponseFormat)
-            ret["response_format"] = responseFormat;
-        if (hasToolChoice)
-            ret["tool_choice"] = toolChoice;
+        if (!responseSchema.isNull)
+            ret["response_format"] = responseSchema;
+        if (!toolConfig.isNull)
+            ret["tool_choice"] = toolConfig;
 
         Tool[] toolList = tools.list();
         if (toolList.length > 0)
@@ -192,10 +122,10 @@ public:
         else
         {
             ret["messages"] = JSONValue.emptyArray;
-            JSONValue msg = JSONValue.emptyObject;
-            msg["role"] = JSONValue("user");
-            msg["content"] = input;
-            ret["messages"].array ~= msg;
+            JSONValue message = JSONValue.emptyObject;
+            message["role"] = JSONValue("user");
+            message["content"] = input;
+            ret["messages"].array ~= message;
         }
 
         if (systemPrompt.length > 0)
@@ -212,7 +142,7 @@ public:
      * Throws:
      *  EndpointError because Claude has no embeddings endpoint.
      */
-    override JSONValue embeddingsJSON(JSONValue input)
+    override JSONValue buildEmbeddingsPayload(JSONValue input)
     {
         throw new EndpointError("POST", "embeddings", 0, "not supported", "Claude does not support embeddings.");
     }
@@ -226,7 +156,7 @@ public:
      * Returns:
      *  The parsed Completion.
      */
-    override Completion parseCompletions(JSONValue json)
+    override Completion parseResponse(JSONValue json)
     {
         Completion ret;
         ret.raw = json;
@@ -254,12 +184,12 @@ public:
                         choice.reasoning ~= "[redacted thinking]";
                     else if (blockType == "tool_use")
                     {
-                        ToolCall tc;
-                        tc.id = ("id" in block) ? block["id"].str : "";
-                        tc.name = ("name" in block) ? block["name"].str : "";
+                        ToolCall call;
+                        call.id = ("id" in block) ? block["id"].str : "";
+                        call.name = ("name" in block) ? block["name"].str : "";
                         if ("input" in block)
-                            tc.arguments = block["input"];
-                        choice.toolCalls ~= tc;
+                            call.arguments = block["input"];
+                        choice.toolCalls ~= call;
                     }
                 }
             }
@@ -281,7 +211,7 @@ public:
      * Throws:
      *  EndpointError because Claude has no embeddings endpoint.
      */
-    override JSONValue parseEmbeddings(JSONValue json)
+    override JSONValue parseEmbeddingsResponse(JSONValue json)
     {
         throw new EndpointError("POST", "embeddings", 0, "not supported", "Claude does not support embeddings.");
     }

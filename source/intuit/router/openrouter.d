@@ -4,7 +4,7 @@ module intuit.router.openrouter;
 import intuit.context;
 import intuit.error : EndpointError;
 import intuit.model;
-import intuit.provider.openai.model : OpenAIModel;
+import intuit.provider.openai;
 import intuit.response;
 import intuit.router;
 import intuit.stream.sse : SSEParser;
@@ -47,7 +47,7 @@ struct ModelDetails
  *
  * Unlike LocalRouter, the model catalog is discovered dynamically from the
  * `/models` endpoint rather than statically defined. Models are served through
- * OpenAIModel since OpenRouter normalizes every provider to the OpenAI schema.
+ * ModelConfig since OpenRouter normalizes every provider to the OpenAI schema.
  */
 class OpenRouter : IRouter
 {
@@ -58,7 +58,7 @@ private:
     ToolRegistry _tools;
     Context _context;
     string _active;
-    IModel _activeModel;
+    ModelConfig _activeConfig;
     HTTP _http;
     ModelDetails[string] _catalog;
 
@@ -117,16 +117,16 @@ public:
             refresh();
 
         _active = name;
-        _activeModel = new OpenAIModel(name, null);
+        _activeConfig = new ModelConfig(name);
         if (auto details = name in _catalog)
             _context.compactor.maxTokens = details.contextLength;
     }
 
-    override IModel model()
+    override ModelConfig config()
     {
         if (_active is null)
             throw new Exception("Router has no active model set.");
-        return _activeModel;
+        return _activeConfig;
     }
 
     override JSONValue _completions(JSONValue payload)
@@ -145,13 +145,13 @@ public:
         // Claude._stream. The transport (header setup, onSend/onReceive wiring,
         // status capture, worker thread) should be extracted into a shared HTTP
         // streaming helper that takes a per-provider event handler delegate.
-        IModel streamModel = model();
+        ModelConfig streamCfg = config();
         string target = resolve("chat/completions");
 
         string[string] headers = requestHeaders();
         headers["Accept"] = "text/event-stream";
 
-        CompletionStream stream = new CompletionStream(streamModel.name, null);
+        CompletionStream stream = new CompletionStream(streamCfg.name, null);
 
         HTTP http = HTTP();
         http.clearRequestHeaders();

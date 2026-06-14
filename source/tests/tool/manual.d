@@ -14,14 +14,13 @@ string greet(string name)
 unittest
 {
     OpenAI endpoint = new OpenAI("http://127.0.0.1:1234");
-    OpenAIModel model = cast(OpenAIModel)endpoint.model("google/gemma-4-e4b");
 
     endpoint.tools.add!greet();
 
     Context ctx;
     ctx.user("Say hello to Bob");
 
-    Completion result = completions(endpoint, model, ctx);
+    Completion result = completions(endpoint, "gemma-4-e4b", ctx);
     assert(result.choice.toolCalls.length > 0, "Model should make a tool call");
     assert(result.choice.toolCalls[0].name == "greet", "Model should call greet");
 
@@ -32,6 +31,6 @@ unittest
     assert(toolResult.str == "Hello, Bob!", "Tool should execute correctly");
 
     ctx.tool(result.choice.toolCalls[0].id, toolResult);
-    Completion finalResult = completions(endpoint, model, ctx);
+    Completion finalResult = completions(endpoint, "gemma-4-e4b", ctx);
     assert(finalResult.choice.text.length > 0, "Model should provide final response");
 }
