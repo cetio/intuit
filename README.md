@@ -159,7 +159,7 @@ import intuit;
 @Description("Get the current weather for a location.")
 string getWeather(string location)
 {
-    return "Sunny and 72 degrees in " ~ location;
+    return "Sunny and 72 degrees in "~location;
 }
 
 auto ep = new OpenAI("http://localhost:1234");

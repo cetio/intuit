@@ -5,6 +5,7 @@ public import intuit.provider;
 import intuit.error : EndpointError;
 import intuit.model;
 import intuit.provider.openai;
+import intuit.provider.qwen.model;
 import intuit.tool;
 import conductor.http : Response, send;
 
@@ -31,7 +32,6 @@ class Qwen : OpenAI
     override ModelConfig[] available()
     {
         JSONValue json = request(HTTP.Method.get, "models");
-        ModelConfig[] result;
         if ("data" in json && json["data"].type == JSONType.array)
         {
             foreach (item; json["data"].array)
@@ -51,7 +51,7 @@ class Qwen : OpenAI
                 }
                 if (!found)
                 {
-                    ModelConfig cfg = new ModelConfig(name);
+                    ModelConfig cfg = new QwenModelConfig(name);
                     _configs ~= cfg;
                 }
             }
@@ -66,7 +66,8 @@ class Qwen : OpenAI
             if (cfg.name == modelName)
                 return cfg;
         }
-        ModelConfig cfg = new ModelConfig(modelName);
+
+        ModelConfig cfg = new QwenModelConfig(modelName);
         _configs ~= cfg;
         return cfg;
     }

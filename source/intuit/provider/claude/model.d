@@ -14,7 +14,7 @@ import std.math : isNaN;
 import std.string : toLower;
 
 /// Anthropic Claude model with Messages API parameters.
-class ClaudeModel : ModelConfig
+class ClaudeModelConfig : ModelConfig
 {
 public:
     /// Top-k sampling parameter.
@@ -27,7 +27,7 @@ public:
     long thinkingBudget = -1;
 
     /**
-     * Constructs a ClaudeModel.
+     * Constructs a ClaudeModelConfig.
      *
      * Params:
      *  name = The model name.
@@ -107,7 +107,7 @@ public:
                     if ("content" in msg && msg["content"].type == JSONType.string)
                     {
                         if (systemPrompt.length > 0)
-                            systemPrompt ~= "\n" ~ msg["content"].str;
+                            systemPrompt ~= "\n"~msg["content"].str;
                         else
                             systemPrompt = msg["content"].str;
                     }

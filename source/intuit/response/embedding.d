@@ -115,7 +115,7 @@ float[] normMean(T : U[][], U)(T embeddings)
         if (e.length != d)
         {
             string msg = "All embeddings must have the same length! Expected " ~
-                         d.to!string ~ ", got " ~ e.length.to!string;
+                         d.to!string~", got "~e.length.to!string;
             throw new Exception(msg);
         }
     }

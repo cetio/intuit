@@ -107,7 +107,7 @@ class ModelConfig
     }
 
     /**
-     * Constructs a ModelConfig.
+     * Constructs a BaseModel.
      *
      * Params:
      *  name = The model name.

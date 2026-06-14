@@ -80,7 +80,7 @@ public:
                     }
                 }
                 if (!found)
-                    _configs ~= new ClaudeModel(name);
+                    _configs ~= new ClaudeModelConfig(name);
             }
         }
         return _configs;
@@ -93,7 +93,8 @@ public:
             if (cfg.name == modelName)
                 return cfg;
         }
-        ModelConfig cfg = new ClaudeModel(modelName);
+        
+        ModelConfig cfg = new ClaudeModelConfig(modelName);
         _configs ~= cfg;
         return cfg;
     }

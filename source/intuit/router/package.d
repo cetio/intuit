@@ -31,9 +31,9 @@ interface IRouter
      * and preserves existing messages.
      *
      * Params:
-     *  name = The model name to activate.
+     *  modelName = The model name to activate.
      */
-    void active(string name);
+    void active(string modelName);
 
     /// Resolves the active model to a ModelConfig, throwing when none is set.
     ModelConfig config();

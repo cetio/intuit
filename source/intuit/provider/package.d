@@ -33,12 +33,12 @@ interface IEndpoint
      * Gets a model config by name or creating a new config if unset.
      *
      * Params:
-     *  name = The model name.
+     *  modelName = The model name.
      *
      * Returns:
      *  The requested ModelConfig.
      */
-    ModelConfig config(string name);
+    ModelConfig config(string modelName);
 
     /// Gets all stored model configs.
     ModelConfig[] configs();

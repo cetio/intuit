@@ -105,7 +105,7 @@ public:
     override string active()
         => _active;
 
-    override void active(string name)
+    override void active(string modelName)
     {
         // The catalog is huge and dynamic, so only fetch it once on demand. Aliases
         // like "openrouter/auto" or "~openai/gpt-latest" may be absent; we still allow
@@ -113,12 +113,12 @@ public:
         // NOTE: the Auto Router resolves the real model per request in the response
         // "model" field. We could pin the compactor limit to that resolved model once
         // the response types expose it.
-        if (name !in _catalog && _catalog.length == 0)
+        if (modelName !in _catalog && _catalog.length == 0)
             refresh();
 
-        _active = name;
-        _activeConfig = new ModelConfig(name);
-        if (auto details = name in _catalog)
+        _active = modelName;
+        _activeConfig = new ModelConfig(modelName);
+        if (auto details = modelName in _catalog)
             _context.compactor.maxTokens = details.contextLength;
     }
 
@@ -198,7 +198,7 @@ public:
                     try
                     {
                         JSONValue json = event.data.parseJSON();
-                        Completion completion = streamModel.parseCompletions(json);
+                        Completion completion = streamCfg.parseResponse(json);
                         stream.update(completion);
                         if (stream.callback !is null)
                             stream.callback(completion);
@@ -245,7 +245,7 @@ public:
                     try
                     {
                         JSONValue json = event.data.parseJSON();
-                        Completion completion = streamModel.parseCompletions(json);
+                        Completion completion = streamCfg.parseResponse(json);
                         stream.update(completion);
                         if (stream.callback !is null)
                             stream.callback(completion);
@@ -297,13 +297,13 @@ public:
     }
 
     /// Gets the discovered details for a model, fetching the catalog if needed.
-    ModelDetails details(string name)
+    ModelDetails details(string modelName)
     {
-        if (name !in _catalog && _catalog.length == 0)
+        if (modelName !in _catalog && _catalog.length == 0)
             refresh();
-        if (auto found = name in _catalog)
+        if (auto found = modelName in _catalog)
             return *found;
-        throw new Exception("Model not found in OpenRouter catalog: "~name);
+        throw new Exception("Model not found in OpenRouter catalog: "~modelName);
     }
 
     /// Gets or sets the HTTP-Referer used to identify the app to OpenRouter.
