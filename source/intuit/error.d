@@ -87,3 +87,12 @@ class CompletionParseError : Exception
         this.candidateText = candidateText;
     }
 }
+
+/// Thrown when formatting (JSON schema) validation fails.
+class FormatError : Exception
+{
+    this(string message)
+    {
+        super(message);
+    }
+}
