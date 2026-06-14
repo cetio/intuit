@@ -2,6 +2,7 @@
 module intuit.response.stream;
 
 import intuit.response.completion;
+import intuit.error : EndpointError;
 
 import core.atomic;
 import core.thread;
@@ -60,6 +61,7 @@ public:
     /**
      * Gets the next available completion chunk, blocking until available.
      *
+     * 
      * Returns:
      *  The next Completion chunk.
      *
@@ -69,7 +71,7 @@ public:
     Completion next()
     {
         if (_commence is null)
-            throw new Exception("Stream not initialized");
+            throw new EndpointError("Stream not initialized");
 
         if (error !is null)
             throw error;
@@ -117,11 +119,11 @@ public:
      * Sets the commence delegate and starts streaming.
      *
      * Params:
-     *  cb = The delegate that drives the stream.
+     *  dg = The delegate that drives the stream.
      */
-    void commence(void delegate(CompletionStream) cb)
+    void commence(void delegate(CompletionStream) dg)
     {
-        _commence = cb;
+        _commence = dg;
         begin();
     }
 

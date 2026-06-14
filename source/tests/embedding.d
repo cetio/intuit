@@ -36,9 +36,9 @@ unittest
 unittest
 {
     float[] vector = [3.0f, 4.0f, 0.0f];
-    ref float[] normalized = normalize(vector);
+    ref float[] normalized = vector.normalize();
     assert(normalized.ptr == vector.ptr);
-    assert(isClose(l2Norm(vector), 1.0f, 1e-5f));
+    assert(isClose(vector.l2Norm(), 1.0f, 1e-5f));
 }
 
 @Name("norm mean of two orthogonal unit vectors")
@@ -48,7 +48,7 @@ unittest
         [1.0f, 0.0f],
         [0.0f, 1.0f]
     ];
-    float[] mean = normMean(embeddings);
+    float[] mean = embeddings.norm();
     float expected = 1.0f / sqrt(2.0f);
     assert(mean.length == 2);
     assert(isClose(mean[0], expected, 1e-5f));
@@ -63,5 +63,5 @@ unittest
     assertThrown!Exception(cosineSimilarity(shortVec, longVec));
 
     float[][] mismatched = [[1.0f, 2.0f], [1.0f, 2.0f, 3.0f]];
-    assertThrown!Exception(normMean(mismatched));
+    assertThrown!Exception(mismatched.normMean());
 }
