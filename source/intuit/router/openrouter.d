@@ -7,7 +7,7 @@ import intuit.model;
 import intuit.provider.openai;
 import intuit.response;
 import intuit.router;
-import intuit.stream.sse : SSEParser;
+import intuit.response.stream.sse : SSEParser;
 import intuit.tool;
 import conductor.http : Response, send;
 

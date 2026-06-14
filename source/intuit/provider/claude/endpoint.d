@@ -5,7 +5,7 @@ public import intuit.provider;
 import intuit.provider.claude.model;
 import intuit.model;
 import intuit.error : EndpointError;
-import intuit.stream.sse : SSEParser, SSEEvent;
+import intuit.response.stream.sse : SSEParser, SSEEvent;
 import intuit.response;
 import intuit.tool;
 import conductor.http : Response, send;

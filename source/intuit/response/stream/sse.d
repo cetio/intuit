@@ -1,5 +1,5 @@
 /// Server-Sent Events (SSE) parser for streaming HTTP responses.
-module intuit.stream.sse;
+module intuit.response.stream.sse;
 
 import std.string;
 import std.array;

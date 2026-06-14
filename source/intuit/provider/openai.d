@@ -6,7 +6,7 @@ import intuit.error : EndpointError;
 import intuit.model;
 import intuit.response;
 import intuit.tool;
-import intuit.stream.sse : SSEParser, SSEEvent;
+import intuit.response.stream.sse : SSEParser, SSEEvent;
 import conductor.http : Response, send;
 
 import core.thread : Thread;
@@ -268,6 +268,7 @@ public:
         try
             return content.parseJSON();
         catch (Exception)
+        {
             throw new EndpointError(
                 method.to!string,
                 target,
@@ -276,6 +277,7 @@ public:
                 content,
                 "Endpoint returned invalid JSON.",
             );
+        }
     }
 
     /// Builds request headers including authorization if a key is set.

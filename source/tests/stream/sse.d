@@ -1,6 +1,6 @@
 module tests.stream.sse;
 
-import intuit.stream.sse;
+import intuit.response.stream.sse;
 import unit_threaded;
 
 @Name("parses complete event in single chunk")
