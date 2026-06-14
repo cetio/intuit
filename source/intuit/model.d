@@ -14,10 +14,6 @@ import std.string : toLower;
 class ModelConfig
 {
 private:
-    /// Response format JSON schema.
-    JSONValue _schema;
-    /// Tool choice and liability JSON (required, auto, none).
-    JSONValue _toolConfig;
 
 public:
     /// Model identifier, e.g. "gpt-4o".
@@ -32,24 +28,41 @@ public:
     string[] stop;
     /// Random seed for deterministic outputs.
     long seed = 0;
+    /// Response format schema.
+    /// Recommended to set this using setResponseSchema().
+    JSONValue responseSchema;
+    /// Tool choice and liability.
+    /// Recommended to set this using setRequiredTool() or setToolLiability().
+    JSONValue toolConfig;
     /// Additional JSON parameters merged into the request payload.
     JSONValue params;
 
     /**
-     * Sets the tool configuration.
+     * Sets the tool configuration to force a specific tool call.
+     *
+     * If tool is null or has no name, the tool configuration is reset.
      *
      * Params:
      *  tool = The tool forced to be called by the model.
      */
-    void toolConfig(Tool tool)
+    void setRequiredTool(Tool tool)
     {
-        _toolConfig = JSONValue.emptyObject;
-        _toolConfig["type"] = JSONValue("function");
-        _toolConfig["function"] = tool.name;
+        if (tool is null || tool.name == null)
+        {
+            toolConfig = JSONValue(null);
+            return;
+        }
+        
+        toolConfig = JSONValue.emptyObject;
+        toolConfig["type"] = JSONValue("function");
+
+        JSONValue func = JSONValue.emptyObject;
+        func["name"] = JSONValue(tool.name);
+        toolConfig["function"] = func;
     }
 
     /**
-     * Sets the tool configuration.
+     * Sets the tool configuration to control tool calling behavior.
      *
      * If liability is "required", the model must call 1 or more tools.
      * If liability is "auto", the model can call 0 or more tools.
@@ -61,7 +74,7 @@ public:
      * Throws:
      *  FormatError if liability is not one of the allowed values.
      */
-    void toolConfig(string liability)
+    void setToolLiability(string liability)
     {
         if (liability != "required" && liability != "auto" && liability != "none")
         {
@@ -70,18 +83,20 @@ public:
             );
         }
 
-        _toolConfig = JSONValue(liability);
+        toolConfig = JSONValue(liability);
     }
 
     /**
      * Sets the response format JSON schema.
+     *
+     * Does not support multiple schemas.
      *
      * Params:
      *  name = The schema name.
      *  schema = The JSON schema object.
      *  strict = Whether to enforce strict schema adherence.
      */
-    void schema(string name, JSONValue schema, bool strict = true)
+    void setResponseSchema(string name, JSONValue schema, bool strict = true)
     {
         JSONValue json = JSONValue.emptyObject;
         json["type"] = JSONValue("json_schema");
@@ -91,7 +106,7 @@ public:
         spec["schema"] = schema;
         spec["strict"] = JSONValue(strict);
         json["json_schema"] = spec;
-        _schema = json;
+        responseSchema = json;
     }
 
     /**
@@ -135,9 +150,9 @@ public:
         }
         if (seed > 0)
             ret["seed"] = JSONValue(seed);
-        if (!_schema.isNull)
+        if (_schema.type == JSONType.object)
             ret["response_format"] = _schema;
-        if (!_toolConfig.isNull)
+        if (_toolConfig.type == JSONType.object)
             ret["tool_choice"] = _toolConfig;
 
         Tool[] toolList = tools.list();
@@ -170,7 +185,7 @@ public:
             ret["messages"].array ~= message;
         }
 
-        if (!params.isNull)
+        if (params.type == JSONType.object)
         {
             foreach (key, value; params.object)
                 ret[key] = value;
