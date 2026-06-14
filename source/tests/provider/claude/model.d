@@ -1,4 +1,4 @@
-module tests.claude.model;
+module tests.provider.claude.model;
 
 import intuit.provider.claude.model;
 import intuit.response;

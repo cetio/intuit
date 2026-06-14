@@ -1,4 +1,4 @@
-module tests.embedding;
+module tests.response.embedding;
 
 import intuit.response.embedding;
 import unit_threaded;
@@ -48,7 +48,7 @@ unittest
         [1.0f, 0.0f],
         [0.0f, 1.0f]
     ];
-    float[] mean = embeddings.norm();
+    float[] mean = embeddings.normMean();
     float expected = 1.0f / sqrt(2.0f);
     assert(mean.length == 2);
     assert(isClose(mean[0], expected, 1e-5f));

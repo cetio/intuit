@@ -1,4 +1,4 @@
-module tests.stream.sse;
+module tests.response.stream.sse;
 
 import intuit.response.stream.sse;
 import unit_threaded;

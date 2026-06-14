@@ -1,4 +1,4 @@
-module tests.qwen.xmltools;
+module tests.provider.qwen.model;
 
 import intuit.provider.qwen.model;
 import intuit.response;

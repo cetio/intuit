@@ -2,31 +2,51 @@
 	"authors": [
 		"cet"
 	],
-	"copyright": "Copyright © 2026, cet",
-	"dependencies": {
-		"conductor": "~>2.0.0",
-		"intel-intrinsics": "~>1.14.2"
-	},
-	"description": "Language and embedding model interface for completions, streaming, computation, and tool usage.",
-	"license": "AGPL-3.0-only",
-	"name": "intuit",
-	"targetType": "library",
 	"configurations": [
 		{
 			"name": "library",
 			"targetType": "library"
 		},
 		{
+			"buildOptions": [
+				"unittests"
+			],
+			"dependencies": {
+				"unit-threaded": "~>2.2.0"
+			},
+			"mainSourceFile": "bin/ut.d",
 			"name": "unittest",
-			"targetType": "executable",
 			"preBuildCommands": [
 				"$DUB run --compiler=$$DC unit-threaded -c gen_ut_main -- -f bin/ut.d"
 			],
-			"mainSourceFile": "bin/ut.d",
-			"buildOptions": ["unittests"],
+			"targetType": "executable"
+		},
+		{
+			"buildOptions": [
+				"unittests"
+			],
 			"dependencies": {
 				"unit-threaded": "~>2.2.0"
-			}
+			},
+			"mainSourceFile": "bin/ut.d",
+			"name": "integration",
+			"preBuildCommands": [
+				"$DUB run --compiler=$$DC unit-threaded -c gen_ut_main -- -f bin/ut.d"
+			],
+			"targetType": "executable",
+			"versions": [
+				"integration"
+			]
 		}
-	]
+	],
+	"copyright": "Copyright © 2026, cet",
+	"dependencies": {
+		"conductor": "~>2.0.0",
+		"intel-intrinsics": "~>1.14.2",
+		"unit-threaded": "~>2.2.4"
+	},
+	"description": "Language and embedding model interface for completions, streaming, computation, and tool usage.",
+	"license": "AGPL-3.0-only",
+	"name": "intuit",
+	"targetType": "library"
 }
