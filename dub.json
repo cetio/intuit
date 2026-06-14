@@ -41,7 +41,7 @@
 	],
 	"copyright": "Copyright © 2026, cet",
 	"dependencies": {
-		"conductor": "~>2.0.0",
+		"conductor": "~>2.1.0",
 		"intel-intrinsics": "~>1.14.2",
 		"unit-threaded": "~>2.2.4"
 	},
