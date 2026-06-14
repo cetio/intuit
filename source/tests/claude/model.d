@@ -66,7 +66,7 @@ unittest
     assert(payload["messages"].array[0]["content"].str == "Hello");
 }
 
-@Name("parseCompletions extracts text and finish reason")
+@Name("parseResponse extracts text and finish reason")
 unittest
 {
     ClaudeModelConfig cfg = new ClaudeModelConfig("claude-opus-4-8");
@@ -90,7 +90,7 @@ unittest
     json["usage"]["input_tokens"] = JSONValue(12);
     json["usage"]["output_tokens"] = JSONValue(6);
 
-    Completion completion = cfg.parseCompletions(json);
+    Completion completion = cfg.parseResponse(json);
 
     assert(completion.choices.length == 1);
     assert(completion.choices[0].text == "Hello!");
@@ -100,7 +100,7 @@ unittest
     assert(completion.usage.totalTokens == 18);
 }
 
-@Name("parseCompletions extracts tool use blocks")
+@Name("parseResponse extracts tool use blocks")
 unittest
 {
     ClaudeModelConfig cfg = new ClaudeModelConfig("claude-opus-4-8");
@@ -123,7 +123,7 @@ unittest
     json["model"] = JSONValue("claude-opus-4-8");
     json["stop_reason"] = JSONValue("tool_use");
 
-    Completion completion = cfg.parseCompletions(json);
+    Completion completion = cfg.parseResponse(json);
 
     assert(completion.choices.length == 1);
     assert(completion.choices[0].toolCalls.length == 1);
