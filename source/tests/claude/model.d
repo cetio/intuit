@@ -8,10 +8,10 @@ import std.json : JSONValue, JSONType;
 @Name("completionsJSON builds correct payload")
 unittest
 {
-    auto model = new ClaudeModelConfig("claude-opus-4-8");
-    model.maxTokens = 1024;
-    model.temperature = 0.5;
-    model.system = "Be helpful.";
+    ClaudeModelConfig cfg = new ClaudeModelConfig("claude-opus-4-8");
+    cfg.maxTokens = 1024;
+    cfg.temperature = 0.5;
+    cfg.system = "Be helpful.";
 
     JSONValue input = JSONValue.emptyArray;
     JSONValue msg = JSONValue.emptyObject;
@@ -19,7 +19,7 @@ unittest
     msg["content"] = JSONValue("Hello");
     input.array ~= msg;
 
-    JSONValue payload = model.completionsJSON(input);
+    JSONValue payload = cfg.completionsJSON(input);
 
     assert(payload["model"].str == "claude-opus-4-8");
     assert(payload["max_tokens"].integer == 1024);
@@ -32,8 +32,8 @@ unittest
 @Name("completionsJSON extracts role system messages to top level")
 unittest
 {
-    auto model = new ClaudeModelConfig("claude-opus-4-8");
-    model.system = "Original system.";
+    ClaudeModelConfig cfg = new ClaudeModelConfig("claude-opus-4-8");
+    cfg.system = "Original system.";
 
     JSONValue input = JSONValue.emptyArray;
     
@@ -47,7 +47,7 @@ unittest
     userMsg["content"] = JSONValue("Hello");
     input.array ~= userMsg;
 
-    JSONValue payload = model.completionsJSON(input);
+    JSONValue payload = cfg.completionsJSON(input);
 
     assert(payload["system"].str == "Original system.\nExtracted system.");
     assert(payload["messages"].array.length == 1);
@@ -57,8 +57,8 @@ unittest
 @Name("completionsJSON wraps raw string input")
 unittest
 {
-    auto model = new ClaudeModelConfig("claude-opus-4-8");
-    JSONValue payload = model.completionsJSON(JSONValue("Hello"));
+    ClaudeModelConfig cfg = new ClaudeModelConfig("claude-opus-4-8");
+    JSONValue payload = cfg.completionsJSON(JSONValue("Hello"));
 
     assert(payload["messages"].type == JSONType.array);
     assert(payload["messages"].array.length == 1);
@@ -69,7 +69,7 @@ unittest
 @Name("parseCompletions extracts text and finish reason")
 unittest
 {
-    auto model = new ClaudeModelConfig("claude-opus-4-8");
+    ClaudeModelConfig cfg = new ClaudeModelConfig("claude-opus-4-8");
 
     JSONValue json = JSONValue.emptyObject;
     json["id"] = JSONValue("msg_01");
@@ -90,7 +90,7 @@ unittest
     json["usage"]["input_tokens"] = JSONValue(12);
     json["usage"]["output_tokens"] = JSONValue(6);
 
-    Completion completion = model.parseCompletions(json);
+    Completion completion = cfg.parseCompletions(json);
 
     assert(completion.choices.length == 1);
     assert(completion.choices[0].text == "Hello!");
@@ -103,7 +103,7 @@ unittest
 @Name("parseCompletions extracts tool use blocks")
 unittest
 {
-    auto model = new ClaudeModelConfig("claude-opus-4-8");
+    ClaudeModelConfig cfg = new ClaudeModelConfig("claude-opus-4-8");
 
     JSONValue json = JSONValue.emptyObject;
     json["id"] = JSONValue("msg_02");
@@ -123,7 +123,7 @@ unittest
     json["model"] = JSONValue("claude-opus-4-8");
     json["stop_reason"] = JSONValue("tool_use");
 
-    Completion completion = model.parseCompletions(json);
+    Completion completion = cfg.parseCompletions(json);
 
     assert(completion.choices.length == 1);
     assert(completion.choices[0].toolCalls.length == 1);
@@ -135,15 +135,11 @@ unittest
 @Name("embeddingsJSON throws for Claude")
 unittest
 {
-    auto model = new ClaudeModelConfig("claude-opus-4-8");
+    ClaudeModelConfig cfg = new ClaudeModelConfig("claude-opus-4-8");
     bool threw = false;
     try
-    {
-        model.embeddingsJSON(JSONValue("test"));
-    }
+        cfg.parseEmbeddingsResponse(JSONValue("test"));
     catch (Exception)
-    {
         threw = true;
-    }
     assert(threw);
 }

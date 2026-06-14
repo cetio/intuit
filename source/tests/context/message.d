@@ -9,7 +9,7 @@ import std.json : JSONValue, JSONType;
 unittest
 {
     JSONValue content = JSONValue("Be helpful.");
-    auto message = new SystemMessage(content);
+    SystemMessage message = new SystemMessage(content);
 
     JSONValue json = message.toJSON();
     assert(json["role"].str == "system");
@@ -20,7 +20,7 @@ unittest
 unittest
 {
     JSONValue content = JSONValue("Hello!");
-    auto message = new UserMessage(content);
+    UserMessage message = new UserMessage(content);
 
     JSONValue json = message.toJSON();
     assert(json["role"].str == "user");
@@ -30,7 +30,7 @@ unittest
 @Name("AssistantMessage toJSON with text only")
 unittest
 {
-    auto message = new AssistantMessage("Hello, world!");
+    AssistantMessage message = new AssistantMessage("Hello, world!");
 
     JSONValue json = message.toJSON();
     assert(json["role"].str == "assistant");
@@ -47,7 +47,7 @@ unittest
     call.arguments = JSONValue.emptyObject;
     call.arguments["location"] = JSONValue("Paris");
 
-    auto message = new AssistantMessage("", [call]);
+    AssistantMessage message = new AssistantMessage("", [call]);
 
     JSONValue json = message.toJSON();
     assert(json["role"].str == "assistant");
@@ -65,7 +65,7 @@ unittest
     call.id = "call_02";
     call.name = "search";
 
-    auto message = new AssistantMessage("Sure!", [call]);
+    AssistantMessage message = new AssistantMessage("Sure!", [call]);
 
     JSONValue json = message.toJSON();
     assert(json["content"].str == "Sure!");
@@ -84,7 +84,7 @@ unittest
     completion.usage.completionTokens = 5;
     completion.usage.totalTokens = 15;
 
-    auto message = new AssistantMessage(completion, 0);
+    AssistantMessage message = new AssistantMessage(completion, 0);
     assert(message.text == "Result");
     assert(message.usage.promptTokens == 10);
     assert(message.usage.completionTokens == 5);
@@ -95,7 +95,7 @@ unittest
 unittest
 {
     JSONValue content = JSONValue("Sunny");
-    auto message = new ToolMessage("call_01", content);
+    ToolMessage message = new ToolMessage("call_01", content);
 
     JSONValue json = message.toJSON();
     assert(json["role"].str == "tool");
@@ -107,7 +107,7 @@ unittest
 unittest
 {
     JSONValue content = JSONValue("Result");
-    auto message = new ToolMessage(content);
+    ToolMessage message = new ToolMessage(content);
 
     JSONValue json = message.toJSON();
     assert(json["role"].str == "tool");

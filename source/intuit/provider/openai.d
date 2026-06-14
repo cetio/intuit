@@ -6,7 +6,7 @@ import intuit.error : EndpointError;
 import intuit.model;
 import intuit.response;
 import intuit.tool;
-import intuit.stream.sse : SSEParser;
+import intuit.stream.sse : SSEParser, SSEEvent;
 import conductor.http : Response, send;
 
 import core.thread : Thread;
@@ -148,7 +148,7 @@ public:
         http.onReceive = (ubyte[] chunk) {
             try
             {
-                auto events = parser.feed(chunk);
+                SSEEvent[] events = parser.feed(chunk);
                 foreach (event; events)
                 {
                     if (event.data == "[DONE]")
@@ -194,7 +194,7 @@ public:
                     return;
                 }
 
-                auto finalEvents = parser.flush();
+                SSEEvent[] finalEvents = parser.flush();
                 foreach (event; finalEvents)
                 {
                     if (event.data == "[DONE]")

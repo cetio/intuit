@@ -2,11 +2,11 @@
 module intuit.provider.claude.endpoint;
 
 public import intuit.provider;
-import intuit.error : EndpointError;
-import intuit.model;
 import intuit.provider.claude.model;
+import intuit.model;
+import intuit.error : EndpointError;
+import intuit.stream.sse : SSEParser, SSEEvent;
 import intuit.response;
-import intuit.stream.sse : SSEParser;
 import intuit.tool;
 import conductor.http : Response, send;
 import conductor.serialize : toJSON;
@@ -156,7 +156,7 @@ public:
         http.onReceive = (ubyte[] chunk) {
             try
             {
-                auto events = parser.feed(chunk);
+                SSEEvent[] events = parser.feed(chunk);
                 foreach (event; events)
                 {
                     switch (event.event)
@@ -266,7 +266,7 @@ public:
                     return;
                 }
 
-                auto finalEvents = parser.flush();
+                SSEEvent[] finalEvents = parser.flush();
                 foreach (event; finalEvents)
                 {
                     if (event.event == "message_stop")

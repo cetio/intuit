@@ -8,7 +8,7 @@ import std.json : JSONValue;
 @Name("accumulates text across chunks")
 unittest
 {
-    auto acc = new DeltaAccumulator();
+    DeltaAccumulator acc = new DeltaAccumulator();
 
     Completion chunk1;
     chunk1.choices = [Choice.init];
@@ -26,7 +26,7 @@ unittest
 @Name("accumulates reasoning across chunks")
 unittest
 {
-    auto acc = new DeltaAccumulator();
+    DeltaAccumulator acc = new DeltaAccumulator();
 
     Completion chunk1;
     chunk1.choices = [Choice.init];
@@ -44,7 +44,7 @@ unittest
 @Name("appends tool calls across chunks")
 unittest
 {
-    auto acc = new DeltaAccumulator();
+    DeltaAccumulator acc = new DeltaAccumulator();
 
     Completion chunk1;
     chunk1.choices = [Choice.init];
@@ -64,7 +64,7 @@ unittest
 @Name("captures finish reason from first non-unknown chunk")
 unittest
 {
-    auto acc = new DeltaAccumulator();
+    DeltaAccumulator acc = new DeltaAccumulator();
 
     Completion chunk1;
     chunk1.choices = [Choice.init];
@@ -82,7 +82,7 @@ unittest
 @Name("handles multiple choices")
 unittest
 {
-    auto acc = new DeltaAccumulator();
+    DeltaAccumulator acc = new DeltaAccumulator();
 
     Completion chunk;
     chunk.choices = [Choice.init, Choice.init];
@@ -98,7 +98,7 @@ unittest
 @Name("ignores empty chunks")
 unittest
 {
-    auto acc = new DeltaAccumulator();
+    DeltaAccumulator acc = new DeltaAccumulator();
 
     Completion empty;
     acc.accumulate(empty);

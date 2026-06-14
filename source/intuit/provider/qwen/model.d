@@ -141,13 +141,13 @@ private:
         if (!text.canFind("<function="))
             return ret;
 
-        auto toolCallRe = regex(r"<tool_call>(.*?)</tool_call>|<tool_call>(.*?)$", "s");
-        auto funcRe = regex(r"<function=(.*?)</function>|<function=(.*)$", "s");
-        auto paramRe = regex(
+        Regex toolCallRe = ctRegex!(r"<tool_call>(.*?)</tool_call>|<tool_call>(.*?)$", "s");
+        Regex funcRe = ctRegex!(r"<function=(.*?)</function>|<function=(.*)$", "s");
+        Regex paramRe = ctRegex!(
             r"<parameter=(.*?)(?:</parameter>|(?=<parameter=)|(?=</function>)|$)", "s"
         );
 
-        foreach (tcMatch; matchAll(text, toolCallRe))
+        foreach (tcMatch; text.matchAll(toolCallRe))
         {
             string block = tcMatch.captures[1];
             if (block.length == 0)
@@ -155,7 +155,7 @@ private:
             if (block.length == 0)
                 continue;
 
-            foreach (funcMatch; matchAll(block, funcRe))
+            foreach (funcMatch; block.matchAll(funcRe))
             {
                 string funcBlock = funcMatch.captures[1];
                 if (funcBlock.length == 0)
@@ -171,7 +171,7 @@ private:
                 string paramsStr = funcBlock[gt + 1..$];
 
                 JSONValue args = JSONValue.emptyObject;
-                foreach (paramMatch; matchAll(paramsStr, paramRe))
+                foreach (paramMatch; paramsStr.matchAll(paramRe))
                 {
                     string paramBlock = paramMatch.captures[1];
                     if (paramBlock.length == 0)
@@ -200,8 +200,9 @@ private:
     static ToolCall[] parseJsonInXmlToolCalls(string text)
     {
         ToolCall[] ret;
-        auto re = regex(r"<tool_call>\s*(\{.*?\})\s*</tool_call>", "s");
-        foreach (m; matchAll(text, re))
+        // Match content between <tool_call> and </tool_call>
+        Regex re = ctRegex!(r"<tool_call>\s*(\{.*?\})\s*</tool_call>", "s");
+        foreach (m; text.matchAll(re))
         {
             try
             {
@@ -221,9 +222,7 @@ private:
                 if (call.name.length > 0)
                     ret ~= call;
             }
-            catch (Exception)
-            {
-            }
+            catch (Exception) { }
         }
         return ret;
     }
@@ -231,10 +230,9 @@ private:
     /// Removes XML tool-call blocks from text, preserving any leading/trailing prose.
     static string stripXmlToolCalls(string text)
     {
-        auto re = regex(r"<tool_call>.*?</tool_call>", "s");
-        string ret = replaceAll(text, re, "");
-        ret = replaceAll(ret, regex(r"<tool_call>.*$", "s"), "");
-        return ret.strip;
+        return text.replaceAll(ctRegex(r"<tool_call>.*?</tool_call>", "s"), "")
+            .replaceAll(ctRegex(r"<tool_call>.*$", "s"), "")
+            .strip();
     }
 
     /// Generates a synthetic tool call ID for XML-extracted calls.
@@ -256,9 +254,7 @@ private:
             if (num.to!string == trimmed)
                 return JSONValue(num);
         }
-        catch (Exception)
-        {
-        }
+        catch (Exception) { }
 
         try
         {
@@ -266,9 +262,7 @@ private:
             if (num.to!string == trimmed || (num.to!string~"f") == trimmed)
                 return JSONValue(num);
         }
-        catch (Exception)
-        {
-        }
+        catch (Exception) { }
 
         if (trimmed == "true" || trimmed == "True")
             return JSONValue(true);
@@ -281,9 +275,7 @@ private:
         {
             return parseJSON(trimmed);
         }
-        catch (Exception)
-        {
-        }
+        catch (Exception) { }
 
         return JSONValue(trimmed);
     }

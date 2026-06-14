@@ -10,7 +10,7 @@ import std.json : JSONValue;
 @Name("standard OpenAI-style tool_calls array")
 unittest
 {
-    QwenModelConfig model = new QwenModelConfig("qwen-test");
+    QwenModelConfig cfg = new QwenModelConfig("qwen-test");
     JSONValue response = JSONValue.emptyObject;
     JSONValue choices = JSONValue.emptyArray;
     JSONValue choice = JSONValue.emptyObject;
@@ -32,7 +32,7 @@ unittest
     choices.array ~= choice;
     response["choices"] = choices;
 
-    Completion completion = model.parseResponse(response);
+    Completion completion = cfg.parseResponse(response);
     assert(completion.choices.length == 1);
     assert(completion.choices[0].toolCalls.length == 1);
     assert(completion.choices[0].toolCalls[0].name == "get_weather");
@@ -43,7 +43,7 @@ unittest
 @Name("Qwen3-Coder custom XML format")
 unittest
 {
-    QwenModelConfig model = new QwenModelConfig("qwen3-coder-test");
+    QwenModelConfig cfg = new QwenModelConfig("qwen3-coder-test");
     JSONValue response = JSONValue.emptyObject;
     JSONValue choices = JSONValue.emptyArray;
     JSONValue choice = JSONValue.emptyObject;
@@ -62,7 +62,7 @@ unittest
     choices.array ~= choice;
     response["choices"] = choices;
 
-    Completion completion = model.parseResponse(response);
+    Completion completion = cfg.parseResponse(response);
     assert(completion.choices.length == 1);
     assert(completion.choices[0].toolCalls.length == 1);
     assert(completion.choices[0].toolCalls[0].name == "search_products");
@@ -74,7 +74,7 @@ unittest
 @Name("Qwen2.5/Qwen3 Hermes JSON-in-XML format")
 unittest
 {
-    QwenModelConfig model = new QwenModelConfig("qwen2.5-test");
+    QwenModelConfig cfg = new QwenModelConfig("qwen2.5-test");
     JSONValue response = JSONValue.emptyObject;
     JSONValue choices = JSONValue.emptyArray;
     JSONValue choice = JSONValue.emptyObject;
@@ -88,7 +88,7 @@ unittest
     choices.array ~= choice;
     response["choices"] = choices;
 
-    Completion completion = model.parseResponse(response);
+    Completion completion = cfg.parseResponse(response);
     assert(completion.choices.length == 1);
     assert(completion.choices[0].toolCalls.length == 1);
     assert(completion.choices[0].toolCalls[0].name == "get_weather");
@@ -99,7 +99,7 @@ unittest
 @Name("mixed text and XML tool calls preserves surrounding prose")
 unittest
 {
-    QwenModelConfig model = new QwenModelConfig("qwen-test");
+    QwenModelConfig cfg = new QwenModelConfig("qwen-test");
     JSONValue response = JSONValue.emptyObject;
     JSONValue choices = JSONValue.emptyArray;
     JSONValue choice = JSONValue.emptyObject;
@@ -115,7 +115,7 @@ Here are the results.`;
     choices.array ~= choice;
     response["choices"] = choices;
 
-    Completion completion = model.parseResponse(response);
+    Completion completion = cfg.parseResponse(response);
     assert(completion.choices.length == 1);
     assert(completion.choices[0].toolCalls.length == 1);
     assert(completion.choices[0].toolCalls[0].name == "search");
@@ -127,7 +127,7 @@ Here are the results.`;
 @Name("multiple JSON-in-XML tool calls in parallel")
 unittest
 {
-    QwenModelConfig model = new QwenModelConfig("qwen-test");
+    QwenModelConfig cfg = new QwenModelConfig("qwen-test");
     JSONValue response = JSONValue.emptyObject;
     JSONValue choices = JSONValue.emptyArray;
     JSONValue choice = JSONValue.emptyObject;
@@ -142,7 +142,7 @@ unittest
     choices.array ~= choice;
     response["choices"] = choices;
 
-    Completion completion = model.parseResponse(response);
+    Completion completion = cfg.parseResponse(response);
     assert(completion.choices[0].toolCalls.length == 2);
     assert(completion.choices[0].toolCalls[0].name == "a");
     assert(completion.choices[0].toolCalls[1].name == "b");

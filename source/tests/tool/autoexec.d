@@ -12,7 +12,6 @@ string greet(string name)
 unittest
 {
     OpenAI endpoint = new OpenAI("http://127.0.0.1:1234");
-
     endpoint.tools.add!greet(true);
 
     Context ctx;
