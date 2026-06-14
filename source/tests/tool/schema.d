@@ -54,13 +54,13 @@ unittest
     registry.add!greet();
 
     Tool tool = registry.get("greet");
-    assert(tool.name == "greet");
+    tool.name.should == "greet";
 
     JSONValue schema = tool.schema;
-    assert(schema["type"].str == "object");
-    assert(schema["properties"]["name"].str == "string");
-    assert(schema["required"].array.length == 1);
-    assert(schema["required"][0].str == "name");
+    schema["type"].str.should == "object";
+    schema["properties"]["name"].str.should == "string";
+    schema["required"].array.length.should == 1;
+    schema["required"][0].str.should == "name";
 }
 
 @Name("Description UDA populates tool description")
@@ -70,7 +70,7 @@ unittest
     registry.add!weather();
 
     Tool tool = registry.get("weather");
-    assert(tool.description == "Looks up the current weather for a city.");
+    tool.description.should == "Looks up the current weather for a city.";
 }
 
 @Name("tool without Description UDA has empty description")
@@ -79,7 +79,7 @@ unittest
     ToolRegistry registry;
     registry.add!greet();
 
-    assert(registry.get("greet").description.length == 0);
+    registry.get("greet").description.length.should == 0;
 }
 
 @Name("multiple typed parameters schema")
@@ -89,10 +89,10 @@ unittest
     registry.add!multiParam();
 
     JSONValue schema = registry.get("multiParam").schema;
-    assert(schema["properties"]["a"].str == "integer");
-    assert(schema["properties"]["b"].str == "string");
-    assert(schema["properties"]["c"].str == "boolean");
-    assert(schema["required"].array.length == 3);
+    schema["properties"]["a"].str.should == "integer";
+    schema["properties"]["b"].str.should == "string";
+    schema["properties"]["c"].str.should == "boolean";
+    schema["required"].array.length.should == 3;
 }
 
 @Name("sole JSONValue parameter omits properties")
@@ -102,8 +102,8 @@ unittest
     registry.add!soleJSONValue();
 
     JSONValue schema = registry.get("soleJSONValue").schema;
-    assert("properties" !in schema || schema["properties"].object.length == 0,
-        "Sole JSONValue param should not generate schema properties");
+    if ("properties" in schema)
+        schema["properties"].object.length.should == 0;
 }
 
 @Name("mixed string and JSONValue parameters schema")
@@ -113,9 +113,9 @@ unittest
     registry.add!mixedJSONValue();
 
     JSONValue schema = registry.get("mixedJSONValue").schema;
-    assert(schema["properties"]["name"].str == "string");
-    assert(schema["properties"]["extra"].str == "object");
-    assert(schema["required"].array.length == 2);
+    schema["properties"]["name"].str.should == "string";
+    schema["properties"]["extra"].str.should == "object";
+    schema["required"].array.length.should == 2;
 }
 
 @Name("string array parameter schema")
@@ -125,9 +125,9 @@ unittest
     registry.add!concat();
 
     JSONValue schema = registry.get("concat").schema;
-    assert(schema["properties"]["parts"]["type"].str == "array");
-    assert(schema["properties"]["parts"]["items"].str == "string");
-    assert(schema["required"].array.length == 1);
+    schema["properties"]["parts"]["type"].str.should == "array";
+    schema["properties"]["parts"]["items"].str.should == "string";
+    schema["required"].array.length.should == 1;
 }
 
 @Name("int array parameter schema")
@@ -137,7 +137,7 @@ unittest
     registry.add!sum();
 
     JSONValue schema = registry.get("sum").schema;
-    assert(schema["properties"]["nums"]["type"].str == "array");
-    assert(schema["properties"]["nums"]["items"].str == "integer");
-    assert(schema["required"].array.length == 1);
+    schema["properties"]["nums"]["type"].str.should == "array";
+    schema["properties"]["nums"]["items"].str.should == "integer";
+    schema["required"].array.length.should == 1;
 }

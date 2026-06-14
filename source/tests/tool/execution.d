@@ -51,7 +51,7 @@ unittest
     args["name"] = JSONValue("World");
     JSONValue result = registry.get("greet").impl(args);
 
-    assert(result.str == "Hello, World!");
+    result.str.should == "Hello, World!";
 }
 
 @Name("two int parameters sum correctly")
@@ -65,7 +65,7 @@ unittest
     args["b"] = JSONValue(4);
     JSONValue result = registry.get("add").impl(args);
 
-    assert(result.integer == 7);
+    result.integer.should == 7;
 }
 
 @Name("sole JSONValue parameter receives whole object")
@@ -78,7 +78,7 @@ unittest
     args["param0"] = JSONValue("from whole object");
     JSONValue result = registry.get("soleJSONValue").impl(args);
 
-    assert(result.str == "from whole object");
+    result.str.should == "from whole object";
 }
 
 @Name("mixed string and JSONValue parameters")
@@ -93,7 +93,7 @@ unittest
     args["extra"]["key"] = JSONValue("value");
     JSONValue result = registry.get("mixedJSONValue").impl(args);
 
-    assert(result.str == "Alice:value");
+    result.str.should == "Alice:value";
 }
 
 @Name("string array parameter concatenates")
@@ -106,7 +106,7 @@ unittest
     args["parts"] = JSONValue([JSONValue("Hello"), JSONValue(", "), JSONValue("World")]);
     JSONValue result = registry.get("concat").impl(args);
 
-    assert(result.str == "Hello, World");
+    result.str.should == "Hello, World";
 }
 
 @Name("int array parameter sums correctly")
@@ -119,7 +119,7 @@ unittest
     args["nums"] = JSONValue([JSONValue(1), JSONValue(2), JSONValue(3)]);
     JSONValue result = registry.get("sum").impl(args);
 
-    assert(result.integer == 6);
+    result.integer.should == 6;
 }
 
 version(integration)
@@ -136,18 +136,18 @@ version(integration)
             ctx.user("Say hello to Bob");
 
             Completion result = completions(endpoint, modelName, ctx);
-            assert(result.choice.toolCalls.length > 0, "Model should make a tool call");
-            assert(result.choice.toolCalls[0].name == "greet", "Model should call greet");
+            result.choice.toolCalls.length.shouldBeGreaterThan(0);
+            result.choice.toolCalls[0].name.should == "greet";
 
             Tool tool = endpoint.tools.get("greet");
             JSONValue toolArgs = JSONValue.emptyObject;
             toolArgs["name"] = JSONValue("Bob");
             JSONValue toolResult = tool.impl(toolArgs);
-            assert(toolResult.str == "Hello, Bob!", "Tool should execute correctly");
+            toolResult.str.should == "Hello, Bob!";
 
             ctx.tool(result.choice.toolCalls[0].id, toolResult);
             Completion finalResult = completions(endpoint, modelName, ctx);
-            assert(finalResult.choice.text.length > 0, "Model should provide final response");
+            finalResult.choice.text.length.shouldBeGreaterThan(0);
         });
     }
 }

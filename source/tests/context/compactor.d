@@ -22,8 +22,8 @@ unittest
     ];
 
     IMessage[] ret = compactor.compact(messages);
-    assert(ret.length == 3);
-    assert((cast(UserMessage)ret[0]).content.str == "second");
+    ret.length.should == 3;
+    (cast(UserMessage)ret[0]).content.str.should == "second";
 }
 
 @Name("Trim preserves system messages")
@@ -40,9 +40,9 @@ unittest
     ];
 
     IMessage[] ret = compactor.compact(messages);
-    assert(ret.length == 2);
-    assert(ret[0].role == Role.System);
-    assert((cast(UserMessage)ret[1]).content.str == "extra");
+    ret.length.should == 2;
+    ret[0].role.should == Role.System;
+    (cast(UserMessage)ret[1]).content.str.should == "extra";
 }
 
 @Name("Trim respects maxTokens using completion usage")
@@ -73,7 +73,7 @@ unittest
     ];
 
     IMessage[] ret = compactor.compact(messages);
-    assert(ret.length == 0, "Expected empty after trimming all messages to get under token limit");
+    ret.length.should == 0;
 }
 
 @Name("lowest limit wins when both maxMessages and maxTokens are set")
@@ -98,7 +98,7 @@ unittest
 
     // total = 5 + 8 = 13 > 10 (token limit is hit)
     IMessage[] ret = compactor.compact(messages);
-    assert(ret.length < 2, "Token limit should trigger before message limit");
+    (ret.length < 2).should == true;
 }
 
 @Name("Callback delegates receives and replaces messages")
@@ -118,9 +118,9 @@ unittest
     ];
 
     IMessage[] ret = compactor.compact(messages);
-    assert(ret.length == 1);
-    assert(ret[0].role == Role.System);
-    assert((cast(SystemMessage)ret[0]).content.str == "Summary");
+    ret.length.should == 1;
+    ret[0].role.should == Role.System;
+    (cast(SystemMessage)ret[0]).content.str.should == "Summary";
 }
 
 @Name("Callback with null delegate returns input unchanged")
@@ -134,8 +134,8 @@ unittest
     ];
 
     IMessage[] ret = compactor.compact(messages);
-    assert(ret.length == 1);
-    assert(ret[0].role == Role.User);
+    ret.length.should == 1;
+    ret[0].role.should == Role.User;
 }
 
 @Name("tokens computes sum of completion plus latest prompt")
@@ -160,7 +160,7 @@ unittest
     ];
 
     // 5 + 8 + 20 = 33
-    assert(Compactor.tokens(messages) == 33);
+    Compactor.tokens(messages).should == 33;
 }
 
 @Name("no-op when under all limits")
@@ -175,6 +175,6 @@ unittest
     ];
 
     IMessage[] ret = compactor.compact(messages);
-    assert(ret.length == 1);
-    assert(ret[0].role == Role.User);
+    ret.length.should == 1;
+    ret[0].role.should == Role.User;
 }

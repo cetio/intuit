@@ -33,11 +33,11 @@ unittest
     response["choices"] = choices;
 
     Completion completion = cfg.parseResponse(response);
-    assert(completion.choices.length == 1);
-    assert(completion.choices[0].toolCalls.length == 1);
-    assert(completion.choices[0].toolCalls[0].name == "get_weather");
-    assert(completion.choices[0].toolCalls[0].id == "call_123");
-    assert(completion.choices[0].text.length == 0);
+    completion.choices.length.should == 1;
+    completion.choices[0].toolCalls.length.should == 1;
+    completion.choices[0].toolCalls[0].name.should == "get_weather";
+    completion.choices[0].toolCalls[0].id.should == "call_123";
+    completion.choices[0].text.length.should == 0;
 }
 
 @Name("Qwen3-Coder custom XML format")
@@ -63,12 +63,12 @@ unittest
     response["choices"] = choices;
 
     Completion completion = cfg.parseResponse(response);
-    assert(completion.choices.length == 1);
-    assert(completion.choices[0].toolCalls.length == 1);
-    assert(completion.choices[0].toolCalls[0].name == "search_products");
-    assert(completion.choices[0].toolCalls[0].arguments["query"].str == "waterproof running shoes");
-    assert(completion.choices[0].toolCalls[0].arguments["sort_by"].str == "price_low_to_high");
-    assert(completion.choices[0].text.length == 0);
+    completion.choices.length.should == 1;
+    completion.choices[0].toolCalls.length.should == 1;
+    completion.choices[0].toolCalls[0].name.should == "search_products";
+    completion.choices[0].toolCalls[0].arguments["query"].str.should == "waterproof running shoes";
+    completion.choices[0].toolCalls[0].arguments["sort_by"].str.should == "price_low_to_high";
+    completion.choices[0].text.length.should == 0;
 }
 
 @Name("Qwen2.5/Qwen3 Hermes JSON-in-XML format")
@@ -89,11 +89,11 @@ unittest
     response["choices"] = choices;
 
     Completion completion = cfg.parseResponse(response);
-    assert(completion.choices.length == 1);
-    assert(completion.choices[0].toolCalls.length == 1);
-    assert(completion.choices[0].toolCalls[0].name == "get_weather");
-    assert(completion.choices[0].toolCalls[0].arguments["location"].str == "San Francisco");
-    assert(completion.choices[0].text.length == 0);
+    completion.choices.length.should == 1;
+    completion.choices[0].toolCalls.length.should == 1;
+    completion.choices[0].toolCalls[0].name.should == "get_weather";
+    completion.choices[0].toolCalls[0].arguments["location"].str.should == "San Francisco";
+    completion.choices[0].text.length.should == 0;
 }
 
 @Name("mixed text and XML tool calls preserves surrounding prose")
@@ -116,12 +116,12 @@ Here are the results.`;
     response["choices"] = choices;
 
     Completion completion = cfg.parseResponse(response);
-    assert(completion.choices.length == 1);
-    assert(completion.choices[0].toolCalls.length == 1);
-    assert(completion.choices[0].toolCalls[0].name == "search");
-    assert(completion.choices[0].text.canFind("I will search for shoes."));
-    assert(completion.choices[0].text.canFind("Here are the results."));
-    assert(!completion.choices[0].text.canFind("<tool_call>"));
+    completion.choices.length.should == 1;
+    completion.choices[0].toolCalls.length.should == 1;
+    completion.choices[0].toolCalls[0].name.should == "search";
+    completion.choices[0].text.canFind("I will search for shoes.").should == true;
+    completion.choices[0].text.canFind("Here are the results.").should == true;
+    completion.choices[0].text.canFind("<tool_call>").should == false;
 }
 
 @Name("multiple JSON-in-XML tool calls in parallel")
@@ -143,9 +143,9 @@ unittest
     response["choices"] = choices;
 
     Completion completion = cfg.parseResponse(response);
-    assert(completion.choices[0].toolCalls.length == 2);
-    assert(completion.choices[0].toolCalls[0].name == "a");
-    assert(completion.choices[0].toolCalls[1].name == "b");
+    completion.choices[0].toolCalls.length.should == 2;
+    completion.choices[0].toolCalls[0].name.should == "a";
+    completion.choices[0].toolCalls[1].name.should == "b";
 }
 
 @Name("no tool calls in content leaves text untouched")
@@ -164,6 +164,6 @@ unittest
     response["choices"] = choices;
 
     Completion completion = model.parseResponse(response);
-    assert(completion.choices[0].toolCalls.length == 0);
-    assert(completion.choices[0].text == "Just a regular message.");
+    completion.choices[0].toolCalls.length.should == 0;
+    completion.choices[0].text.should == "Just a regular message.";
 }

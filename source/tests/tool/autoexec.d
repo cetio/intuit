@@ -23,8 +23,8 @@ version(integration)
 
             Completion result = completions(endpoint, modelName, ctx);
 
-            assert(result.choice.text.length > 0, "Autoexec should recurse and return final text response");
-            assert(ctx.length >= 3, "Context should contain user, assistant with tool call, and tool result");
+            result.choice.text.length.shouldBeGreaterThan(0);
+            ctx.length.shouldBeGreaterThan(2);
         });
     }
 }
