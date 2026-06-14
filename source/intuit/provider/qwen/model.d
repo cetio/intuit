@@ -141,9 +141,9 @@ private:
         if (!text.canFind("<function="))
             return ret;
 
-        Regex toolCallRe = ctRegex!(r"<tool_call>(.*?)</tool_call>|<tool_call>(.*?)$", "s");
-        Regex funcRe = ctRegex!(r"<function=(.*?)</function>|<function=(.*)$", "s");
-        Regex paramRe = ctRegex!(
+        auto toolCallRe = ctRegex!(r"<tool_call>(.*?)</tool_call>|<tool_call>(.*?)$", "s");
+        auto funcRe = ctRegex!(r"<function=(.*?)</function>|<function=(.*)$", "s");
+        auto paramRe = ctRegex!(
             r"<parameter=(.*?)(?:</parameter>|(?=<parameter=)|(?=</function>)|$)", "s"
         );
 
@@ -201,7 +201,7 @@ private:
     {
         ToolCall[] ret;
         // Match content between <tool_call> and </tool_call>
-        Regex re = ctRegex!(r"<tool_call>\s*(\{.*?\})\s*</tool_call>", "s");
+        Regex!char re = ctRegex!(r"<tool_call>\s*(\{.*?\})\s*</tool_call>", "s");
         foreach (m; text.matchAll(re))
         {
             try
@@ -230,8 +230,8 @@ private:
     /// Removes XML tool-call blocks from text, preserving any leading/trailing prose.
     static string stripXmlToolCalls(string text)
     {
-        return text.replaceAll(ctRegex(r"<tool_call>.*?</tool_call>", "s"), "")
-            .replaceAll(ctRegex(r"<tool_call>.*$", "s"), "")
+        return text.replaceAll(ctRegex!(r"<tool_call>.*?</tool_call>", "s"), "")
+            .replaceAll(ctRegex!(r"<tool_call>.*$", "s"), "")
             .strip();
     }
 

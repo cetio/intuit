@@ -19,7 +19,7 @@ unittest
     msg["content"] = JSONValue("Hello");
     input.array ~= msg;
 
-    JSONValue payload = cfg.completionsJSON(input);
+    JSONValue payload = cfg.buildPayload(input);
 
     assert(payload["model"].str == "claude-opus-4-8");
     assert(payload["max_tokens"].integer == 1024);
@@ -29,7 +29,7 @@ unittest
     assert(payload["messages"].array.length == 1);
 }
 
-@Name("completionsJSON extracts role system messages to top level")
+@Name("buildPayload extracts role system messages to top level")
 unittest
 {
     ClaudeModelConfig cfg = new ClaudeModelConfig("claude-opus-4-8");
@@ -47,18 +47,18 @@ unittest
     userMsg["content"] = JSONValue("Hello");
     input.array ~= userMsg;
 
-    JSONValue payload = cfg.completionsJSON(input);
+    JSONValue payload = cfg.buildPayload(input);
 
     assert(payload["system"].str == "Original system.\nExtracted system.");
     assert(payload["messages"].array.length == 1);
     assert(payload["messages"].array[0]["role"].str == "user");
 }
 
-@Name("completionsJSON wraps raw string input")
+@Name("buildPayload wraps raw string input")
 unittest
 {
     ClaudeModelConfig cfg = new ClaudeModelConfig("claude-opus-4-8");
-    JSONValue payload = cfg.completionsJSON(JSONValue("Hello"));
+    JSONValue payload = cfg.buildPayload(JSONValue("Hello"));
 
     assert(payload["messages"].type == JSONType.array);
     assert(payload["messages"].array.length == 1);
