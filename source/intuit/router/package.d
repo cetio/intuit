@@ -61,31 +61,7 @@ Completion completions(R)(R router)
 {
     if (router.active is null)
         throw new Exception("Router has no active model set.");
-    return runCompletion(router);
-}
 
-/**
- * Send a completion request after appending data as a user turn.
- *
- * Params:
- *   router = The router to send the request through.
- *   data = The input data appended to the maintained context.
- *
- * Returns: The completion response.
- */
-Completion completions(R, D)(R router, auto ref D data)
-    if (is(R : IRouter))
-{
-    if (router.active is null)
-        throw new Exception("Router has no active model set.");
-    router.context.user(data);
-    return runCompletion(router);
-}
-
-/// Runs a completion against the router's active model and maintained context.
-private Completion runCompletion(R)(R router)
-    if (is(R : IRouter))
-{
     ModelConfig cfg = router.config();
 
     JSONValue payload = cfg.buildPayload(router.context.toJSON(), router.tools);
@@ -113,49 +89,26 @@ private Completion runCompletion(R)(R router)
     }
 
     if (cycle)
-        return runCompletion(router);
+        return completions(router);
 
     return ret;
 }
 
-/**
- * Send a streaming completion request using the router's maintained context.
- *
- * Params:
- *   router = The router to send the request through.
- *
- * Returns: A CompletionStream for token-by-token consumption.
- */
-CompletionStream streamCompletions(R)(R router)
-    if (is(R : IRouter))
-{
-    if (router.active is null)
-        throw new Exception("Router has no active model set.");
-    return runStream(router);
-}
-
-/**
- * Send a streaming completion request after appending data as a user turn.
- *
- * Params:
- *   router = The router to send the request through.
- *   data = The input data appended to the maintained context.
- *
- * Returns: A CompletionStream for token-by-token consumption.
- */
-CompletionStream streamCompletions(R, D)(R router, auto ref D data)
+Completion completions(R, D)(R router, auto ref D data)
     if (is(R : IRouter))
 {
     if (router.active is null)
         throw new Exception("Router has no active model set.");
     router.context.user(data);
-    return runStream(router);
+    return completions(router);
 }
 
-/// Builds and dispatches a streaming request against the active model.
-private CompletionStream runStream(R)(R router)
+CompletionStream streamCompletions(R)(R router)
     if (is(R : IRouter))
 {
+    if (router.active is null)
+        throw new Exception("Router has no active model set.");
+
     ModelConfig cfg = router.config();
 
     JSONValue payload = cfg.buildPayload(router.context.toJSON(), router.tools);
@@ -163,6 +116,15 @@ private CompletionStream runStream(R)(R router)
         payload["stream"] = JSONValue(true);
 
     return router._stream(payload);
+}
+
+CompletionStream streamCompletions(R, D)(R router, auto ref D data)
+    if (is(R : IRouter))
+{
+    if (router.active is null)
+        throw new Exception("Router has no active model set.");
+    router.context.user(data);
+    return streamCompletions(router);
 }
 
 /**
