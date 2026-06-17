@@ -1,8 +1,8 @@
 {
 	"fileVersion": 1,
 	"versions": {
-		"conductor": "2.1.0",
-		"intel-intrinsics": "1.14.4",
+		"conductor": "2.1.1",
+		"intel-intrinsics": "1.14.6",
 		"unit-threaded": "2.2.4"
 	}
 }

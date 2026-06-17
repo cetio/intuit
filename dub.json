@@ -5,7 +5,8 @@
 	"configurations": [
 		{
 			"name": "library",
-			"targetType": "library"
+			"targetType": "library",
+			"excludedSourceFiles": ["source/tests/*"]
 		},
 		{
 			"buildOptions": [
