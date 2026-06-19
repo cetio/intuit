@@ -201,27 +201,36 @@ private:
         if ("model_info" in item && item["model_info"].type == JSONType.object)
             modelInfo = item["model_info"];
 
-        ret.name = jsonString(modelInfo, "key");
+        if ("key" in modelInfo && modelInfo["key"].type == JSONType.string)
+            ret.name = modelInfo["key"].str;
         if (ret.name.length == 0)
             ret.name = ret.id;
 
-        ret.contextLength = jsonSize(modelInfo, "max_input_tokens");
-        if (ret.contextLength == 0)
-            ret.contextLength = jsonSize(modelInfo, "max_tokens");
+        if ("max_input_tokens" in modelInfo && modelInfo["max_input_tokens"].type == JSONType.integer)
+            ret.contextLength = cast(size_t)modelInfo["max_input_tokens"].integer;
+        if (ret.contextLength == 0 && "max_tokens" in modelInfo
+            && modelInfo["max_tokens"].type == JSONType.integer)
+            ret.contextLength = cast(size_t)modelInfo["max_tokens"].integer;
 
-        ret.maxCompletionTokens = jsonSize(modelInfo, "max_output_tokens");
-        if (ret.maxCompletionTokens == 0)
-            ret.maxCompletionTokens = jsonSize(modelInfo, "max_tokens");
+        if ("max_output_tokens" in modelInfo && modelInfo["max_output_tokens"].type == JSONType.integer)
+            ret.maxCompletionTokens = cast(size_t)modelInfo["max_output_tokens"].integer;
+        if (ret.maxCompletionTokens == 0 && "max_tokens" in modelInfo
+            && modelInfo["max_tokens"].type == JSONType.integer)
+            ret.maxCompletionTokens = cast(size_t)modelInfo["max_tokens"].integer;
 
-        ret.promptCost = jsonDouble(modelInfo, "input_cost_per_token");
-        ret.completionCost = jsonDouble(modelInfo, "output_cost_per_token");
+        if ("input_cost_per_token" in modelInfo && modelInfo["input_cost_per_token"].type == JSONType.float_)
+            ret.promptCost = modelInfo["input_cost_per_token"].floating;
+        if ("output_cost_per_token" in modelInfo && modelInfo["output_cost_per_token"].type == JSONType.float_)
+            ret.completionCost = modelInfo["output_cost_per_token"].floating;
 
         string[] inputs;
         string[] outputs;
 
         inputs ~= "text";
 
-        string mode = jsonString(modelInfo, "mode");
+        string mode;
+        if ("mode" in modelInfo && modelInfo["mode"].type == JSONType.string)
+            mode = modelInfo["mode"].str;
         if (mode == "chat" || mode == "completion")
             outputs ~= "text";
         else if (mode == "embedding")
@@ -233,108 +242,38 @@ private:
         else if (mode.length > 0)
             outputs ~= mode;
 
-        if (jsonBool(modelInfo, "supports_vision"))
+        if ("supports_vision" in modelInfo && modelInfo["supports_vision"].type == JSONType.true_)
             inputs ~= "image";
-        if (jsonBool(modelInfo, "supports_audio_input"))
+        if ("supports_audio_input" in modelInfo && modelInfo["supports_audio_input"].type == JSONType.true_)
             inputs ~= "audio";
-        if (jsonBool(modelInfo, "supports_pdf_input"))
+        if ("supports_pdf_input" in modelInfo && modelInfo["supports_pdf_input"].type == JSONType.true_)
             inputs ~= "pdf";
 
-        if (jsonBool(modelInfo, "supports_audio_output"))
+        if ("supports_audio_output" in modelInfo && modelInfo["supports_audio_output"].type == JSONType.true_)
             outputs ~= "audio";
 
         ret.inputModalities = inputs;
         ret.outputModalities = outputs;
 
+        // TODO: This is terrible.
         string[] parameters;
-        if (jsonBool(modelInfo, "supports_function_calling"))
+        if ("supports_function_calling" in modelInfo && modelInfo["supports_function_calling"].type == JSONType.true_)
             parameters ~= "tools";
-        if (jsonBool(modelInfo, "supports_tool_choice"))
+        if ("supports_tool_choice" in modelInfo && modelInfo["supports_tool_choice"].type == JSONType.true_)
             parameters ~= "tool_choice";
-        if (jsonBool(modelInfo, "supports_response_schema"))
+        if ("supports_response_schema" in modelInfo && modelInfo["supports_response_schema"].type == JSONType.true_)
             parameters ~= "response_format";
-        if (jsonBool(modelInfo, "supports_system_messages"))
+        if ("supports_system_messages" in modelInfo && modelInfo["supports_system_messages"].type == JSONType.true_)
             parameters ~= "system";
-        if (jsonBool(modelInfo, "supports_reasoning"))
+        if ("supports_reasoning" in modelInfo && modelInfo["supports_reasoning"].type == JSONType.true_)
             parameters ~= "reasoning";
-        if (jsonBool(modelInfo, "supports_prompt_caching"))
+        if ("supports_prompt_caching" in modelInfo && modelInfo["supports_prompt_caching"].type == JSONType.true_)
             parameters ~= "prompt_caching";
-        if (jsonBool(modelInfo, "supports_web_search"))
+        if ("supports_web_search" in modelInfo && modelInfo["supports_web_search"].type == JSONType.true_)
             parameters ~= "web_search";
 
         ret.supportedParameters = parameters;
 
         return ret;
-    }
-
-    /// Reads a string field from a JSON object.
-    static string jsonString(JSONValue obj, string key)
-    {
-        if (key !in obj || obj[key].type != JSONType.string)
-            return null;
-        return obj[key].str;
-    }
-
-    /// Reads a boolean field from a JSON object.
-    static bool jsonBool(JSONValue obj, string key)
-    {
-        if (key !in obj)
-            return false;
-        JSONValue value = obj[key];
-        if (value.type == JSONType.true_)
-            return true;
-        if (value.type == JSONType.false_)
-            return false;
-        return false;
-    }
-
-    /// Reads an integral field from a JSON object, accepting numbers and strings.
-    static size_t jsonSize(JSONValue obj, string key)
-    {
-        if (key !in obj)
-            return 0;
-
-        JSONValue value = obj[key];
-        switch (value.type)
-        {
-        case JSONType.integer:
-            return cast(size_t)value.integer;
-        case JSONType.uinteger:
-            return cast(size_t)value.uinteger;
-        case JSONType.float_:
-            return cast(size_t)value.floating;
-        case JSONType.string:
-            try
-                return value.str.to!size_t;
-            catch (Exception)
-                return 0;
-        default:
-            return 0;
-        }
-    }
-
-    /// Reads a floating field from a JSON object, accepting numbers and strings.
-    static double jsonDouble(JSONValue obj, string key)
-    {
-        if (key !in obj)
-            return 0;
-
-        JSONValue value = obj[key];
-        switch (value.type)
-        {
-        case JSONType.float_:
-            return value.floating;
-        case JSONType.integer:
-            return cast(double)value.integer;
-        case JSONType.uinteger:
-            return cast(double)value.uinteger;
-        case JSONType.string:
-            try
-                return value.str.to!double;
-            catch (Exception)
-                return 0;
-        default:
-            return 0;
-        }
     }
 }

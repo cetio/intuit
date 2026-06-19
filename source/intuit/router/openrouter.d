@@ -483,97 +483,63 @@ private:
         ret.id = "id" in item ? item["id"].str : null;
         ret.name = "name" in item ? item["name"].str : null;
         ret.description = "description" in item ? item["description"].str : null;
-        ret.contextLength = jsonSize(item, "context_length");
+
+        if ("context_length" in item && item["context_length"].type == JSONType.integer)
+            ret.contextLength = cast(size_t)item["context_length"].integer;
 
         if ("top_provider" in item && item["top_provider"].type == JSONType.object)
         {
             JSONValue provider = item["top_provider"];
-            if (ret.contextLength == 0)
-                ret.contextLength = jsonSize(provider, "context_length");
-            ret.maxCompletionTokens = jsonSize(provider, "max_completion_tokens");
+            if (ret.contextLength == 0 && "context_length" in provider
+                && provider["context_length"].type == JSONType.integer)
+                ret.contextLength = cast(size_t)provider["context_length"].integer;
+            if ("max_completion_tokens" in provider
+                && provider["max_completion_tokens"].type == JSONType.integer)
+                ret.maxCompletionTokens = cast(size_t)provider["max_completion_tokens"].integer;
         }
 
         if ("architecture" in item && item["architecture"].type == JSONType.object)
         {
             JSONValue architecture = item["architecture"];
-            ret.inputModalities = jsonStrings(architecture, "input_modalities");
-            ret.outputModalities = jsonStrings(architecture, "output_modalities");
+            if ("input_modalities" in architecture
+                && architecture["input_modalities"].type == JSONType.array)
+            {
+                foreach (entry; architecture["input_modalities"].array)
+                {
+                    if (entry.type == JSONType.string)
+                        ret.inputModalities ~= entry.str;
+                }
+            }
+
+            if ("output_modalities" in architecture
+                && architecture["output_modalities"].type == JSONType.array)
+            {
+                foreach (entry; architecture["output_modalities"].array)
+                {
+                    if (entry.type == JSONType.string)
+                        ret.outputModalities ~= entry.str;
+                }
+            }
         }
 
-        ret.supportedParameters = jsonStrings(item, "supported_parameters");
+        if ("supported_parameters" in item && item["supported_parameters"].type == JSONType.array)
+        {
+            foreach (entry; item["supported_parameters"].array)
+            {
+                if (entry.type == JSONType.string)
+                    ret.supportedParameters ~= entry.str;
+            }
+        }
 
         if ("pricing" in item && item["pricing"].type == JSONType.object)
         {
             JSONValue pricing = item["pricing"];
-            ret.promptCost = jsonDouble(pricing, "prompt");
-            ret.completionCost = jsonDouble(pricing, "completion");
+            if ("prompt" in pricing && pricing["prompt"].type == JSONType.float_)
+                ret.promptCost = pricing["prompt"].floating;
+            if ("completion" in pricing && pricing["completion"].type == JSONType.float_)
+                ret.completionCost = pricing["completion"].floating;
         }
 
-        return ret;
-    }
-
-    /// Reads an integral field from a JSON object, accepting numbers and strings.
-    static size_t jsonSize(JSONValue obj, string key)
-    {
-        if (key !in obj)
-            return 0;
-
-        JSONValue value = obj[key];
-        switch (value.type)
-        {
-        case JSONType.integer:
-            return cast(size_t)value.integer;
-        case JSONType.uinteger:
-            return cast(size_t)value.uinteger;
-        case JSONType.float_:
-            return cast(size_t)value.floating;
-        case JSONType.string:
-            try
-                return value.str.to!size_t;
-            catch (Exception)
-                return 0;
-        default:
-            return 0;
-        }
-    }
-
-    /// Reads a floating field from a JSON object, accepting numbers and strings.
-    static double jsonDouble(JSONValue obj, string key)
-    {
-        if (key !in obj)
-            return 0;
-
-        JSONValue value = obj[key];
-        switch (value.type)
-        {
-        case JSONType.float_:
-            return value.floating;
-        case JSONType.integer:
-            return cast(double)value.integer;
-        case JSONType.uinteger:
-            return cast(double)value.uinteger;
-        case JSONType.string:
-            try
-                return value.str.to!double;
-            catch (Exception)
-                return 0;
-        default:
-            return 0;
-        }
-    }
-
-    /// Reads an array of strings from a JSON object.
-    static string[] jsonStrings(JSONValue obj, string key)
-    {
-        if (key !in obj || obj[key].type != JSONType.array)
-            return null;
-
-        string[] ret;
-        foreach (entry; obj[key].array)
-        {
-            if (entry.type == JSONType.string)
-                ret ~= entry.str;
-        }
         return ret;
     }
 }
