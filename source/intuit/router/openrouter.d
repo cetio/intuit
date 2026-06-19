@@ -4,6 +4,7 @@ module intuit.router.openrouter;
 import intuit.context;
 import intuit.exception : EndpointException;
 import intuit.model;
+import intuit.router.details;
 import intuit.provider.openai;
 import intuit.response;
 import intuit.router;
@@ -17,38 +18,7 @@ import std.json : JSONType, JSONValue, parseJSON;
 import std.net.curl : HTTP;
 import std.string : assumeUTF, join;
 
-/// Dynamic metadata for a single OpenRouter model, populated from `/models`.
-struct ModelDetails
-{
-    /// The model slug, e.g. "openai/gpt-4o".
-    string id;
-    /// Human-readable display name.
-    string name;
-    /// Model description text.
-    string description;
-    /// Total context window in tokens; drives the compactor token limit.
-    size_t contextLength;
-    /// Maximum tokens the top provider can generate in a single response.
-    size_t maxCompletionTokens;
-    /// Supported input modalities, e.g. ["text", "image"].
-    string[] inputModalities;
-    /// Supported output modalities, e.g. ["text"].
-    string[] outputModalities;
-    /// OpenAI-compatible parameters the model accepts, e.g. ["tools", "temperature"].
-    string[] supportedParameters;
-    /// Cost in USD per input token.
-    double promptCost;
-    /// Cost in USD per output token.
-    double completionCost;
-}
-
-/**
- * Router backed by OpenRouter's OpenAI-compatible API.
- *
- * Unlike LocalRouter, the model catalog is discovered dynamically from the
- * `/models` endpoint rather than statically defined. Models are served through
- * ModelConfig since OpenRouter normalizes every provider to the OpenAI schema.
- */
+/// OpenRouter router implementation.
 class OpenRouter : IRouter
 {
 private:
@@ -58,7 +28,7 @@ private:
     ToolRegistry _tools;
     Context _context;
     string _active;
-    ModelConfig _activeConfig;
+    ModelConfig[string] _configs;
     HTTP _http;
     ModelDetails[string] _catalog;
 
@@ -117,7 +87,7 @@ public:
             refresh();
 
         _active = modelName;
-        _activeConfig = new ModelConfig(modelName);
+        config(modelName);
         if (auto details = modelName in _catalog)
             _context.compactor.maxTokens = details.contextLength;
     }
@@ -126,7 +96,31 @@ public:
     {
         if (_active is null)
             throw new Exception("Router has no active model set.");
-        return _activeConfig;
+        return _configs[_active];
+    }
+
+    override ModelConfig config(string modelName)
+    {
+        if (auto found = modelName in _configs)
+            return *found;
+        ModelConfig ret = new ModelConfig(modelName);
+        _configs[modelName] = ret;
+        return ret;
+    }
+
+    override ModelConfig[] configs()
+    {
+        ModelConfig[] ret;
+        foreach (cfg; _configs.byValue)
+            ret ~= cfg;
+        return ret;
+    }
+
+    override ModelDetails[string] catalog()
+    {
+        if (_catalog.length == 0)
+            refresh();
+        return _catalog;
     }
 
     override JSONValue _completions(JSONValue payload)

@@ -1,6 +1,7 @@
 /// Router interface and request functions operating on a maintained context.
 module intuit.router;
 
+public import intuit.router.details;
 public import intuit.router.openrouter;
 
 import intuit.context;
@@ -37,6 +38,12 @@ interface IRouter
 
     /// Resolves the active model to a ModelConfig, throwing when none is set.
     ModelConfig config();
+    /// Gets or creates a ModelConfig for any model by name.
+    ModelConfig config(string modelName);
+    /// Gets all stored model configs.
+    ModelConfig[] configs();
+    /// Gets the capability catalog for all known models.
+    ModelDetails[string] catalog();
 
     /// Sends a raw completions request. Use `completions` instead.
     JSONValue _completions(JSONValue payload);
