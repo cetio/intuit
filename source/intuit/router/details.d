@@ -14,6 +14,7 @@ struct ModelDetails
     size_t contextLength;
     /// Maximum tokens the top provider can generate in a single response.
     size_t maxCompletionTokens;
+    // TODO: Define enums for model capabilities.
     /// Supported input modalities, e.g. ["text", "image"].
     string[] inputModalities;
     /// Supported output modalities, e.g. ["text"].
