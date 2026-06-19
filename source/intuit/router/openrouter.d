@@ -262,8 +262,8 @@ public:
         return stream;
     }
 
-    /// Re-fetches the model catalog from the `/models` endpoint.
-    void refresh()
+    /// Re-fetches the model catalog.
+    override void refresh()
     {
         JSONValue json = request(HTTP.Method.get, "models");
         _catalog = null;
@@ -276,28 +276,6 @@ public:
                     _catalog[details.id] = details;
             }
         }
-    }
-
-    /// Lists every discovered model, fetching the catalog if it is empty.
-    ModelDetails[] available()
-    {
-        if (_catalog.length == 0)
-            refresh();
-
-        ModelDetails[] ret;
-        foreach (details; _catalog.byValue)
-            ret ~= details;
-        return ret;
-    }
-
-    /// Gets the discovered details for a model, fetching the catalog if needed.
-    ModelDetails details(string modelName)
-    {
-        if (modelName !in _catalog && _catalog.length == 0)
-            refresh();
-        if (auto found = modelName in _catalog)
-            return *found;
-        throw new Exception("Model not found in OpenRouter catalog: "~modelName);
     }
 
     /// Gets or sets the HTTP-Referer used to identify the app to OpenRouter.

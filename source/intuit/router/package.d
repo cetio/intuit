@@ -2,6 +2,7 @@
 module intuit.router;
 
 public import intuit.router.details;
+public import intuit.router.litellm;
 public import intuit.router.openrouter;
 
 import intuit.context;
@@ -51,6 +52,9 @@ interface IRouter
     JSONValue _embeddings(JSONValue payload);
     /// Sends a raw streaming completions request. Use `streamCompletions` instead.
     CompletionStream _stream(JSONValue payload);
+
+    /// Re-fetches the model catalog. Implementation defined, and may have additional behavior.
+    void refresh();
 }
 
 /**
