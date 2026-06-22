@@ -47,13 +47,6 @@ interface IEndpoint
     JSONValue _completions(ModelConfig cfg, JSONValue payload);
     /// Sends a raw embeddings request. Use `embeddings` instead.
     JSONValue _embeddings(ModelConfig cfg, JSONValue payload);
-    /**
-     * Sends a raw streaming completions request via SSE.
-     *
-     * Returns a CompletionStream that is fed by the endpoint's
-     * background worker as events arrive.
-     */
-    CompletionStream _stream(ModelConfig cfg, JSONValue payload);
 }
 
 /**
@@ -107,29 +100,6 @@ Completion completions(E, D)(E ep, string modelName, auto ref D data)
     }
 
     return ret;
-}
-
-/**
- * Send a streaming completion request to the endpoint using a specific model name.
- *
- * Params:
- *   ep = The endpoint to send the request to.
- *   modelName = The name of the model to use.
- *   data = The input data. Not mutated for streaming.
- *
- * Returns: A CompletionStream for token-by-token consumption.
- */
-CompletionStream streamCompletions(E, D)(E ep, string modelName, auto ref D data)
-    if (is(E : IEndpoint))
-{
-    ModelConfig cfg = ep.config(modelName);
-    JSONValue input = data.toJSON();
-
-    JSONValue payload = cfg.buildPayload(input, ep.tools);
-    if ("stream" !in payload || payload["stream"].type != JSONType.true_)
-        payload["stream"] = JSONValue(true);
-
-    return ep._stream(cfg, payload);
 }
 
 /**

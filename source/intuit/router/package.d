@@ -42,8 +42,6 @@ interface IRouter
     JSONValue _completions(JSONValue payload);
     /// Sends a raw embeddings request. Use `embeddings` instead.
     JSONValue _embeddings(JSONValue payload);
-    /// Sends a raw streaming completions request. Use `streamCompletions` instead.
-    CompletionStream _stream(JSONValue payload);
 }
 
 /**
@@ -101,30 +99,6 @@ Completion completions(R, D)(R router, auto ref D data)
         throw new Exception("Router has no active model set.");
     router.context.user(data);
     return completions(router);
-}
-
-CompletionStream streamCompletions(R)(R router)
-    if (is(R : IRouter))
-{
-    if (router.active is null)
-        throw new Exception("Router has no active model set.");
-
-    ModelConfig cfg = router.config();
-
-    JSONValue payload = cfg.buildPayload(router.context.toJSON(), router.tools);
-    if ("stream" !in payload || payload["stream"].type != JSONType.true_)
-        payload["stream"] = JSONValue(true);
-
-    return router._stream(payload);
-}
-
-CompletionStream streamCompletions(R, D)(R router, auto ref D data)
-    if (is(R : IRouter))
-{
-    if (router.active is null)
-        throw new Exception("Router has no active model set.");
-    router.context.user(data);
-    return streamCompletions(router);
 }
 
 /**

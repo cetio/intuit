@@ -89,13 +89,6 @@ class ResponseFormatException : Exception
     }
 }
 
-/// Thrown when a stream encounters a (protocol) fault.
-/// This does not apply to streaming exceptions related to content.
-class StreamException : Exception
-{
-    mixin basicExceptionCtors;
-}
-
 /// Thrown when formatting (JSON schema) validation fails.
 class FormatException : Exception
 {

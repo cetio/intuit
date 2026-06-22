@@ -7,11 +7,9 @@ import intuit.model;
 import intuit.provider.openai;
 import intuit.response;
 import intuit.router;
-import intuit.response.stream.sse : SSEParser;
 import intuit.tool;
 import conductor.http : Response, send;
 
-import core.thread : Thread;
 import std.conv : to;
 import std.json : JSONType, JSONValue, parseJSON;
 import std.net.curl : HTTP;
@@ -137,135 +135,6 @@ public:
         if (_hasProvider)
             payload["provider"] = _provider;
         return request(HTTP.Method.post, "embeddings", payload);
-    }
-
-    override CompletionStream _stream(JSONValue payload)
-    {
-        // NOTE: this SSE pump is copied almost verbatim from OpenAI._stream and
-        // Claude._stream. The transport (header setup, onSend/onReceive wiring,
-        // status capture, worker thread) should be extracted into a shared HTTP
-        // streaming helper that takes a per-provider event handler delegate.
-        ModelConfig streamCfg = config();
-        string target = resolve("chat/completions");
-
-        string[string] headers = requestHeaders();
-        headers["Accept"] = "text/event-stream";
-
-        CompletionStream stream = new CompletionStream(streamCfg.name, null);
-
-        HTTP http = HTTP();
-        http.clearRequestHeaders();
-        http.url = target;
-        http.method = HTTP.Method.post;
-        foreach (key, value; headers)
-            http.addRequestHeader(key, value);
-        http.addRequestHeader("Content-Type", "application/json");
-
-        string bodyStr = decorate(payload).toString();
-        http.contentLength = bodyStr.length;
-        size_t offset;
-        http.onSend = delegate size_t(void[] buffer) {
-            if (offset >= bodyStr.length)
-                return 0;
-            size_t count = bodyStr.length - offset;
-            if (count > buffer.length)
-                count = buffer.length;
-            buffer[0..count] = cast(void[])bodyStr[offset..offset + count];
-            offset += count;
-            return count;
-        };
-
-        ushort status;
-        string reason;
-        http.onReceiveStatusLine = (HTTP.StatusLine line) {
-            status = line.code;
-            reason = line.reason.idup;
-        };
-
-        SSEParser parser = new SSEParser();
-        http.onReceive = (ubyte[] chunk) {
-            try
-            {
-                auto events = parser.feed(chunk);
-                foreach (event; events)
-                {
-                    if (event.data == "[DONE]")
-                    {
-                        stream.complete = true;
-                        continue;
-                    }
-
-                    try
-                    {
-                        JSONValue json = event.data.parseJSON();
-                        Completion completion = streamCfg.parseResponse(json);
-                        stream.update(completion);
-                        if (stream.callback !is null)
-                            stream.callback(completion);
-                    }
-                    catch (Exception ex)
-                    {
-                        stream.exception = ex;
-                        stream.complete = true;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                stream.exception = ex;
-                stream.complete = true;
-            }
-            return chunk.length;
-        };
-
-        void doStream()
-        {
-            try
-            {
-                http.perform();
-
-                if (status < 200 || status >= 300)
-                {
-                    stream.exception = new EndpointException(
-                        "POST", target, status, reason, null, "Streaming request failed."
-                    );
-                    stream.complete = true;
-                    return;
-                }
-
-                auto finalEvents = parser.flush();
-                foreach (event; finalEvents)
-                {
-                    if (event.data == "[DONE]")
-                    {
-                        stream.complete = true;
-                        continue;
-                    }
-
-                    try
-                    {
-                        JSONValue json = event.data.parseJSON();
-                        Completion completion = streamCfg.parseResponse(json);
-                        stream.update(completion);
-                        if (stream.callback !is null)
-                            stream.callback(completion);
-                    }
-                    catch (Exception ex)
-                    {
-                        stream.exception = ex;
-                    }
-                }
-                stream.complete = true;
-            }
-            catch (Exception ex)
-            {
-                stream.exception = ex;
-                stream.complete = true;
-            }
-        }
-
-        stream.commence((CompletionStream) { new Thread(&doStream).start(); });
-        return stream;
     }
 
     /// Re-fetches the model catalog from the `/models` endpoint.

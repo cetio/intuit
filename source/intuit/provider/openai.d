@@ -6,10 +6,8 @@ import intuit.exception : EndpointException;
 import intuit.model;
 import intuit.response;
 import intuit.tool;
-import intuit.response.stream.sse : SSEParser, SSEEvent;
 import conductor.http : Response, send;
 
-import core.thread : Thread;
 import std.net.curl : HTTP;
 import std.json : JSONType, JSONValue, parseJSON;
 import std.string : assumeUTF;
@@ -105,128 +103,6 @@ public:
 
     override JSONValue _embeddings(ModelConfig cfg, JSONValue payload)
         => request(HTTP.Method.post, "embeddings", payload);
-
-    override CompletionStream _stream(ModelConfig cfg, JSONValue payload)
-    {
-        string target = route("chat/completions");
-
-        string[string] headers = requestHeaders();
-        headers["Accept"] = "text/event-stream";
-
-        CompletionStream stream = new CompletionStream(cfg.name, null);
-
-        HTTP http = HTTP();
-        http.clearRequestHeaders();
-        http.url = target;
-        http.method = HTTP.Method.post;
-        foreach (key, value; headers)
-            http.addRequestHeader(key, value);
-        http.addRequestHeader("Content-Type", "application/json");
-
-        string bodyStr = payload.toString();
-        http.contentLength = bodyStr.length;
-        size_t offset;
-        http.onSend = delegate size_t(void[] buffer) {
-            if (offset >= bodyStr.length)
-                return 0;
-            size_t count = bodyStr.length - offset;
-            if (count > buffer.length)
-                count = buffer.length;
-            buffer[0..count] = cast(void[])bodyStr[offset..offset + count];
-            offset += count;
-            return count;
-        };
-
-        ushort status;
-        string reason;
-        http.onReceiveStatusLine = (HTTP.StatusLine line) {
-            status = line.code;
-            reason = line.reason.idup;
-        };
-
-        SSEParser parser = new SSEParser();
-        http.onReceive = (ubyte[] chunk) {
-            try
-            {
-                SSEEvent[] events = parser.feed(chunk);
-                foreach (event; events)
-                {
-                    if (event.data == "[DONE]")
-                    {
-                        stream.complete = true;
-                        continue;
-                    }
-                    try
-                    {
-                        JSONValue json = event.data.parseJSON();
-                        Completion completion = cfg.parseResponse(json);
-                        stream.update(completion);
-                        if (stream.callback !is null)
-                            stream.callback(completion);
-                    }
-                    catch (Exception ex)
-                    {
-                        stream.exception = ex;
-                        stream.complete = true;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                stream.exception = ex;
-                stream.complete = true;
-            }
-            return chunk.length;
-        };
-
-        void doStream()
-        {
-            try
-            {
-                http.perform();
-
-                if (status < 200 || status >= 300)
-                {
-                    stream.exception = new EndpointException(
-                        "POST", target, status, reason, null, "Streaming request failed."
-                    );
-                    stream.complete = true;
-                    return;
-                }
-
-                SSEEvent[] finalEvents = parser.flush();
-                foreach (event; finalEvents)
-                {
-                    if (event.data == "[DONE]")
-                    {
-                        stream.complete = true;
-                        continue;
-                    }
-                    try
-                    {
-                        JSONValue json = event.data.parseJSON();
-                        Completion completion = cfg.parseResponse(json);
-                        stream.update(completion);
-                        if (stream.callback !is null)
-                            stream.callback(completion);
-                    }
-                    catch (Exception ex)
-                    {
-                        stream.exception = ex;
-                    }
-                }
-                stream.complete = true;
-            }
-            catch (Exception ex)
-            {
-                stream.exception = ex;
-                stream.complete = true;
-            }
-        }
-
-        stream.commence((CompletionStream) { new Thread(&doStream).start(); });
-        return stream;
-    }
 
     /**
      * Sends an HTTP request to the endpoint.

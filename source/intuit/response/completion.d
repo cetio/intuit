@@ -1,4 +1,4 @@
-/// Completion response types and streaming support.
+/// Completion response types.
 module intuit.response.completion;
 
 import std.json : JSONValue, JSONType, parseJSON;

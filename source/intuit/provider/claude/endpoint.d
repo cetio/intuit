@@ -5,13 +5,10 @@ public import intuit.provider;
 import intuit.provider.claude.model;
 import intuit.model;
 import intuit.exception : EndpointException;
-import intuit.response.stream.sse : SSEParser, SSEEvent;
 import intuit.response;
 import intuit.tool;
 import conductor.http : Response, send;
-import conductor.serialize : toJSON;
 
-import core.thread : Thread;
 import std.net.curl : HTTP;
 import std.json : JSONType, JSONValue, parseJSON;
 import std.string : assumeUTF;
@@ -110,184 +107,6 @@ public:
         throw new EndpointException("POST", "embeddings", 0, "not supported", "Claude does not support embeddings.");
     }
 
-    override CompletionStream _stream(ModelConfig cfg, JSONValue payload)
-    {
-        string target = route("messages");
-
-        string[string] headers = requestHeaders();
-        headers["Accept"] = "text/event-stream";
-
-        CompletionStream stream = new CompletionStream(cfg.name, null);
-
-        HTTP http = HTTP();
-        http.clearRequestHeaders();
-        http.url = target;
-        http.method = HTTP.Method.post;
-        foreach (k, v; headers)
-            http.addRequestHeader(k, v);
-        http.addRequestHeader("Content-Type", "application/json");
-
-        string bodyStr = payload.toString();
-        http.contentLength = bodyStr.length;
-        size_t offset;
-        http.onSend = delegate size_t(void[] buffer) {
-            if (offset >= bodyStr.length)
-                return 0;
-            size_t count = bodyStr.length - offset;
-            if (count > buffer.length)
-                count = buffer.length;
-            buffer[0..count] = cast(void[])bodyStr[offset..offset + count];
-            offset += count;
-            return count;
-        };
-
-        ushort status;
-        string reason;
-        http.onReceiveStatusLine = (HTTP.StatusLine line) {
-            status = line.code;
-            reason = line.reason.idup;
-        };
-
-        string toolInputBuffer;
-        string currentToolId;
-        string currentToolName;
-
-        SSEParser parser = new SSEParser();
-        http.onReceive = (ubyte[] chunk) {
-            try
-            {
-                SSEEvent[] events = parser.feed(chunk);
-                foreach (event; events)
-                {
-                    switch (event.event)
-                    {
-                    case "ping":
-                        continue;
-                    case "message_stop":
-                        stream.complete = true;
-                        continue;
-                    default:
-                        break;
-                    }
-
-                    if (event.data.length == 0)
-                        continue;
-
-                    try
-                    {
-                        JSONValue json = event.data.parseJSON();
-
-                        if (event.event == "content_block_delta" && "delta" in json)
-                        {
-                            JSONValue delta = json["delta"];
-                            if ("type" in delta && delta["type"].str == "text_delta"
-                                && "text" in delta)
-                            {
-                                Completion completion;
-                                completion.choices = [Choice.init];
-                                completion.choices[0].text = delta["text"].str;
-                                stream.update(completion);
-                                if (stream.callback !is null)
-                                    stream.callback(completion);
-                            }
-                            else if ("type" in delta && delta["type"].str == "input_json_delta"
-                                && "partial_json" in delta)
-                                toolInputBuffer ~= delta["partial_json"].str;
-                        }
-                        else if (event.event == "message_delta" && "delta" in json)
-                        {
-                            JSONValue delta = json["delta"];
-                            Completion completion;
-                            completion.choices = [Choice.init];
-                            if ("stop_reason" in delta)
-                                completion.choices[0].finishReason = parseClaudeStopReason(delta["stop_reason"]);
-                            stream.update(completion);
-                            if (stream.callback !is null)
-                                stream.callback(completion);
-                        }
-                        else if (event.event == "content_block_start" && "content_block" in json)
-                        {
-                            JSONValue block = json["content_block"];
-                            if ("type" in block && block["type"].str == "tool_use")
-                            {
-                                currentToolId = ("id" in block) ? block["id"].str : "";
-                                currentToolName = ("name" in block) ? block["name"].str : "";
-                                toolInputBuffer = null;
-                            }
-                        }
-                        else if (event.event == "content_block_stop")
-                        {
-                            if (currentToolId.length > 0)
-                            {
-                                Completion completion;
-                                completion.choices = [Choice.init];
-                                ToolCall tc;
-                                tc.id = currentToolId;
-                                tc.name = currentToolName;
-                                tc.arguments = toolInputBuffer.toJSON();
-
-                                completion.choices[0].toolCalls ~= tc;
-                                stream.update(completion);
-                                if (stream.callback !is null)
-                                    stream.callback(completion);
-                                currentToolId = null;
-                                currentToolName = null;
-                                toolInputBuffer = null;
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        stream.exception = ex;
-                        stream.complete = true;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                stream.exception = ex;
-                stream.complete = true;
-            }
-            return chunk.length;
-        };
-
-        void doStream()
-        {
-            try
-            {
-                http.perform();
-
-                if (status < 200 || status >= 300)
-                {
-                    stream.exception = new EndpointException(
-                        "POST", target, status, reason, null, "Streaming request failed."
-                    );
-                    stream.complete = true;
-                    return;
-                }
-
-                SSEEvent[] finalEvents = parser.flush();
-                foreach (event; finalEvents)
-                {
-                    if (event.event == "message_stop")
-                    {
-                        stream.complete = true;
-                        continue;
-                    }
-                }
-                stream.complete = true;
-            }
-            catch (Exception ex)
-            {
-                stream.exception = ex;
-                stream.complete = true;
-            }
-        }
-
-        stream.commence((CompletionStream) { new Thread(&doStream).start(); });
-        return stream;
-    }
-
     /**
      * Sends an HTTP request to the endpoint.
      *
@@ -365,28 +184,5 @@ public:
         if (ret.length >= 3 && ret[$-3..$] == "/v1")
             ret = ret[0..$-3];
         return ret;
-    }
-}
-
-/// Maps a Claude stop_reason string to the FinishReason enum.
-private FinishReason parseClaudeStopReason(JSONValue value)
-{
-    if (value.type != JSONType.string)
-        return FinishReason.Unknown;
-
-    switch (value.str)
-    {
-    case "end_turn":
-        return FinishReason.EndTurn;
-    case "max_tokens":
-        return FinishReason.Max_Tokens;
-    case "stop_sequence":
-        return FinishReason.StopSequence;
-    case "tool_use":
-        return FinishReason.ToolUse;
-    case "content_filter":
-        return FinishReason.ContentFilter;
-    default:
-        return FinishReason.Unknown;
     }
 }
