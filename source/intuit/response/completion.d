@@ -52,60 +52,23 @@ struct Choice
     ToolCall[] toolCalls;
 }
 
-/// Token accounting reported by the endpoint for a completion.
+/// Token accounting and metadata reported by the endpoint for a completion.
 struct Usage
 {
+    /// Resolved or requested model name.
+    string modelName;
+    /// Total request latency in milliseconds.
+    float latency;
+    /// Tokens read from cache.
+    size_t cacheHits;
+    /// Tokens not read from cache.
+    size_t cacheMisses;
     /// Tokens consumed by the prompt.
     size_t promptTokens;
     /// Tokens generated in the completion.
     size_t completionTokens;
     /// Total tokens billed for the request.
     size_t totalTokens;
-}
-
-/**
- * Parses token usage from a raw completion response.
- *
- * Accepts both OpenAI-style (`prompt_tokens`/`completion_tokens`) and
- * Anthropic-style (`input_tokens`/`output_tokens`) field names. The total
- * is derived from the prompt and completion counts when not reported.
- *
- * Params:
- *  json = The raw JSON response.
- *
- * Returns:
- *  The parsed Usage, zeroed when no usage block is present.
- */
-Usage parseUsage(JSONValue json)
-{
-    Usage ret;
-    if ("usage" !in json || json["usage"].type != JSONType.object)
-        return ret;
-
-    JSONValue usage = json["usage"];
-    ret.promptTokens = usageField(usage, "prompt_tokens", "input_tokens");
-    ret.completionTokens = usageField(usage, "completion_tokens", "output_tokens");
-    ret.totalTokens = usageField(usage, "total_tokens", null);
-    if (ret.totalTokens == 0)
-        ret.totalTokens = ret.promptTokens + ret.completionTokens;
-    return ret;
-}
-
-/// Reads an integral token count from a usage object under either key.
-private size_t usageField(JSONValue usage, string primary, string fallback)
-{
-    foreach (key; [primary, fallback])
-    {
-        if (key is null || key !in usage)
-            continue;
-
-        JSONValue value = usage[key];
-        if (value.type == JSONType.integer)
-            return cast(size_t)value.integer;
-        if (value.type == JSONType.uinteger)
-            return cast(size_t)value.uinteger;
-    }
-    return 0;
 }
 
 /// Parsed result from a completions request.

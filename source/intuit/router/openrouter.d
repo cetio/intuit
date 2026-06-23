@@ -127,13 +127,23 @@ public:
     }
 
     override JSONValue _completions(JSONValue payload)
-        => _http.request(HTTP.Method.post, _url~"/api/v1/chat/completions", buildHeaders(), decorate(payload));
+        => _http.request(
+            HTTP.Method.post,
+            _url~"/api/v1/chat/completions",
+            buildHeaders(),
+            decorate(payload),
+        );
 
     override JSONValue _embeddings(JSONValue payload)
     {
         if (provider.type != JSONType.null_)
             payload["provider"] = provider;
-        return _http.request(HTTP.Method.post, _url~"/api/v1/embeddings", buildHeaders(), payload);
+        return _http.request(
+            HTTP.Method.post,
+            _url~"/api/v1/embeddings",
+            buildHeaders(),
+            payload,
+        );
     }
 
     /// Re-fetches the model catalog.

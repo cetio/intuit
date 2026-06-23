@@ -132,6 +132,66 @@ unittest
     completion.choices[0].finishReason.should == FinishReason.ToolUse;
 }
 
+@Name("parseResponse captures usage metadata and latency")
+unittest
+{
+    ClaudeModelConfig cfg = new ClaudeModelConfig("claude-opus-4-8");
+
+    JSONValue json = JSONValue.emptyObject;
+    json["id"] = JSONValue("msg_03");
+    json["type"] = JSONValue("message");
+    json["role"] = JSONValue("assistant");
+    json["model"] = JSONValue("claude-opus-4-8-resolved");
+    json["latency"] = JSONValue(123.456f);
+
+    JSONValue content = JSONValue.emptyArray;
+    JSONValue block = JSONValue.emptyObject;
+    block["type"] = JSONValue("text");
+    block["text"] = JSONValue("Hello!");
+    content.array ~= block;
+    json["content"] = content;
+
+    json["stop_reason"] = JSONValue("end_turn");
+    json["usage"] = JSONValue.emptyObject;
+    json["usage"]["input_tokens"] = JSONValue(10);
+    json["usage"]["output_tokens"] = JSONValue(5);
+    json["usage"]["cache_read_input_tokens"] = JSONValue(3);
+    json["usage"]["cache_creation_input_tokens"] = JSONValue(2);
+
+    Completion completion = cfg.parseResponse(json);
+
+    completion.usage.modelName.should == "claude-opus-4-8-resolved";
+    completion.usage.latency.should == 123.456f;
+    completion.usage.promptTokens.should == 15;
+    completion.usage.completionTokens.should == 5;
+    completion.usage.totalTokens.should == 20;
+    completion.usage.cacheHits.should == 3;
+    completion.usage.cacheMisses.should == 12;
+}
+
+@Name("parseResponse falls back to config name when model is missing")
+unittest
+{
+    ClaudeModelConfig cfg = new ClaudeModelConfig("claude-opus-4-8");
+
+    JSONValue json = JSONValue.emptyObject;
+    json["id"] = JSONValue("msg_04");
+    json["type"] = JSONValue("message");
+    json["role"] = JSONValue("assistant");
+    json["content"] = JSONValue.emptyArray;
+    json["stop_reason"] = JSONValue("end_turn");
+    json["usage"] = JSONValue.emptyObject;
+    json["usage"]["input_tokens"] = JSONValue(1);
+    json["usage"]["output_tokens"] = JSONValue(1);
+
+    Completion completion = cfg.parseResponse(json);
+
+    completion.usage.modelName.should == "claude-opus-4-8";
+    completion.usage.promptTokens.should == 1;
+    completion.usage.completionTokens.should == 1;
+    completion.usage.totalTokens.should == 2;
+}
+
 @Name("embeddingsJSON throws for Claude")
 unittest
 {

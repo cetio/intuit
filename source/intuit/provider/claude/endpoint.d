@@ -109,7 +109,14 @@ public:
         => _configs;
 
     override JSONValue _completions(ModelConfig cfg, JSONValue payload)
-        => _http.request(HTTP.Method.post, _url~"/v1/messages", buildHeaders(), payload);
+    {
+        return _http.request(
+            HTTP.Method.post,
+            _url~"/v1/messages",
+            buildHeaders(),
+            payload,
+        );
+    }
 
     override JSONValue _embeddings(ModelConfig cfg, JSONValue payload)
     {

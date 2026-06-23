@@ -18,6 +18,7 @@ import std.json : JSONValue, JSONType, parseJSON;
 import std.net.curl : HTTP;
 import std.string : assumeUTF;
 import std.traits : isArray, isIntegral;
+import core.time : MonoTime;
 
 /// Interface for LLM endpoint implementations.
 interface IEndpoint
@@ -82,17 +83,19 @@ package (intuit) JSONValue request(
     JSONValue payload = JSONValue.init,
 )
 {
+    MonoTime start = MonoTime.currTime;
+
     Response response;
     if (payload.type == JSONType.null_)
         response = send(http, method, url, null, null, headers);
     else
     {
         response = send(
-            http, 
-            method, 
-            url, 
-            cast(const(ubyte)[])payload.toString(), 
-            null, 
+            http,
+            method,
+            url,
+            cast(const(ubyte)[])payload.toString(),
+            null,
             headers
         );
     }
@@ -101,8 +104,9 @@ package (intuit) JSONValue request(
     if (response.status < 200 || response.status >= 300)
         throw new EndpointException(method.to!string, url, response.status, response.reason, content);
 
+    JSONValue ret;
     try
-        return content.parseJSON();
+        ret = content.parseJSON();
     catch (Exception)
     {
         throw new EndpointException(
@@ -114,6 +118,10 @@ package (intuit) JSONValue request(
             "Endpoint returned invalid JSON.",
         );
     }
+
+    long usecs = (MonoTime.currTime - start).total!"usecs";
+    ret["latency"] = JSONValue(usecs / 1000.0f);
+    return ret;
 }
 
 /**

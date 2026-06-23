@@ -161,7 +161,29 @@ public:
         Completion ret;
         ret.raw = json;
         checkException(json);
-        ret.usage = parseUsage(json);
+
+        if ("model" in json && json["model"].type == JSONType.string)
+            ret.usage.modelName = json["model"].str;
+        else
+            ret.usage.modelName = name;
+
+        if ("latency" in json && json["latency"].type == JSONType.float_)
+            ret.usage.latency = cast(float)json["latency"].floating;
+        else if ("latency" in json && json["latency"].type == JSONType.integer)
+            ret.usage.latency = cast(float)json["latency"].integer;
+
+        if ("usage" in json && json["usage"].type == JSONType.object)
+        {
+            JSONValue usage = json["usage"];
+            size_t inputTokens = readUint(usage, "input_tokens", null);
+            size_t cacheReadTokens = readUint(usage, "cache_read_input_tokens", null);
+            size_t cacheCreationTokens = readUint(usage, "cache_creation_input_tokens", null);
+            ret.usage.promptTokens = inputTokens + cacheReadTokens + cacheCreationTokens;
+            ret.usage.completionTokens = readUint(usage, "output_tokens", null);
+            ret.usage.totalTokens = ret.usage.promptTokens + ret.usage.completionTokens;
+            ret.usage.cacheHits = cacheReadTokens;
+            ret.usage.cacheMisses = inputTokens + cacheCreationTokens;
+        }
 
         Choice choice;
         choice.raw = json;
@@ -217,6 +239,27 @@ public:
     }
 
 private:
+    /// Reads an integral value from a JSON object under the primary or fallback key.
+    static size_t readUint(
+        JSONValue obj,
+        string primary,
+        string fallback = null,
+    )
+    {
+        foreach (key; [primary, fallback])
+        {
+            if (key is null || key !in obj)
+                continue;
+
+            JSONValue value = obj[key];
+            if (value.type == JSONType.integer)
+                return cast(size_t)value.integer;
+            if (value.type == JSONType.uinteger)
+                return cast(size_t)value.uinteger;
+        }
+        return 0;
+    }
+
     /// Maps a JSON finish reason string to the FinishReason enum.
     static FinishReason parseFinishReason(JSONValue value)
     {

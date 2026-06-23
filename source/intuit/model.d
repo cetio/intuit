@@ -229,7 +229,34 @@ class ModelConfig
         Completion ret;
         ret.raw = json;
         checkException(json);
-        ret.usage = parseUsage(json);
+
+        if ("model" in json && json["model"].type == JSONType.string)
+            ret.usage.modelName = json["model"].str;
+        else
+            ret.usage.modelName = name;
+
+        if ("latency" in json && json["latency"].type == JSONType.float_)
+            ret.usage.latency = cast(float)json["latency"].floating;
+        else if ("latency" in json && json["latency"].type == JSONType.integer)
+            ret.usage.latency = cast(float)json["latency"].integer;
+
+        if ("usage" in json && json["usage"].type == JSONType.object)
+        {
+            JSONValue usage = json["usage"];
+            ret.usage.promptTokens = readUint(usage, "prompt_tokens", "input_tokens");
+            ret.usage.completionTokens = readUint(usage, "completion_tokens", "output_tokens");
+            ret.usage.totalTokens = readUint(usage, "total_tokens", null);
+            if (ret.usage.totalTokens == 0)
+                ret.usage.totalTokens = ret.usage.promptTokens + ret.usage.completionTokens;
+
+            if ("prompt_tokens_details" in usage
+                && usage["prompt_tokens_details"].type == JSONType.object)
+            {
+                JSONValue details = usage["prompt_tokens_details"];
+                ret.usage.cacheHits = readUint(details, "cached_tokens", null);
+            }
+            ret.usage.cacheMisses = ret.usage.promptTokens - ret.usage.cacheHits;
+        }
 
         if ("choices" in json && json["choices"].type == JSONType.array)
         {
@@ -368,6 +395,27 @@ private:
     {
         if (value.length > 0)
             target ~= value;
+    }
+
+    /// Reads an integral value from a JSON object under the primary or fallback key.
+    static size_t readUint(
+        JSONValue obj,
+        string primary,
+        string fallback = null,
+    )
+    {
+        foreach (key; [primary, fallback])
+        {
+            if (key is null || key !in obj)
+                continue;
+
+            JSONValue value = obj[key];
+            if (value.type == JSONType.integer)
+                return cast(size_t)value.integer;
+            if (value.type == JSONType.uinteger)
+                return cast(size_t)value.uinteger;
+        }
+        return 0;
     }
 
     /// Maps a JSON finish reason string to the FinishReason enum.

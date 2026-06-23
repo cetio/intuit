@@ -167,3 +167,40 @@ unittest
     completion.choices[0].toolCalls.length.should == 0;
     completion.choices[0].text.should == "Just a regular message.";
 }
+
+@Name("parseResponse captures OpenAI-compatible usage and latency")
+unittest
+{
+    QwenModelConfig cfg = new QwenModelConfig("qwen-test");
+
+    JSONValue response = JSONValue.emptyObject;
+    response["model"] = JSONValue("qwen-resolved");
+    response["latency"] = JSONValue(77.25f);
+
+    JSONValue choices = JSONValue.emptyArray;
+    JSONValue choice = JSONValue.emptyObject;
+    JSONValue message = JSONValue.emptyObject;
+    message["role"] = JSONValue("assistant");
+    message["content"] = JSONValue("Hi!");
+    choice["message"] = message;
+    choice["finish_reason"] = JSONValue("stop");
+    choices.array ~= choice;
+    response["choices"] = choices;
+
+    response["usage"] = JSONValue.emptyObject;
+    response["usage"]["prompt_tokens"] = JSONValue(3019);
+    response["usage"]["completion_tokens"] = JSONValue(104);
+    response["usage"]["total_tokens"] = JSONValue(3123);
+    response["usage"]["prompt_tokens_details"] = JSONValue.emptyObject;
+    response["usage"]["prompt_tokens_details"]["cached_tokens"] = JSONValue(2048);
+
+    Completion completion = cfg.parseResponse(response);
+
+    completion.usage.modelName.should == "qwen-resolved";
+    completion.usage.latency.should == 77.25f;
+    completion.usage.promptTokens.should == 3019;
+    completion.usage.completionTokens.should == 104;
+    completion.usage.totalTokens.should == 3123;
+    completion.usage.cacheHits.should == 2048;
+    completion.usage.cacheMisses.should == 971;
+}

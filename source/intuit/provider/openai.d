@@ -106,8 +106,22 @@ public:
         => _configs;
 
     override JSONValue _completions(ModelConfig cfg, JSONValue payload)
-        => _http.request(HTTP.Method.post, _url~"/v1/chat/completions", buildHeaders(), payload);
+    {
+        return _http.request(
+            HTTP.Method.post,
+            _url~"/v1/chat/completions",
+            buildHeaders(),
+            payload,
+        );
+    }
 
     override JSONValue _embeddings(ModelConfig cfg, JSONValue payload)
-        => _http.request(HTTP.Method.post, _url~"/v1/embeddings", buildHeaders(), payload);
+    {
+        return _http.request(
+            HTTP.Method.post,
+            _url~"/v1/embeddings",
+            buildHeaders(),
+            payload,
+        );
+    }
 }
