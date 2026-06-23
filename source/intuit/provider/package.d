@@ -55,12 +55,17 @@ interface IEndpoint
 }
 
 /**
- * Sends a JSON request using an HTTP client with pre-set headers.
+ * Sends a JSON request using an HTTP client with the given headers.
+ *
+ * When `headers` is non-null, all pre-set headers on the HTTP client are
+ * cleared and replaced with the provided map. When null, pre-set headers
+ * are preserved.
  *
  * Params:
- *  http = The HTTP client with pre-set headers.
+ *  http = The HTTP client.
  *  method = The HTTP method.
  *  url = The full request URL.
+ *  headers = Request headers. Clears pre-set headers when non-null.
  *  payload = Optional JSON payload for requests with a body.
  *
  * Returns:
@@ -73,14 +78,24 @@ package (intuit) JSONValue request(
     ref HTTP http,
     HTTP.Method method,
     string url,
+    string[string] headers = null,
     JSONValue payload = JSONValue.init,
 )
 {
     Response response;
     if (payload.type == JSONType.null_)
-        response = send(http, method, url, null, null, null);
+        response = send(http, method, url, null, null, headers);
     else
-        response = send(http, method, url, cast(const(ubyte)[])payload.toString(), null, null);
+    {
+        response = send(
+            http, 
+            method, 
+            url, 
+            cast(const(ubyte)[])payload.toString(), 
+            null, 
+            headers
+        );
+    }
 
     string content = response.content is null ? null : response.content.assumeUTF().idup;
     if (response.status < 200 || response.status >= 300)

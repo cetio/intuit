@@ -31,7 +31,7 @@ class Qwen : OpenAI
 
     override ModelConfig[] available()
     {
-        JSONValue json = request(_http, HTTP.Method.get, _url~"/v1/models");
+        JSONValue json = _http.request(HTTP.Method.get, _url~"/v1/models", buildHeaders());
         if ("data" in json && json["data"].type == JSONType.array)
         {
             foreach (item; json["data"].array)

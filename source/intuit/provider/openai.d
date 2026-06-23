@@ -21,6 +21,15 @@ protected:
     HTTP _http;
     ModelConfig[] _configs;
 
+    string[string] buildHeaders()
+    {
+        string[string] ret;
+        ret["Content-Type"] = "application/json";
+        if (_key.length > 0)
+            ret["Authorization"] = "Bearer "~_key;
+        return ret;
+    }
+
 public:
     /**
      * Constructs an OpenAI endpoint.
@@ -39,9 +48,6 @@ public:
         _url = url;
         _key = key;
         _http = HTTP();
-        _http.addRequestHeader("Content-Type", "application/json");
-        if (_key.length > 0)
-            _http.addRequestHeader("Authorization", "Bearer "~_key);
     }
 
     override ref string name()
@@ -58,7 +64,7 @@ public:
 
     override ModelConfig[] available()
     {
-        JSONValue json = request(_http, HTTP.Method.get, _url~"/v1/models");
+        JSONValue json = _http.request(HTTP.Method.get, _url~"/v1/models", buildHeaders());
         if ("data" in json && json["data"].type == JSONType.array)
         {
             foreach (item; json["data"].array)
@@ -100,8 +106,8 @@ public:
         => _configs;
 
     override JSONValue _completions(ModelConfig cfg, JSONValue payload)
-        => request(_http, HTTP.Method.post, _url~"/v1/chat/completions", payload);
+        => _http.request(HTTP.Method.post, _url~"/v1/chat/completions", buildHeaders(), payload);
 
     override JSONValue _embeddings(ModelConfig cfg, JSONValue payload)
-        => request(_http, HTTP.Method.post, _url~"/v1/embeddings", payload);
+        => _http.request(HTTP.Method.post, _url~"/v1/embeddings", buildHeaders(), payload);
 }

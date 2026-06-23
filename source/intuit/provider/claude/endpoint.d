@@ -20,6 +20,16 @@ private:
     ToolRegistry _tools;
     HTTP _http;
 
+    string[string] buildHeaders()
+    {
+        string[string] ret;
+        ret["Content-Type"] = "application/json";
+        ret["anthropic-version"] = "2023-06-01";
+        if (_key.length > 0)
+            ret["x-api-key"] = _key;
+        return ret;
+    }
+
 protected:
     ModelConfig[] _configs;
 
@@ -41,10 +51,6 @@ public:
         _url = url;
         _key = key;
         _http = HTTP();
-        _http.addRequestHeader("Content-Type", "application/json");
-        _http.addRequestHeader("anthropic-version", "2023-06-01");
-        if (_key.length > 0)
-            _http.addRequestHeader("x-api-key", _key);
     }
 
     override ref string name()
@@ -61,7 +67,7 @@ public:
 
     override ModelConfig[] available()
     {
-        JSONValue json = request(_http, HTTP.Method.get, _url~"/v1/models");
+        JSONValue json = _http.request(HTTP.Method.get, _url~"/v1/models", buildHeaders());
         if ("data" in json && json["data"].type == JSONType.array)
         {
             foreach (item; json["data"].array)
@@ -103,7 +109,7 @@ public:
         => _configs;
 
     override JSONValue _completions(ModelConfig cfg, JSONValue payload)
-        => request(_http, HTTP.Method.post, _url~"/v1/messages", payload);
+        => _http.request(HTTP.Method.post, _url~"/v1/messages", buildHeaders(), payload);
 
     override JSONValue _embeddings(ModelConfig cfg, JSONValue payload)
     {

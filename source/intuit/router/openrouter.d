@@ -28,25 +28,29 @@ private:
     HTTP _http;
     ModelDetails[string] _catalog;
 
-    // OpenRouter request decorations and identifying headers.
-    string _referer;
-    string _title;
-    string[] _categories;
-    string[] _fallbackModels;
-    string _route;
-    string[] _transforms;
-    JSONValue _provider;
-    bool _hasProvider;
-    JSONValue _plugins;
-    bool _hasPlugins;
-    bool _includeReasoning;
-
 public:
+    /// HTTP-Referer header used to identify the app to OpenRouter.
+    string referer;
+    /// X-Title header used to identify the app to OpenRouter.
+    string title;
+    /// Marketplace categories sent via X-OpenRouter-Categories header.
+    string[] categories;
+    /// Routing strategy, e.g. "fallback".
+    string route;
+    /// Message transforms, e.g. ["middle-out"].
+    string[] transforms;
+    /// Whether to request reasoning tokens in responses.
+    bool includeReasoning;
+    /// Provider preferences object merged into every request.
+    JSONValue provider;
+    /// Plugins array merged into chat requests.
+    JSONValue plugins;
+
     /**
      * Constructs an OpenRouter router.
      *
-     * The provided URL is used as-is; the caller must supply the correct
-     * base URL for the endpoint.
+     * The provided URL is used as-is and the caller is responsible for
+     * supplying the correct base URL for the endpoint.
      *
      * Params:
      *  key = The OpenRouter API key.
@@ -60,9 +64,6 @@ public:
         this._key = key;
         this._http = HTTP();
         this._context.compactor = new Compactor();
-        this._http.addRequestHeader("Content-Type", "application/json");
-        if (this._key.length > 0)
-            this._http.addRequestHeader("Authorization", "Bearer "~this._key);
     }
 
     override ref string name()
@@ -126,19 +127,19 @@ public:
     }
 
     override JSONValue _completions(JSONValue payload)
-        => request(_http, HTTP.Method.post, _url~"/api/v1/chat/completions", decorate(payload));
+        => _http.request(HTTP.Method.post, _url~"/api/v1/chat/completions", buildHeaders(), decorate(payload));
 
     override JSONValue _embeddings(JSONValue payload)
     {
-        if (_hasProvider)
-            payload["provider"] = _provider;
-        return request(_http, HTTP.Method.post, _url~"/api/v1/embeddings", payload);
+        if (provider.type != JSONType.null_)
+            payload["provider"] = provider;
+        return _http.request(HTTP.Method.post, _url~"/api/v1/embeddings", buildHeaders(), payload);
     }
 
     /// Re-fetches the model catalog.
     override void refresh()
     {
-        JSONValue json = request(_http, HTTP.Method.get, _url~"/api/v1/models");
+        JSONValue json = _http.request(HTTP.Method.get, _url~"/api/v1/models", buildHeaders());
         _catalog = null;
         if ("data" in json && json["data"].type == JSONType.array)
         {
@@ -151,130 +152,39 @@ public:
         }
     }
 
-    /// Gets or sets the HTTP-Referer used to identify the app to OpenRouter.
-    ref string referer()
-        => _referer;
-
-    /// ditto
-    OpenRouter referer(string val)
-    {
-        _referer = val;
-        if (val.length > 0)
-            _http.addRequestHeader("HTTP-Referer", val);
-        return this;
-    }
-
-    /// Gets or sets the X-Title used to identify the app to OpenRouter.
-    ref string title()
-        => _title;
-
-    /// ditto
-    OpenRouter title(string val)
-    {
-        _title = val;
-        if (val.length > 0)
-            _http.addRequestHeader("X-Title", val);
-        return this;
-    }
-
-    /// Gets or sets the marketplace categories sent via X-OpenRouter-Categories.
-    ref string[] categories()
-        => _categories;
-
-    /// ditto
-    OpenRouter categories(string[] val)
-    {
-        _categories = val;
-        if (val.length > 0)
-            _http.addRequestHeader("X-OpenRouter-Categories", val.join(","));
-        return this;
-    }
-
-    /// Gets or sets the fallback model slugs sent as the "models" field.
-    ref string[] fallbackModels()
-        => _fallbackModels;
-
-    /// ditto
-    OpenRouter fallbackModels(string[] val)
-    {
-        _fallbackModels = val;
-        return this;
-    }
-
-    /// Gets or sets the routing strategy, e.g. "fallback".
-    ref string route()
-        => _route;
-
-    /// ditto
-    OpenRouter route(string val)
-    {
-        _route = val;
-        return this;
-    }
-
-    /// Gets or sets the message transforms, e.g. ["middle-out"].
-    ref string[] transforms()
-        => _transforms;
-
-    /// ditto
-    OpenRouter transforms(string[] val)
-    {
-        _transforms = val;
-        return this;
-    }
-
-    /// Gets or sets whether to request reasoning tokens in responses.
-    ref bool includeReasoning()
-        => _includeReasoning;
-
-    /// ditto
-    OpenRouter includeReasoning(bool val)
-    {
-        _includeReasoning = val;
-        return this;
-    }
-
-    /// Sets the provider preferences object merged into every request.
-    OpenRouter provider(JSONValue val)
-    {
-        _provider = val;
-        _hasProvider = true;
-        return this;
-    }
-
-    /// Sets the plugins array merged into chat requests.
-    OpenRouter plugins(JSONValue val)
-    {
-        _plugins = val;
-        _hasPlugins = true;
-        return this;
-    }
-
 private:
+    string[string] buildHeaders()
+    {
+        string[string] ret;
+        ret["Content-Type"] = "application/json";
+        if (_key.length > 0)
+            ret["Authorization"] = "Bearer "~_key;
+        if (referer.length > 0)
+            ret["HTTP-Referer"] = referer;
+        if (title.length > 0)
+            ret["X-Title"] = title;
+        if (categories.length > 0)
+            ret["X-OpenRouter-Categories"] = categories.join(",");
+        return ret;
+    }
+
     /// Injects OpenRouter-only chat fields into a request payload.
     JSONValue decorate(JSONValue payload)
     {
-        if (_fallbackModels.length > 0)
+        if (route.length > 0)
+            payload["route"] = JSONValue(route);
+        if (transforms.length > 0)
         {
             JSONValue arr = JSONValue.emptyArray;
-            foreach (slug; _fallbackModels)
-                arr.array ~= JSONValue(slug);
-            payload["models"] = arr;
-        }
-        if (_route.length > 0)
-            payload["route"] = JSONValue(_route);
-        if (_transforms.length > 0)
-        {
-            JSONValue arr = JSONValue.emptyArray;
-            foreach (transform; _transforms)
+            foreach (transform; transforms)
                 arr.array ~= JSONValue(transform);
             payload["transforms"] = arr;
         }
-        if (_hasPlugins)
-            payload["plugins"] = _plugins;
-        if (_hasProvider)
-            payload["provider"] = _provider;
-        if (_includeReasoning)
+        if (plugins.type != JSONType.null_)
+            payload["plugins"] = plugins;
+        if (provider.type != JSONType.null_)
+            payload["provider"] = provider;
+        if (includeReasoning)
             payload["include_reasoning"] = JSONValue(true);
         return payload;
     }
@@ -295,13 +205,13 @@ private:
 
         if ("top_provider" in item && item["top_provider"].type == JSONType.object)
         {
-            JSONValue provider = item["top_provider"];
-            if (ret.contextLength == 0 && "context_length" in provider
-                && provider["context_length"].type == JSONType.integer)
-                ret.contextLength = cast(size_t)provider["context_length"].integer;
-            if ("max_completion_tokens" in provider
-                && provider["max_completion_tokens"].type == JSONType.integer)
-                ret.maxCompletionTokens = cast(size_t)provider["max_completion_tokens"].integer;
+            JSONValue topProvider = item["top_provider"];
+            if (ret.contextLength == 0 && "context_length" in topProvider
+                && topProvider["context_length"].type == JSONType.integer)
+                ret.contextLength = cast(size_t)topProvider["context_length"].integer;
+            if ("max_completion_tokens" in topProvider
+                && topProvider["max_completion_tokens"].type == JSONType.integer)
+                ret.maxCompletionTokens = cast(size_t)topProvider["max_completion_tokens"].integer;
         }
 
         if ("architecture" in item && item["architecture"].type == JSONType.object)

@@ -2,18 +2,15 @@
 module intuit.router.litellm;
 
 import intuit.context;
-import intuit.exception : EndpointException;
 import intuit.model;
+import intuit.provider : request;
 import intuit.router.details;
 import intuit.response;
 import intuit.router;
 import intuit.tool;
-import conductor.http : Response, send;
 
-import std.conv : to;
-import std.json : JSONType, JSONValue, parseJSON;
+import std.json : JSONType, JSONValue;
 import std.net.curl : HTTP;
-import std.string : assumeUTF;
 
 /**
  * LiteLLM router implementation.
@@ -38,6 +35,9 @@ private:
 public:
     /**
      * Constructs a LiteLLM router.
+     *
+     * The provided URL is used as-is and the caller is responsible for
+     * supplying the correct base URL for the endpoint.
      *
      * Params:
      *  url = The base URL of the LiteLLM proxy, defaulting to localhost.
@@ -105,7 +105,7 @@ public:
     /// Re-fetches the model catalog.
     override void refresh()
     {
-        JSONValue json = request(HTTP.Method.get, "model/info");
+        JSONValue json = _http.request(HTTP.Method.get, resolve("model/info"), buildHeaders());
         _catalog = null;
         if ("data" in json && json["data"].type == JSONType.array)
         {
@@ -119,52 +119,15 @@ public:
     }
 
 private:
-    JSONValue request(HTTP.Method method, string tail, JSONValue payload = JSONValue.init)
+    string[string] buildHeaders()
     {
-        string target = resolve(tail);
-        Response response;
-
-        if (payload.type == JSONType.null_)
-            response = send(_http, method, target, null, null, requestHeaders());
-        else
-        {
-            response = send(
-                _http,
-                method,
-                target,
-                cast(const(ubyte)[])payload.toString(),
-                "application/json",
-                requestHeaders(),
-            );
-        }
-
-        string content = response.content is null ? null : response.content.assumeUTF().idup;
-        if (response.status < 200 || response.status >= 300)
-            throw new EndpointException(method.to!string, target, response.status, response.reason, content);
-
-        try
-            return content.parseJSON();
-        catch (Exception)
-            throw new EndpointException(
-                method.to!string,
-                target,
-                response.status,
-                response.reason,
-                content,
-                "Endpoint returned invalid JSON.",
-            );
+        string[string] ret;
+        ret["Content-Type"] = "application/json";
+        if (_key.length > 0)
+            ret["Authorization"] = "Bearer "~_key;
+        return ret;
     }
 
-    /// Builds request headers including authorization.
-    string[string] requestHeaders()
-    {
-        string[string] headers;
-        if (_key !is null && _key.length > 0)
-            headers["Authorization"] = "Bearer "~_key;
-        return headers;
-    }
-
-    /// Constructs a full route from a path tail under the LiteLLM API prefix.
     string resolve(string tail)
     {
         while (tail.length > 0 && tail[0] == '/')
