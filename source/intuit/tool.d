@@ -2,6 +2,7 @@
 module intuit.tool;
 
 import conductor.serialize : toJSON;
+import conductor.serialize.json : fromJSON;
 import std.conv : to;
 import std.json : JSONValue, JSONType;
 import std.traits : Parameters, ParameterIdentifierTuple, ReturnType;
@@ -190,7 +191,7 @@ static:
                 else
                 {
                     ret ~= T.stringof~" param"~I.to!string~
-                        " = parseValue!("~T.stringof~")(args[\""~paramName!(F, I)~"\"]);";
+                        " = fromJSON!("~T.stringof~")(args[\""~paramName!(F, I)~"\"]);";
                 }
             }
             return ret;
@@ -222,41 +223,6 @@ static:
                 return F("~ArgDecl~").toJSON();
             };");
         }
-    }
-
-    /// Parses a JSONValue into type T.
-    T parseValue(T)(JSONValue value)
-    {
-        static if (is(T == JSONValue))
-            return value;
-        else static if (is(T == string))
-            return value.str;
-        else static if (is(T == byte) || is(T == short) || is(T == int) || is(T == long) ||
-            is(T == ubyte) || is(T == ushort) || is(T == uint) || is(T == ulong))
-        {
-            if (value.type == JSONType.integer)
-                return cast(T)value.integer;
-            else
-                return cast(T)value.floating;
-        }
-        else static if (is(T == float) || is(T == double))
-        {
-            if (value.type == JSONType.integer)
-                return cast(T)value.integer;
-            else
-                return cast(T)value.floating;
-        }
-        else static if (is(T == bool))
-            return value.type == JSONType.true_;
-        else static if (is(T : E[], E))
-        {
-            E[] ret;
-            foreach (item; value.array)
-                ret ~= parseValue!E(item);
-            return ret;
-        }
-        else
-            static assert(false, "Unsupported parameter type: "~T.stringof);
     }
 
 }

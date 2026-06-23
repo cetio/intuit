@@ -69,7 +69,7 @@ interface IEndpoint
  * Throws:
  *  EndpointException on HTTP or JSON parse failures.
  */
-package(intuit) JSONValue request(
+package (intuit) JSONValue request(
     ref HTTP http,
     HTTP.Method method,
     string url,

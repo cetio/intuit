@@ -1,9 +1,7 @@
 {
 	"fileVersion": 1,
 	"versions": {
-		"conductor": {
-			"path": "../conductor"
-		},
+		"conductor": {"path":"../conductor"},
 		"intel-intrinsics": "1.14.7",
 		"unit-threaded": "2.2.4"
 	}

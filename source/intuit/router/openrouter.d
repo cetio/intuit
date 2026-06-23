@@ -4,6 +4,7 @@ module intuit.router.openrouter;
 import intuit.context;
 import intuit.exception : EndpointException;
 import intuit.model;
+import intuit.router.details;
 import intuit.provider.openai;
 import intuit.router;
 import intuit.tool;
@@ -13,38 +14,7 @@ import std.json : JSONType, JSONValue;
 import std.net.curl : HTTP;
 import std.string : join;
 
-/// Dynamic metadata for a single OpenRouter model, populated from `/models`.
-struct ModelDetails
-{
-    /// The model slug, e.g. "openai/gpt-4o".
-    string id;
-    /// Human-readable display name.
-    string name;
-    /// Model description text.
-    string description;
-    /// Total context window in tokens; drives the compactor token limit.
-    size_t contextLength;
-    /// Maximum tokens the top provider can generate in a single response.
-    size_t maxCompletionTokens;
-    /// Supported input modalities, e.g. ["text", "image"].
-    string[] inputModalities;
-    /// Supported output modalities, e.g. ["text"].
-    string[] outputModalities;
-    /// OpenAI-compatible parameters the model accepts, e.g. ["tools", "temperature"].
-    string[] supportedParameters;
-    /// Cost in USD per input token.
-    double promptCost;
-    /// Cost in USD per output token.
-    double completionCost;
-}
-
-/**
- * Router backed by OpenRouter's OpenAI-compatible API.
- *
- * Unlike LocalRouter, the model catalog is discovered dynamically from the
- * `/models` endpoint rather than statically defined. Models are served through
- * ModelConfig since OpenRouter normalizes every provider to the OpenAI schema.
- */
+/// OpenRouter router implementation.
 class OpenRouter : IRouter
 {
 private:
@@ -54,7 +24,7 @@ private:
     ToolRegistry _tools;
     Context _context;
     string _active;
-    ModelConfig _activeConfig;
+    ModelConfig[string] _configs;
     HTTP _http;
     ModelDetails[string] _catalog;
 
@@ -119,7 +89,7 @@ public:
             refresh();
 
         _active = modelName;
-        _activeConfig = new ModelConfig(modelName);
+        config(modelName);
         if (auto details = modelName in _catalog)
             _context.compactor.maxTokens = details.contextLength;
     }
@@ -128,7 +98,31 @@ public:
     {
         if (_active is null)
             throw new Exception("Router has no active model set.");
-        return _activeConfig;
+        return _configs[_active];
+    }
+
+    override ModelConfig config(string modelName)
+    {
+        if (auto found = modelName in _configs)
+            return *found;
+        ModelConfig ret = new ModelConfig(modelName);
+        _configs[modelName] = ret;
+        return ret;
+    }
+
+    override ModelConfig[] configs()
+    {
+        ModelConfig[] ret;
+        foreach (cfg; _configs.byValue)
+            ret ~= cfg;
+        return ret;
+    }
+
+    override ModelDetails[string] catalog()
+    {
+        if (_catalog.length == 0)
+            refresh();
+        return _catalog;
     }
 
     override JSONValue _completions(JSONValue payload)
@@ -141,8 +135,8 @@ public:
         return request(_http, HTTP.Method.post, _url~"/api/v1/embeddings", payload);
     }
 
-    /// Re-fetches the model catalog from the `/models` endpoint.
-    void refresh()
+    /// Re-fetches the model catalog.
+    override void refresh()
     {
         JSONValue json = request(_http, HTTP.Method.get, _url~"/api/v1/models");
         _catalog = null;
@@ -155,28 +149,6 @@ public:
                     _catalog[details.id] = details;
             }
         }
-    }
-
-    /// Lists every discovered model, fetching the catalog if it is empty.
-    ModelDetails[] available()
-    {
-        if (_catalog.length == 0)
-            refresh();
-
-        ModelDetails[] ret;
-        foreach (details; _catalog.byValue)
-            ret ~= details;
-        return ret;
-    }
-
-    /// Gets the discovered details for a model, fetching the catalog if needed.
-    ModelDetails details(string modelName)
-    {
-        if (modelName !in _catalog && _catalog.length == 0)
-            refresh();
-        if (auto found = modelName in _catalog)
-            return *found;
-        throw new Exception("Model not found in OpenRouter catalog: "~modelName);
     }
 
     /// Gets or sets the HTTP-Referer used to identify the app to OpenRouter.
@@ -317,97 +289,63 @@ private:
         ret.id = "id" in item ? item["id"].str : null;
         ret.name = "name" in item ? item["name"].str : null;
         ret.description = "description" in item ? item["description"].str : null;
-        ret.contextLength = jsonSize(item, "context_length");
+
+        if ("context_length" in item && item["context_length"].type == JSONType.integer)
+            ret.contextLength = cast(size_t)item["context_length"].integer;
 
         if ("top_provider" in item && item["top_provider"].type == JSONType.object)
         {
             JSONValue provider = item["top_provider"];
-            if (ret.contextLength == 0)
-                ret.contextLength = jsonSize(provider, "context_length");
-            ret.maxCompletionTokens = jsonSize(provider, "max_completion_tokens");
+            if (ret.contextLength == 0 && "context_length" in provider
+                && provider["context_length"].type == JSONType.integer)
+                ret.contextLength = cast(size_t)provider["context_length"].integer;
+            if ("max_completion_tokens" in provider
+                && provider["max_completion_tokens"].type == JSONType.integer)
+                ret.maxCompletionTokens = cast(size_t)provider["max_completion_tokens"].integer;
         }
 
         if ("architecture" in item && item["architecture"].type == JSONType.object)
         {
             JSONValue architecture = item["architecture"];
-            ret.inputModalities = jsonStrings(architecture, "input_modalities");
-            ret.outputModalities = jsonStrings(architecture, "output_modalities");
+            if ("input_modalities" in architecture
+                && architecture["input_modalities"].type == JSONType.array)
+            {
+                foreach (entry; architecture["input_modalities"].array)
+                {
+                    if (entry.type == JSONType.string)
+                        ret.inputModalities ~= entry.str;
+                }
+            }
+
+            if ("output_modalities" in architecture
+                && architecture["output_modalities"].type == JSONType.array)
+            {
+                foreach (entry; architecture["output_modalities"].array)
+                {
+                    if (entry.type == JSONType.string)
+                        ret.outputModalities ~= entry.str;
+                }
+            }
         }
 
-        ret.supportedParameters = jsonStrings(item, "supported_parameters");
+        if ("supported_parameters" in item && item["supported_parameters"].type == JSONType.array)
+        {
+            foreach (entry; item["supported_parameters"].array)
+            {
+                if (entry.type == JSONType.string)
+                    ret.supportedParameters ~= entry.str;
+            }
+        }
 
         if ("pricing" in item && item["pricing"].type == JSONType.object)
         {
             JSONValue pricing = item["pricing"];
-            ret.promptCost = jsonDouble(pricing, "prompt");
-            ret.completionCost = jsonDouble(pricing, "completion");
+            if ("prompt" in pricing && pricing["prompt"].type == JSONType.float_)
+                ret.promptCost = pricing["prompt"].floating;
+            if ("completion" in pricing && pricing["completion"].type == JSONType.float_)
+                ret.completionCost = pricing["completion"].floating;
         }
 
-        return ret;
-    }
-
-    /// Reads an integral field from a JSON object, accepting numbers and strings.
-    static size_t jsonSize(JSONValue obj, string key)
-    {
-        if (key !in obj)
-            return 0;
-
-        JSONValue value = obj[key];
-        switch (value.type)
-        {
-        case JSONType.integer:
-            return cast(size_t)value.integer;
-        case JSONType.uinteger:
-            return cast(size_t)value.uinteger;
-        case JSONType.float_:
-            return cast(size_t)value.floating;
-        case JSONType.string:
-            try
-                return value.str.to!size_t;
-            catch (Exception)
-                return 0;
-        default:
-            return 0;
-        }
-    }
-
-    /// Reads a floating field from a JSON object, accepting numbers and strings.
-    static double jsonDouble(JSONValue obj, string key)
-    {
-        if (key !in obj)
-            return 0;
-
-        JSONValue value = obj[key];
-        switch (value.type)
-        {
-        case JSONType.float_:
-            return value.floating;
-        case JSONType.integer:
-            return cast(double)value.integer;
-        case JSONType.uinteger:
-            return cast(double)value.uinteger;
-        case JSONType.string:
-            try
-                return value.str.to!double;
-            catch (Exception)
-                return 0;
-        default:
-            return 0;
-        }
-    }
-
-    /// Reads an array of strings from a JSON object.
-    static string[] jsonStrings(JSONValue obj, string key)
-    {
-        if (key !in obj || obj[key].type != JSONType.array)
-            return null;
-
-        string[] ret;
-        foreach (entry; obj[key].array)
-        {
-            if (entry.type == JSONType.string)
-                ret ~= entry.str;
-        }
         return ret;
     }
 }
