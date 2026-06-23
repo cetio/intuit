@@ -16,10 +16,10 @@ import std.net.curl : HTTP;
 import std.string : assumeUTF;
 
 /**
- * Router backed by a LiteLLM proxy instance.
+ * LiteLLM router implementation.
  *
  * For now this only exposes the proxy's model catalog via the
- * `/v1/model/info` endpoint.  Completions and embeddings
+ * `/v1/model/info` endpoint.  Completions, embeddings, etc.
  * are not yet wired through.
  */
 class LiteLLM : IRouter
