@@ -5,15 +5,13 @@ import intuit.context;
 import intuit.exception : EndpointException;
 import intuit.model;
 import intuit.provider.openai;
-import intuit.response;
 import intuit.router;
 import intuit.tool;
-import conductor.http : Response, send;
 
 import std.conv : to;
-import std.json : JSONType, JSONValue, parseJSON;
+import std.json : JSONType, JSONValue;
 import std.net.curl : HTTP;
-import std.string : assumeUTF, join;
+import std.string : join;
 
 /// Dynamic metadata for a single OpenRouter model, populated from `/models`.
 struct ModelDetails
@@ -77,6 +75,9 @@ public:
     /**
      * Constructs an OpenRouter router.
      *
+     * The provided URL is used as-is; the caller must supply the correct
+     * base URL for the endpoint.
+     *
      * Params:
      *  key = The OpenRouter API key.
      *  url = The base URL, defaulting to the public OpenRouter host.
@@ -85,10 +86,13 @@ public:
     this(string key, string url = "https://openrouter.ai", string name = "OpenRouter")
     {
         this._name = name;
-        this._url = normalizeBaseUrl(url);
+        this._url = url;
         this._key = key;
         this._http = HTTP();
         this._context.compactor = new Compactor();
+        this._http.addRequestHeader("Content-Type", "application/json");
+        if (this._key.length > 0)
+            this._http.addRequestHeader("Authorization", "Bearer "~this._key);
     }
 
     override ref string name()
@@ -128,19 +132,19 @@ public:
     }
 
     override JSONValue _completions(JSONValue payload)
-        => request(HTTP.Method.post, "chat/completions", decorate(payload));
+        => request(_http, HTTP.Method.post, _url~"/api/v1/chat/completions", decorate(payload));
 
     override JSONValue _embeddings(JSONValue payload)
     {
         if (_hasProvider)
             payload["provider"] = _provider;
-        return request(HTTP.Method.post, "embeddings", payload);
+        return request(_http, HTTP.Method.post, _url~"/api/v1/embeddings", payload);
     }
 
     /// Re-fetches the model catalog from the `/models` endpoint.
     void refresh()
     {
-        JSONValue json = request(HTTP.Method.get, "models");
+        JSONValue json = request(_http, HTTP.Method.get, _url~"/api/v1/models");
         _catalog = null;
         if ("data" in json && json["data"].type == JSONType.array)
         {
@@ -183,6 +187,8 @@ public:
     OpenRouter referer(string val)
     {
         _referer = val;
+        if (val.length > 0)
+            _http.addRequestHeader("HTTP-Referer", val);
         return this;
     }
 
@@ -194,6 +200,8 @@ public:
     OpenRouter title(string val)
     {
         _title = val;
+        if (val.length > 0)
+            _http.addRequestHeader("X-Title", val);
         return this;
     }
 
@@ -205,6 +213,8 @@ public:
     OpenRouter categories(string[] val)
     {
         _categories = val;
+        if (val.length > 0)
+            _http.addRequestHeader("X-OpenRouter-Categories", val.join(","));
         return this;
     }
 
@@ -295,79 +305,6 @@ private:
         if (_includeReasoning)
             payload["include_reasoning"] = JSONValue(true);
         return payload;
-    }
-
-    /// Sends an HTTP request to the endpoint and parses the JSON response.
-    JSONValue request(HTTP.Method method, string tail, JSONValue payload = JSONValue.init)
-    {
-        string target = resolve(tail);
-        Response response;
-
-        if (payload.type == JSONType.null_)
-            response = send(_http, method, target, null, null, requestHeaders());
-        else
-        {
-            response = send(
-                _http,
-                method,
-                target,
-                cast(const(ubyte)[])payload.toString(),
-                "application/json",
-                requestHeaders(),
-            );
-        }
-
-        string content = response.content is null ? null : response.content.assumeUTF().idup;
-        if (response.status < 200 || response.status >= 300)
-            throw new EndpointException(method.to!string, target, response.status, response.reason, content);
-
-        try
-            return content.parseJSON();
-        catch (Exception)
-            throw new EndpointException(
-                method.to!string,
-                target,
-                response.status,
-                response.reason,
-                content,
-                "Endpoint returned invalid JSON.",
-            );
-    }
-
-    /// Builds request headers including authorization and optional app identity.
-    string[string] requestHeaders()
-    {
-        string[string] headers;
-        if (_key !is null && _key.length > 0)
-            headers["Authorization"] = "Bearer "~_key;
-        if (_referer.length > 0)
-            headers["HTTP-Referer"] = _referer;
-        if (_title.length > 0)
-            headers["X-Title"] = _title;
-        if (_categories.length > 0)
-            headers["X-OpenRouter-Categories"] = _categories.join(",");
-        return headers;
-    }
-
-    /// Constructs a full route from a path tail under the OpenRouter API prefix.
-    string resolve(string tail)
-    {
-        while (tail.length > 0 && tail[0] == '/')
-            tail = tail[1..$];
-        return _url~"/api/v1/"~tail;
-    }
-
-    /// Normalizes a base URL by stripping trailing slashes and API suffixes.
-    static string normalizeBaseUrl(string url)
-    {
-        string ret = url;
-        while (ret.length > 0 && ret[$-1] == '/')
-            ret = ret[0..$-1];
-        if (ret.length >= 7 && ret[$-7..$] == "/api/v1")
-            ret = ret[0..$-7];
-        else if (ret.length >= 3 && ret[$-3..$] == "/v1")
-            ret = ret[0..$-3];
-        return ret;
     }
 
     /// Parses a single `/models` entry into ModelDetails.

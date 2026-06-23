@@ -6,12 +6,17 @@ public import intuit.provider.claude;
 public import intuit.provider.qwen;
 
 import intuit.context;
+import intuit.exception : EndpointException;
 import intuit.model;
 import intuit.response;
 import intuit.tool;
+import conductor.http : Response, send;
 import conductor.serialize : toJSON;
 
-import std.json : JSONValue, JSONType;
+import std.conv : to;
+import std.json : JSONValue, JSONType, parseJSON;
+import std.net.curl : HTTP;
+import std.string : assumeUTF;
 import std.traits : isArray, isIntegral;
 
 /// Interface for LLM endpoint implementations.
@@ -47,6 +52,53 @@ interface IEndpoint
     JSONValue _completions(ModelConfig cfg, JSONValue payload);
     /// Sends a raw embeddings request. Use `embeddings` instead.
     JSONValue _embeddings(ModelConfig cfg, JSONValue payload);
+}
+
+/**
+ * Sends a JSON request using an HTTP client with pre-set headers.
+ *
+ * Params:
+ *  http = The HTTP client with pre-set headers.
+ *  method = The HTTP method.
+ *  url = The full request URL.
+ *  payload = Optional JSON payload for requests with a body.
+ *
+ * Returns:
+ *  The parsed JSON response.
+ *
+ * Throws:
+ *  EndpointException on HTTP or JSON parse failures.
+ */
+package(intuit) JSONValue request(
+    ref HTTP http,
+    HTTP.Method method,
+    string url,
+    JSONValue payload = JSONValue.init,
+)
+{
+    Response response;
+    if (payload.type == JSONType.null_)
+        response = send(http, method, url, null, null, null);
+    else
+        response = send(http, method, url, cast(const(ubyte)[])payload.toString(), null, null);
+
+    string content = response.content is null ? null : response.content.assumeUTF().idup;
+    if (response.status < 200 || response.status >= 300)
+        throw new EndpointException(method.to!string, url, response.status, response.reason, content);
+
+    try
+        return content.parseJSON();
+    catch (Exception)
+    {
+        throw new EndpointException(
+            method.to!string,
+            url,
+            response.status,
+            response.reason,
+            content,
+            "Endpoint returned invalid JSON.",
+        );
+    }
 }
 
 /**

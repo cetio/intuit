@@ -2,22 +2,22 @@
 module intuit.provider.qwen.endpoint;
 
 public import intuit.provider;
-import intuit.exception : EndpointException;
 import intuit.model;
 import intuit.provider.openai;
 import intuit.provider.qwen.model;
 import intuit.tool;
-import conductor.http : Response, send;
 
 import std.net.curl : HTTP;
-import std.json : JSONType, JSONValue, parseJSON;
-import std.string : assumeUTF;
+import std.json : JSONType, JSONValue;
 
 /// Qwen-compatible LLM endpoint, extending OpenAI with Qwen-specific models.
 class Qwen : OpenAI
 {
     /**
      * Constructs a Qwen endpoint.
+     *
+     * The provided URL is used as-is and the caller is responsible for
+     * supplying the correct base URL for the endpoint.
      *
      * Params:
      *  url = The base URL of the endpoint.
@@ -31,7 +31,7 @@ class Qwen : OpenAI
 
     override ModelConfig[] available()
     {
-        JSONValue json = request(HTTP.Method.get, "models");
+        JSONValue json = request(_http, HTTP.Method.get, _url~"/v1/models");
         if ("data" in json && json["data"].type == JSONType.array)
         {
             foreach (item; json["data"].array)
