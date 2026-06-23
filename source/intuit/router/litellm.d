@@ -47,7 +47,7 @@ public:
     this(string url = "http://localhost:4000", string key = null, string name = "LiteLLM")
     {
         this._name = name;
-        this._url = normalizeBaseUrl(url);
+        this._url = url;
         this._key = key;
         this._http = HTTP();
         this._context.compactor = new Compactor();
@@ -105,7 +105,7 @@ public:
     /// Re-fetches the model catalog.
     override void refresh()
     {
-        JSONValue json = _http.request(HTTP.Method.get, resolve("model/info"), buildHeaders());
+        JSONValue json = _http.request(HTTP.Method.get, _url~"/v1/model/info", buildHeaders());
         _catalog = null;
         if ("data" in json && json["data"].type == JSONType.array)
         {
@@ -125,24 +125,6 @@ private:
         ret["Content-Type"] = "application/json";
         if (_key.length > 0)
             ret["Authorization"] = "Bearer "~_key;
-        return ret;
-    }
-
-    string resolve(string tail)
-    {
-        while (tail.length > 0 && tail[0] == '/')
-            tail = tail[1..$];
-        return _url~"/v1/"~tail;
-    }
-
-    /// Normalizes a base URL by stripping trailing slashes and API suffixes.
-    static string normalizeBaseUrl(string url)
-    {
-        string ret = url;
-        while (ret.length > 0 && ret[$-1] == '/')
-            ret = ret[0..$-1];
-        if (ret.length >= 3 && ret[$-3..$] == "/v1")
-            ret = ret[0..$-3];
         return ret;
     }
 
