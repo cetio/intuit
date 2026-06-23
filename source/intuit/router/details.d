@@ -1,6 +1,21 @@
 /// Universal model metadata shared across all routers.
 module intuit.router.details;
 
+/// Input or output modality supported by a model.
+enum Modality : string
+{
+    /// Plain text input or output.
+    text = "text",
+    /// Image input or output.
+    image = "image",
+    /// Audio input or output.
+    audio = "audio",
+    /// PDF document input.
+    pdf = "pdf",
+    /// Embedding vector output.
+    embedding = "embedding",
+}
+
 /// Dynamic metadata for a single model, populated from provider catalogs.
 struct ModelDetails
 {
@@ -14,11 +29,10 @@ struct ModelDetails
     size_t contextLength;
     /// Maximum tokens the top provider can generate in a single response.
     size_t maxCompletionTokens;
-    // TODO: Define enums for model capabilities.
-    /// Supported input modalities, e.g. ["text", "image"].
-    string[] inputModalities;
-    /// Supported output modalities, e.g. ["text"].
-    string[] outputModalities;
+    /// Supported input modalities, e.g. [Modality.text, Modality.image].
+    Modality[] inputModalities;
+    /// Supported output modalities, e.g. [Modality.text].
+    Modality[] outputModalities;
     /// OpenAI-compatible parameters the model accepts, e.g. ["tools", "temperature"].
     string[] supportedParameters;
     /// Cost in USD per input token.

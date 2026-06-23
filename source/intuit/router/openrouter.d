@@ -223,7 +223,7 @@ private:
                 foreach (entry; architecture["input_modalities"].array)
                 {
                     if (entry.type == JSONType.string)
-                        ret.inputModalities ~= entry.str;
+                        ret.inputModalities ~= cast(Modality)entry.str;
                 }
             }
 
@@ -233,7 +233,7 @@ private:
                 foreach (entry; architecture["output_modalities"].array)
                 {
                     if (entry.type == JSONType.string)
-                        ret.outputModalities ~= entry.str;
+                        ret.outputModalities ~= cast(Modality)entry.str;
                 }
             }
         }
