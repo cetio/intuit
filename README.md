@@ -1,7 +1,8 @@
 # Intuit
 
-[![DUB Package](https://img.shields.io/badge/dub-package-red)](https://code.dlang.org/packages/intuit)
+[![DUB Package](https://img.shields.io/badge/DUB-latest-red)](https://code.dlang.org/packages/intuit)
 [![License](https://img.shields.io/badge/License-Apache--2.0-blue)](LICENSE.txt)
+[![CI](https://github.com/cetio/intuit/actions/workflows/ci.yml/badge.svg)](https://github.com/cetio/intuit/actions/workflows/ci.yml)
 
 Intuit is a library for interacting with AI LLM and embeddings endpoints, with a focus on local models. Endpoints, models, and routers are built around small interfaces so that new providers and routing strategies are straightforward to add.
 
