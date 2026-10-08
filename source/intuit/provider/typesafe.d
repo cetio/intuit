@@ -9,11 +9,8 @@ import intuit.provider.systemone : SystemOneModelConfig;
 import std.json : JSONType, JSONValue;
 import std.net.curl : HTTP;
 
-public:
-
 class TypeSafe : OpenAI
 {
-public:
     this(string url = "https://api.typesafe.ai", string key = null, string name = "TypeSafe")
     {
         super(url, key, name);

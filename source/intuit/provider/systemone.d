@@ -7,11 +7,8 @@ import intuit.response.decision;
 import std.conv : to;
 import std.json : JSONType, JSONValue;
 
-public:
-
 class SystemOneModelConfig : ModelConfig
 {
-public:
     this(string name)
     {
         super(name);
