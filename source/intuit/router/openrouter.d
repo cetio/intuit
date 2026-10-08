@@ -243,7 +243,7 @@ private:
             if (ret.contextLength == 0 && "context_length" in topProvider
                 && topProvider["context_length"].type == JSONType.integer)
                 ret.contextLength = cast(size_t)topProvider["context_length"].integer;
-                
+
             if ("max_completion_tokens" in topProvider
                 && topProvider["max_completion_tokens"].type == JSONType.integer)
                 ret.maxCompletionTokens = cast(size_t)topProvider["max_completion_tokens"].integer;
