@@ -10,12 +10,24 @@ enum Modality : string
     Image = "image",
     /// Audio input or output.
     Audio = "audio",
+    /// Video input or output.
+    Video = "video",
     /// PDF document input.
     Pdf = "pdf",
     /// Embedding vector output.
     Embedding = "embedding",
     /// Structured decision output.
     Decisions = "decisions",
+    /// File input modality.
+    File = "file",
+    /// Embeddings output modality.
+    Embeddings = "embeddings",
+    /// Reranking output modality.
+    Rerank = "rerank",
+    /// Speech output modality.
+    Speech = "speech",
+    /// Transcription output modality.
+    Transcription = "transcription",
 }
 
 enum ModelCapability : string
@@ -46,12 +58,16 @@ enum ModelCapability : string
     Modalities = "modalities",
     /// Supports parallel tool calls.
     ParallelToolCalls = "parallel_tool_calls",
+    /// Supports predicted outputs.
+    Prediction = "prediction",
     /// Supports presence penalty for token generation.
     PresencePenalty = "presence_penalty",
     /// Supports prompt caching.
     PromptCaching = "prompt_caching",
     /// Supports reasoning.
     Reasoning = "reasoning",
+    /// Supports reasoning effort selection.
+    ReasoningEffort = "reasoning_effort",
     /// Supports repetition penalty for token generation.
     RepetitionPenalty = "repetition_penalty",
     /// Supports response format.
@@ -112,8 +128,8 @@ struct ModelDetails
     Modality[] outputModalities;
     /// Normalized OpenAI-compatible parameters and features supported by the model.
     ModelCapability[] capabilities;
-    /// Cost in USD per input token.
+    /// Cost in USD per million input tokens.
     double promptCost;
-    /// Cost in USD per output token.
+    /// Cost in USD per million output tokens.
     double completionCost;
 }

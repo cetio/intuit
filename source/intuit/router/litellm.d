@@ -163,10 +163,10 @@ private:
             && modelInfo["max_tokens"].type == JSONType.integer)
             ret.maxCompletionTokens = cast(size_t)modelInfo["max_tokens"].integer;
 
-        if ("input_cost_per_token" in modelInfo && modelInfo["input_cost_per_token"].type == JSONType.float_)
-            ret.promptCost = modelInfo["input_cost_per_token"].floating;
-        if ("output_cost_per_token" in modelInfo && modelInfo["output_cost_per_token"].type == JSONType.float_)
-            ret.completionCost = modelInfo["output_cost_per_token"].floating;
+        if ("input_cost_per_token" in modelInfo)
+            ret.promptCost = parseCost(modelInfo["input_cost_per_token"]) * 1_000_000;
+        if ("output_cost_per_token" in modelInfo)
+            ret.completionCost = parseCost(modelInfo["output_cost_per_token"]) * 1_000_000;
 
         ret.inputModalities = [Modality.Text];
 
@@ -221,5 +221,25 @@ private:
             ret.capabilities ~= ModelCapability.WebSearch;
 
         return ret;
+    }
+
+    static double parseCost(JSONValue value)
+    {
+        double ret;
+        switch (value.type)
+        {
+            case JSONType.float_:
+                ret = value.floating;
+                break;
+            case JSONType.integer:
+                ret = cast(double)value.integer;
+                break;
+            case JSONType.uinteger:
+                ret = cast(double)value.uinteger;
+                break;
+            default:
+                break;
+        }
+        return ret >= 0 ? ret : 0;
     }
 }

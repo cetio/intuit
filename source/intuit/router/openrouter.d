@@ -259,7 +259,7 @@ private:
                     if (entry.type != JSONType.string)
                         continue;
 
-                    final switch (entry.str)
+                    switch (entry.str)
                     {
                     case "text":
                         ret.inputModalities ~= Modality.Text;
@@ -270,11 +270,16 @@ private:
                     case "audio":
                         ret.inputModalities ~= Modality.Audio;
                         break;
+                    case "video":
+                        ret.inputModalities ~= Modality.Video;
+                        break;
                     case "pdf":
                         ret.inputModalities ~= Modality.Pdf;
                         break;
                     case "embedding":
                         ret.inputModalities ~= Modality.Embedding;
+                        break;
+                    default:
                         break;
                     }
                 }
@@ -287,7 +292,7 @@ private:
                 {
                     if (entry.type != JSONType.string)
                         continue;
-                    final switch (entry.str)
+                    switch (entry.str)
                     {
                     case "text":
                         ret.outputModalities ~= Modality.Text;
@@ -298,6 +303,9 @@ private:
                     case "audio":
                         ret.outputModalities ~= Modality.Audio;
                         break;
+                    case "video":
+                        ret.outputModalities ~= Modality.Video;
+                        break;
                     case "pdf":
                         ret.outputModalities ~= Modality.Pdf;
                         break;
@@ -306,6 +314,8 @@ private:
                         break;
                     case "decisions":
                         ret.outputModalities ~= Modality.Decisions;
+                        break;
+                    default:
                         break;
                     }
                 }
@@ -318,7 +328,7 @@ private:
             {
                 if (entry.type != JSONType.string)
                     continue;
-                final switch (entry.str)
+                switch (entry.str)
                 {
                 case "audio":
                     ret.capabilities ~= ModelCapability.Audio;
@@ -425,6 +435,8 @@ private:
                 case "web_search_options":
                     ret.capabilities ~= ModelCapability.WebSearchOptions;
                     break;
+                default:
+                    break;
                 }
             }
         }
@@ -433,9 +445,9 @@ private:
         {
             JSONValue pricing = item["pricing"];
             if ("prompt" in pricing)
-                ret.promptCost = parseCost(pricing["prompt"]);
+                ret.promptCost = parseCost(pricing["prompt"]) * 1_000_000;
             if ("completion" in pricing)
-                ret.completionCost = parseCost(pricing["completion"]);
+                ret.completionCost = parseCost(pricing["completion"]) * 1_000_000;
         }
 
         return ret;
@@ -444,7 +456,7 @@ private:
     static double parseCost(JSONValue value)
     {
         double ret;
-        final switch (value.type)
+        switch (value.type)
         {
         case JSONType.float_:
             ret = value.floating;
@@ -463,6 +475,8 @@ private:
                 ret = value.str.to!double;
             catch (Exception)
                 return ret;
+            break;
+        default:
             break;
         }
         return ret;
