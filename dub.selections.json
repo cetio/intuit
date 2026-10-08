@@ -1,6 +1,6 @@
 {
 	"fileVersion": 1,
 	"versions": {
-		"unit-threaded": {"version":"~master","repository":"git+https://github.com/cetio/unit-threaded.git"}
+		"unit-threaded": "~>2.2.6"
 	}
 }

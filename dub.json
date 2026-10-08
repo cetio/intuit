@@ -4,10 +4,7 @@
 	],
 	"copyright": "Copyright © 2026, cet",
 	"dependencies": {
-		"unit-threaded": {
-			"repository": "git+https://github.com/cetio/unit-threaded.git",
-			"version": "~master"
-		}
+		"unit-threaded": "~>2.2.6"
 	},
 	"description": "SDK for interfacing with AI LLMs and embeddings models with streaming, tools, routing, and much more.",
 	"license": "Apache-2.0",
@@ -27,10 +24,7 @@
 				"unittests"
 			],
 			"dependencies": {
-				"unit-threaded": {
-					"repository": "git+https://github.com/cetio/unit-threaded.git",
-					"version": "~master"
-				}
+				"unit-threaded": "~>2.2.6"
 			},
 			"mainSourceFile": "bin/ut.d",
 			"name": "unittest",
@@ -44,10 +38,7 @@
 				"unittests"
 			],
 			"dependencies": {
-				"unit-threaded": {
-					"repository": "git+https://github.com/cetio/unit-threaded.git",
-					"version": "~master"
-				}
+				"unit-threaded": "~>2.2.6"
 			},
 			"mainSourceFile": "bin/ut.d",
 			"name": "integration",
