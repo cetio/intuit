@@ -31,7 +31,7 @@ private:
 public:
     /// HTTP-Referer header used to identify the app to OpenRouter.
     string referer;
-    /// X-Title header used to identify the app to OpenRouter.
+    /// X-OpenRouter-Title header used to identify the app to OpenRouter.
     string title;
     /// Marketplace categories sent via X-OpenRouter-Categories header.
     string[] categories;
@@ -149,7 +149,11 @@ public:
     /// Re-fetches the model catalog.
     override void refresh()
     {
-        JSONValue json = _http.request(HTTP.Method.get, _url~"/api/v1/models", buildHeaders());
+        JSONValue json = _http.request(
+            HTTP.Method.get,
+            _url~"/api/v1/models?output_modalities=all",
+            buildHeaders(),
+        );
         _catalog = null;
         if ("data" in json && json["data"].type == JSONType.array)
         {
@@ -172,7 +176,7 @@ private:
         if (referer.length > 0)
             ret["HTTP-Referer"] = referer;
         if (title.length > 0)
-            ret["X-Title"] = title;
+            ret["X-OpenRouter-Title"] = title;
         if (categories.length > 0)
             ret["X-OpenRouter-Categories"] = categories.join(",");
         return ret;
@@ -195,7 +199,13 @@ private:
         if (provider.type != JSONType.null_)
             payload["provider"] = provider;
         if (includeReasoning)
-            payload["include_reasoning"] = JSONValue(true);
+        {
+            JSONValue reasoning = "reasoning" in payload && payload["reasoning"].type == JSONType.object
+                ? payload["reasoning"]
+                : JSONValue.emptyObject;
+            reasoning["exclude"] = JSONValue(false);
+            payload["reasoning"] = reasoning;
+        }
         return payload;
     }
 
@@ -410,12 +420,42 @@ private:
         if ("pricing" in item && item["pricing"].type == JSONType.object)
         {
             JSONValue pricing = item["pricing"];
-            if ("prompt" in pricing && pricing["prompt"].type == JSONType.float_)
-                ret.promptCost = pricing["prompt"].floating;
-            if ("completion" in pricing && pricing["completion"].type == JSONType.float_)
-                ret.completionCost = pricing["completion"].floating;
+            if ("prompt" in pricing)
+                ret.promptCost = parseCost(pricing["prompt"]);
+            if ("completion" in pricing)
+                ret.completionCost = parseCost(pricing["completion"]);
         }
 
+        return ret;
+    }
+
+    static double parseCost(JSONValue value)
+    {
+        double ret;
+        switch (value.type)
+        {
+            case JSONType.float_:
+                ret = value.floating;
+                break;
+            case JSONType.integer:
+                ret = cast(double)value.integer;
+                break;
+            case JSONType.uinteger:
+                ret = cast(double)value.uinteger;
+                break;
+            case JSONType.string:
+                try
+                {
+                    ret = value.str.to!double;
+                }
+                catch (Exception)
+                {
+                    return ret;
+                }
+                break;
+            default:
+                break;
+        }
         return ret;
     }
 }
