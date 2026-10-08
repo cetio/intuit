@@ -261,19 +261,19 @@ private:
                     switch (entry.str)
                     {
                         case "text":
-                            ret.inputModalities ~= Modality.text;
+                            ret.inputModalities ~= Modality.Text;
                             break;
                         case "image":
-                            ret.inputModalities ~= Modality.image;
+                            ret.inputModalities ~= Modality.Image;
                             break;
                         case "audio":
-                            ret.inputModalities ~= Modality.audio;
+                            ret.inputModalities ~= Modality.Audio;
                             break;
                         case "pdf":
-                            ret.inputModalities ~= Modality.pdf;
+                            ret.inputModalities ~= Modality.Pdf;
                             break;
                         case "embedding":
-                            ret.inputModalities ~= Modality.embedding;
+                            ret.inputModalities ~= Modality.Embedding;
                             break;
                         default:
                             break;
@@ -291,19 +291,19 @@ private:
                     switch (entry.str)
                     {
                         case "text":
-                            ret.outputModalities ~= Modality.text;
+                            ret.outputModalities ~= Modality.Text;
                             break;
                         case "image":
-                            ret.outputModalities ~= Modality.image;
+                            ret.outputModalities ~= Modality.Image;
                             break;
                         case "audio":
-                            ret.outputModalities ~= Modality.audio;
+                            ret.outputModalities ~= Modality.Audio;
                             break;
                         case "pdf":
-                            ret.outputModalities ~= Modality.pdf;
+                            ret.outputModalities ~= Modality.Pdf;
                             break;
                         case "embedding":
-                            ret.outputModalities ~= Modality.embedding;
+                            ret.outputModalities ~= Modality.Embedding;
                             break;
                         case "decisions":
                             ret.outputModalities ~= Modality.Decisions;

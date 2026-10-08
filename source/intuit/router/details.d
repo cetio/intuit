@@ -5,15 +5,16 @@ module intuit.router.details;
 enum Modality : string
 {
     /// Plain text input or output.
-    text = "text",
+    Text = "text",
     /// Image input or output.
-    image = "image",
+    Image = "image",
     /// Audio input or output.
-    audio = "audio",
+    Audio = "audio",
     /// PDF document input.
-    pdf = "pdf",
+    Pdf = "pdf",
     /// Embedding vector output.
-    embedding = "embedding",
+    Embedding = "embedding",
+    /// Structured decision output.
     Decisions = "decisions",
 }
 
@@ -70,9 +71,9 @@ struct ModelDetails
     size_t contextLength;
     /// Maximum tokens the top provider can generate in a single response.
     size_t maxCompletionTokens;
-    /// Supported input modalities, e.g. [Modality.text, Modality.image].
+    /// Supported input modalities, e.g. [Modality.Text, Modality.Image].
     Modality[] inputModalities;
-    /// Supported output modalities, e.g. [Modality.text].
+    /// Supported output modalities, e.g. [Modality.Text].
     Modality[] outputModalities;
     /// Normalized OpenAI-compatible parameters and features supported by the model.
     ModelCapability[] capabilities;

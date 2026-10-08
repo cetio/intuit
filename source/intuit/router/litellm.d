@@ -168,26 +168,26 @@ private:
         if ("output_cost_per_token" in modelInfo && modelInfo["output_cost_per_token"].type == JSONType.float_)
             ret.completionCost = modelInfo["output_cost_per_token"].floating;
 
-        ret.inputModalities = [Modality.text];
+        ret.inputModalities = [Modality.Text];
 
         if ("mode" in modelInfo && modelInfo["mode"].type == JSONType.string)
         {
             switch (modelInfo["mode"].str)
             {
                 case "chat", "completion", "text":
-                    ret.outputModalities ~= Modality.text;
+                    ret.outputModalities ~= Modality.Text;
                     break;
                 case "embedding":
-                    ret.outputModalities ~= Modality.embedding;
+                    ret.outputModalities ~= Modality.Embedding;
                     break;
                 case "image_generation", "image":
-                    ret.outputModalities ~= Modality.image;
+                    ret.outputModalities ~= Modality.Image;
                     break;
                 case "audio_speech", "audio":
-                    ret.outputModalities ~= Modality.audio;
+                    ret.outputModalities ~= Modality.Audio;
                     break;
                 case "pdf":
-                    ret.outputModalities ~= Modality.pdf;
+                    ret.outputModalities ~= Modality.Pdf;
                     break;
                 default:
                     break;
@@ -195,14 +195,14 @@ private:
         }
 
         if ("supports_vision" in modelInfo && modelInfo["supports_vision"].type == JSONType.true_)
-            ret.inputModalities ~= Modality.image;
+            ret.inputModalities ~= Modality.Image;
         if ("supports_audio_input" in modelInfo && modelInfo["supports_audio_input"].type == JSONType.true_)
-            ret.inputModalities ~= Modality.audio;
+            ret.inputModalities ~= Modality.Audio;
         if ("supports_pdf_input" in modelInfo && modelInfo["supports_pdf_input"].type == JSONType.true_)
-            ret.inputModalities ~= Modality.pdf;
+            ret.inputModalities ~= Modality.Pdf;
 
         if ("supports_audio_output" in modelInfo && modelInfo["supports_audio_output"].type == JSONType.true_)
-            ret.outputModalities ~= Modality.audio;
+            ret.outputModalities ~= Modality.Audio;
 
         if ("supports_function_calling" in modelInfo
             && modelInfo["supports_function_calling"].type == JSONType.true_)
