@@ -141,34 +141,38 @@ struct Context
             JSONValue output;
             final switch (decision)
             {
-                case ToolPolicyStatus.None:
-                    calls[i].policyResult.status = ToolPolicyStatus.Pending;
-                    calls[i].policyResult.message = "No policy rule matched.";
-                    continue;
-                case ToolPolicyStatus.Pending:
-                    calls[i].policyResult.status = ToolPolicyStatus.Pending;
-                    calls[i].policyResult.message = "Policy evaluation is pending.";
-                    continue;
-                case ToolPolicyStatus.Failed:
+            case ToolPolicyStatus.None:
+                calls[i].policyResult.status = ToolPolicyStatus.Pending;
+                calls[i].policyResult.message = "No policy rule matched.";
+                continue;
+
+            case ToolPolicyStatus.Pending:
+                calls[i].policyResult.status = ToolPolicyStatus.Pending;
+                calls[i].policyResult.message = "Policy evaluation is pending.";
+                continue;
+
+            case ToolPolicyStatus.Failed:
+                calls[i].policyResult.status = ToolPolicyStatus.Failed;
+                calls[i].policyResult.message = "Tool policy failed to resolve the tool.";
+                continue;
+
+            case ToolPolicyStatus.Allowed:
+                calls[i].policyResult.status = ToolPolicyStatus.Allowed;
+                try
+                    output = registeredTool.impl(calls[i].arguments);
+                catch (Exception e)
+                {
                     calls[i].policyResult.status = ToolPolicyStatus.Failed;
-                    calls[i].policyResult.message = "Tool policy failed to resolve the tool.";
-                    continue;
-                case ToolPolicyStatus.Allowed:
-                    calls[i].policyResult.status = ToolPolicyStatus.Allowed;
-                    try
-                        output = registeredTool.impl(calls[i].arguments);
-                    catch (Exception e)
-                    {
-                        calls[i].policyResult.status = ToolPolicyStatus.Failed;
-                        calls[i].policyResult.message = "Tool execution failed: "~e.msg;
-                        output = JSONValue(calls[i].policyResult.message);
-                    }
-                    break;
-                case ToolPolicyStatus.Denied:
-                    calls[i].policyResult.status = ToolPolicyStatus.Denied;
-                    calls[i].policyResult.message = "Tool execution denied by policy.";
+                    calls[i].policyResult.message = "Tool execution failed: "~e.msg;
                     output = JSONValue(calls[i].policyResult.message);
-                    break;
+                }
+                break;
+                
+            case ToolPolicyStatus.Denied:
+                calls[i].policyResult.status = ToolPolicyStatus.Denied;
+                calls[i].policyResult.message = "Tool execution denied by policy.";
+                output = JSONValue(calls[i].policyResult.message);
+                break;
             }
             tool(calls[i].id, output);
         }

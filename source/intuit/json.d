@@ -110,12 +110,15 @@ T fromJSON(T)(JSONValue json)
         {
         case JSONType.integer:
             return cast(T)json.integer;
+
         case JSONType.uinteger:
             return cast(T)json.uinteger;
+
         case JSONType.string:
             if (json.str is null)
                 throw new Exception("Expected integral for "~T.stringof~", got null string");
             return json.str.to!T;
+
         default:
             throw new Exception("Expected integral for "~T.stringof~", got "~json.type.to!string);
         }
@@ -126,14 +129,18 @@ T fromJSON(T)(JSONValue json)
         {
         case JSONType.float_:
             return cast(T)json.floating;
+
         case JSONType.integer:
             return cast(T)json.integer;
+
         case JSONType.uinteger:
             return cast(T)json.uinteger;
+
         case JSONType.string:
             if (json.str is null)
                 throw new Exception("Expected float for "~T.stringof~", got null string");
             return json.str.to!T;
+            
         default:
             throw new Exception("Expected float for "~T.stringof~", got "~json.type.to!string);
         }

@@ -361,20 +361,23 @@ class ModelConfig
             answer.raw = entry;
             final switch (answer.type)
             {
-                case DecisionType.Predicate:
-                    validateDecisionProbability(answer.probability, json);
-                    break;
-                case DecisionType.Choice:
-                    if (answer.choice.type != JSONType.string && answer.choice.type != JSONType.true_
-                        && answer.choice.type != JSONType.false_)
-                        throw malformedResponse(json, "Decision choices must be strings or booleans.");
-                    break;
-                case DecisionType.Score:
-                    if (!answer.score.isFinite || answer.score < 0)
-                        throw malformedResponse(json, "Invalid decision score.");
-                    break;
-                case DecisionType.Refusal:
-                    break;
+            case DecisionType.Predicate:
+                validateDecisionProbability(answer.probability, json);
+                break;
+                
+            case DecisionType.Choice:
+                if (answer.choice.type != JSONType.string && answer.choice.type != JSONType.true_
+                    && answer.choice.type != JSONType.false_)
+                    throw malformedResponse(json, "Decision choices must be strings or booleans.");
+                break;
+
+            case DecisionType.Score:
+                if (!answer.score.isFinite || answer.score < 0)
+                    throw malformedResponse(json, "Invalid decision score.");
+                break;
+
+            case DecisionType.Refusal:
+                break;
             }
 
             if ("confidence" in entry)
