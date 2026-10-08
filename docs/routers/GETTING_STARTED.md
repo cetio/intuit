@@ -50,8 +50,8 @@ router.refresh();
 | `promptCost` | Cost in USD per million input tokens. |
 | `completionCost` | Cost in USD per million output tokens. |
 
-Modalities use the `Modality` enum: `Text`, `Image`, `Audio`, `Pdf`, `Embedding`, and `Decisions`. Capabilities use the
-`ModelCapability` enum, normalizing the known parameters shared across provider catalogs.
+Modalities use the `Modality` enum: `Text`, `Image`, `Audio`, `Video`, `Pdf`, `Embedding`, `Decisions`, `File`, `Embeddings`, `Rerank`, `Speech`, and `Transcription`. 
+Capabilities use the `ModelCapability` enum, normalizing the known parameters shared across provider catalogs.
 
 ## Selecting a Model
 
@@ -177,7 +177,7 @@ auto litellm = new LiteLLM("http://localhost:4000", "proxy-key");
 ModelDetails[string] catalog = litellm.catalog();
 ```
 
-It requests `/v1/model/info` and maps LiteLLM metadata to shared `ModelDetails`, including context and output limits, per-token costs, modalities, and supported features.
+It requests `/v1/model/info` and maps LiteLLM metadata to shared `ModelDetails`, including context and output limits, prices in USD per million tokens, modalities, and supported features.
 
 The following operations are not implemented for `LiteLLM` and throw an exception:
 
@@ -188,6 +188,24 @@ The following operations are not implemented for `LiteLLM` and throw an exceptio
 - embedding requests
 
 Use an `OpenAI` endpoint against a LiteLLM proxy when OpenAI-compatible completion or embedding requests are needed without router-managed state.
+
+## Models.dev catalog
+
+`ModelsDev` uses the public models.dev API; it does not need an API key and is catalog-only:
+
+```d
+import intuit;
+
+ModelsDev models = new ModelsDev();
+ModelDetails[string] catalog = models.catalog;
+ModelDetails gpt4o = catalog["openrouter/openai/gpt-4o"];
+
+models.refresh();
+```
+
+The router fetches `/api.json?type=all`, which includes specialized model types such as decision models. Catalog IDs are prefixed with the provider ID so that provider-specific limits and prices remain distinct. `ModelDetails.promptCost` and `completionCost` use USD per million tokens for all routers; models.dev prices are already reported in those units, while LiteLLM and OpenRouter prices are converted from USD per token.
+
+The models.dev router only supplies model metadata. Active-model selection, model configuration, completions, decisions, and embeddings are unsupported.
 
 ## Current Limitations
 
