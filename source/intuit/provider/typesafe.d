@@ -1,6 +1,6 @@
 module intuit.provider.typesafe;
 
-import intuit.exception : EndpointException, FormatException;
+import intuit.exception : EndpointException, MalformedResponseException;
 import intuit.model : ModelConfig;
 import intuit.provider : request;
 import intuit.provider.openai : OpenAI;
@@ -23,7 +23,7 @@ public:
     {
         JSONValue json = _http.request(HTTP.Method.get, _url~"/v1/models", buildHeaders());
         if (json.type != JSONType.object || "models" !in json || json["models"].type != JSONType.array)
-            throw new FormatException("Expected a TypeSafe models array.");
+            throw new MalformedResponseException("Expected a TypeSafe models array.", json.toString());
 
         foreach (item; json["models"].array)
         {

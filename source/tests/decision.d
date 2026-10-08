@@ -5,7 +5,6 @@ import intuit.provider.systemone : SystemOneModelConfig;
 import unit_threaded;
 
 import std.conv : to;
-import std.exception : assertThrown;
 import std.json : JSONValue, JSONType, parseJSON;
 import std.math : isNaN;
 
@@ -26,8 +25,8 @@ unittest
     assert("messages" !in payload);
     assert("temperature" !in payload);
     assert("max_tokens" !in payload);
-    assertThrown!FormatException(cfg.buildDecisionsPayload(JSONValue("text"), []));
-    assertThrown!FormatException(cfg.buildDecisionsPayload(JSONValue("text"), [question, question]));
+    cfg.buildDecisionsPayload(JSONValue("text"), []).shouldThrow!FormatException;
+    cfg.buildDecisionsPayload(JSONValue("text"), [question, question]).shouldThrow!FormatException;
 }
 
 @Name("Decision parses OpenAI typed values refusals distributions and usage")
@@ -63,11 +62,12 @@ unittest
     ret.usage.cacheMisses.should == 17;
     ret.usage.latency.should == 12.5f;
     ret.raw.should == json;
-    assertThrown!Exception(ret.answer("missing"));
-    assertThrown!Exception(ret.answer(4));
-    assertThrown!FormatException(cfg.parseDecisionsResponse(parseJSON(`{"answers": [{}]}`)));
-    assertThrown!FormatException(cfg.parseDecisionsResponse(
-        parseJSON(`{"answers": [{"type": "predicate", "probability": 2}]}`)));
+    ret.answer("missing").shouldThrow!Exception;
+    ret.answer(4).shouldThrow!Exception;
+    cfg.parseDecisionsResponse(parseJSON(`{"answers": [{}]}`)).shouldThrow!MalformedResponseException;
+    cfg.parseDecisionsResponse(
+        parseJSON(`{"answers": [{"type": "predicate", "probability": 2}]}`),
+    ).shouldThrow!MalformedResponseException;
 }
 
 @Name("System One converts all question types and restores OpenAI answer semantics")
@@ -152,14 +152,14 @@ unittest
     DecisionQuestion[] questions = new DecisionQuestion[255];
     questions[] = question;
     cfg.buildDecisionsPayload(JSONValue("text"), questions)["questions"].object.length.should == 255;
-    assertThrown!FormatException(cfg.buildDecisionsPayload(JSONValue("text"), questions~question));
+    cfg.buildDecisionsPayload(JSONValue("text"), questions~question).shouldThrow!FormatException;
 
     question.type = DecisionType.Score;
     question.levels = new DecisionLevel[10];
     question.levels[] = DecisionLevel("Level");
     cfg.buildDecisionsPayload(JSONValue("text"), [question]);
     question.levels ~= DecisionLevel("Extra");
-    assertThrown!FormatException(cfg.buildDecisionsPayload(JSONValue("text"), [question]));
+    cfg.buildDecisionsPayload(JSONValue("text"), [question]).shouldThrow!FormatException;
 
     question.type = DecisionType.Choice;
     question.levels = null;
@@ -169,7 +169,7 @@ unittest
 
     cfg.buildDecisionsPayload(JSONValue("text"), [question]);
     question.choices ~= DecisionOption(JSONValue("extra"));
-    assertThrown!FormatException(cfg.buildDecisionsPayload(JSONValue("text"), [question]));
+    cfg.buildDecisionsPayload(JSONValue("text"), [question]).shouldThrow!FormatException;
 }
 
 @Name("Decision validation rejects mismatched answers without changing raw responses")
@@ -179,20 +179,27 @@ unittest
     DecisionQuestion question;
     question.name = "urgent";
     question.instructions = "Urgent?";
-    assertThrown!FormatException(cfg.parseDecisionsResponse(parseJSON(`{"answers": []}`), [question]));
-    assertThrown!FormatException(cfg.parseDecisionsResponse(
-        parseJSON(`{"answers": [{"type": "predicate", "name": "other", "probability": 0.5}]}`), [question]));
-    assertThrown!EndpointException(cfg.parseDecisionsResponse(parseJSON(`{"error": {"message": "failed"}}`)));
+    cfg.parseDecisionsResponse(parseJSON(`{"answers": []}`), [question])
+        .shouldThrow!MalformedResponseException;
+    cfg.parseDecisionsResponse(parseJSON(`{"answers": []}`))
+        .shouldThrow!MalformedResponseException;
+    cfg.parseDecisionsResponse(
+        parseJSON(`{"answers": [{"type": "predicate", "name": "other", "probability": 0.5}]}`),
+        [question],
+    ).shouldThrow!MalformedResponseException;
+    cfg.parseDecisionsResponse(parseJSON(`{"error": {"message": "failed"}}`))
+        .shouldThrow!EndpointException;
 
     SystemOneModelConfig systemOne = new SystemOneModelConfig("jev-latest");
     JSONValue json = parseJSON(`{"answers": {"urgent": {"type": "noul", "noul": 0.5}}}`);
     Decision ret = systemOne.parseDecisionsResponse(json, [question]);
     ret.answer.raw["type"].str.should == "noul";
     json["answers"]["urgent"]["type"].str.should == "noul";
-    assertThrown!FormatException(systemOne.parseDecisionsResponse(parseJSON(`{"answers": {}}`), [question]));
-    assertThrown!EndpointException(new TypeSafe()._completions(cfg, JSONValue.init));
-    assertThrown!EndpointException(new TypeSafe()._embeddings(cfg, JSONValue.init));
-    assertThrown!EndpointException(new Claude("http://localhost")._decisions(cfg, JSONValue.init));
-    assertThrown!Exception(new LiteLLM()._decisions(JSONValue.init));
+    systemOne.parseDecisionsResponse(parseJSON(`{"answers": {}}`), [question])
+        .shouldThrow!MalformedResponseException;
+    (new TypeSafe()._completions(cfg, JSONValue.init)).shouldThrow!EndpointException;
+    (new TypeSafe()._embeddings(cfg, JSONValue.init)).shouldThrow!EndpointException;
+    (new Claude("http://localhost")._decisions(cfg, JSONValue.init)).shouldThrow!EndpointException;
+    (new LiteLLM()._decisions(JSONValue.init)).shouldThrow!Exception;
 }
 

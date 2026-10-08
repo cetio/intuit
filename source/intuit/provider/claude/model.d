@@ -289,7 +289,7 @@ private:
             return;
 
         if (json["error"].type == JSONType.string)
-            throw new Exception(json["error"].str);
+            throw new EndpointException("POST", "messages", 0, "error", json["error"].str);
         else if (json["error"].type == JSONType.object && "message" in json["error"])
             throw new EndpointException("POST", "messages", 0, "error", json["error"]["message"].str);
         else

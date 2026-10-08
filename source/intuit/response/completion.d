@@ -2,6 +2,7 @@
 module intuit.response.completion;
 
 import intuit.context.policy.tool : ToolPolicyResult;
+import intuit.exception : MalformedResponseException;
 
 import std.json : JSONValue, JSONType, parseJSON;
 
@@ -125,5 +126,19 @@ struct Completion
 
     /// Parses the choice at `index`'s text as JSON.
     JSONValue json(size_t index = 0) const
-        => text(index).parseJSON();
+    {
+        string candidate = text(index);
+        JSONValue ret;
+        try
+            ret = candidate.parseJSON();
+        catch (Exception)
+        {
+            throw new MalformedResponseException(
+                "Completion text is not valid JSON.",
+                raw.toString(),
+                candidate,
+            );
+        }
+        return ret;
+    }
 }

@@ -1,7 +1,7 @@
 /// Base model configuration class for LLM providers.
 module intuit.model;
 
-import intuit.exception : EndpointException, FormatException;
+import intuit.exception : EndpointException, FormatException, MalformedResponseException;
 import intuit.json : fromJSON;
 import intuit.response;
 import intuit.tool;
@@ -330,53 +330,65 @@ class ModelConfig
     Decision parseDecisionsResponse(JSONValue json, DecisionQuestion[] questions = null)
     {
         if (json.type != JSONType.object)
-            throw new FormatException("Expected a decision response object.");
+            throw malformedResponse(json, "Expected a decision response object.");
         if ("error" in json)
             throw new EndpointException("POST", "decisions", 0, "error", json.toString());
         if ("answers" !in json || json["answers"].type != JSONType.array)
-            throw new FormatException("Expected a decision answers array.");
+            throw malformedResponse(json, "Expected a decision answers array.");
+        if (json["answers"].array.length == 0)
+            throw malformedResponse(json, "Decision response contains no answers.");
         if (questions.length > 0 && questions.length != json["answers"].array.length)
-            throw new FormatException("Decision answer count does not match the questions.");
+            throw malformedResponse(json, "Decision answer count does not match the questions.");
 
         Decision ret;
         ret.raw = json;
         foreach (i, entry; json["answers"].array)
         {
             if (entry.type != JSONType.object || "type" !in entry)
-                throw new FormatException("Decision answers require a type.");
+                throw malformedResponse(json, "Decision answers require a type.");
 
-            DecisionAnswer answer = fromJSON!DecisionAnswer(entry);
+            DecisionAnswer answer;
+            try
+                answer = fromJSON!DecisionAnswer(entry);
+            catch (Exception error)
+            {
+                throw new MalformedResponseException(
+                    "Invalid decision answer: "~error.msg,
+                    json.toString(),
+                    entry.toString(),
+                );
+            }
             answer.raw = entry;
             final switch (answer.type)
             {
                 case DecisionType.Predicate:
-                    validateDecisionProbability(answer.probability);
+                    validateDecisionProbability(answer.probability, json);
                     break;
                 case DecisionType.Choice:
                     if (answer.choice.type != JSONType.string && answer.choice.type != JSONType.true_
                         && answer.choice.type != JSONType.false_)
-                        throw new FormatException("Decision choices must be strings or booleans.");
+                        throw malformedResponse(json, "Decision choices must be strings or booleans.");
                     break;
                 case DecisionType.Score:
                     if (!answer.score.isFinite || answer.score < 0)
-                        throw new FormatException("Invalid decision score.");
+                        throw malformedResponse(json, "Invalid decision score.");
                     break;
                 case DecisionType.Refusal:
                     break;
             }
 
             if ("confidence" in entry)
-                validateDecisionProbability(answer.confidence);
+                validateDecisionProbability(answer.confidence, json);
 
             foreach (ref probability; answer.probabilities)
-                validateDecisionProbability(probability.probability);
+                validateDecisionProbability(probability.probability, json);
 
             if (questions.length > 0)
             {
                 if (answer.name != questions[i].name)
-                    throw new FormatException("Decision answer name does not match its question.");
+                    throw malformedResponse(json, "Decision answer name does not match its question.");
                 if (answer.type != DecisionType.Refusal && answer.type != questions[i].type)
-                    throw new FormatException("Decision answer type does not match its question.");
+                    throw malformedResponse(json, "Decision answer type does not match its question.");
 
                 if (answer.type == DecisionType.Choice)
                 {
@@ -385,19 +397,25 @@ class ModelConfig
                         found = found || option.value == answer.choice;
 
                     if (!found)
-                        throw new FormatException("Decision selected an unknown choice.");
+                        throw malformedResponse(json, "Decision selected an unknown choice.");
                 }
                 else if (answer.type == DecisionType.Score
                     && (answer.score < 0 || answer.score > questions[i].levels.length - 1))
-                    throw new FormatException("Decision score is outside its levels.");
+                    throw malformedResponse(json, "Decision score is outside its levels.");
             }
 
             ret.answers ~= answer;
         }
 
-        ret.usage.modelName = "model" in json ? json["model"].str : name;
+        ret.usage.modelName = "model" in json && json["model"].type == JSONType.string
+            ? json["model"].str : name;
         if ("latency" in json)
-            ret.usage.latency = fromJSON!float(json["latency"]);
+        {
+            try
+                ret.usage.latency = fromJSON!float(json["latency"]);
+            catch (Exception)
+                throw malformedResponse(json, "Invalid decision latency.");
+        }
 
         if ("usage" in json && json["usage"].type == JSONType.object)
         {
@@ -412,7 +430,7 @@ class ModelConfig
                 ret.usage.cacheHits = readUint(usage["input_tokens_details"], "cached_tokens", null);
 
             if (ret.usage.cacheHits > ret.usage.promptTokens)
-                throw new FormatException("Cached decision tokens exceed input tokens.");
+                throw malformedResponse(json, "Cached decision tokens exceed input tokens.");
 
             ret.usage.cacheMisses = ret.usage.promptTokens - ret.usage.cacheHits;
         }
@@ -420,6 +438,11 @@ class ModelConfig
     }
 
 protected:
+    static MalformedResponseException malformedResponse(JSONValue response, string message)
+    {
+        return new MalformedResponseException(message, response.toString());
+    }
+
     static JSONValue decisionQuestions(DecisionQuestion[] questions)
     {
         if (questions.length == 0)
@@ -492,10 +515,10 @@ protected:
     }
 
 private:
-    static void validateDecisionProbability(double probability)
+    static void validateDecisionProbability(double probability, JSONValue response)
     {
         if (!probability.isFinite || probability < 0 || probability > 1)
-            throw new FormatException("Decision probabilities must be between zero and one.");
+            throw malformedResponse(response, "Decision probabilities must be between zero and one.");
     }
 
     static JSONValue normalizeSchema(JSONValue schema)
@@ -745,7 +768,7 @@ private:
             return;
 
         if (json["error"].type == JSONType.string)
-            throw new Exception(json["error"].str);
+            throw new EndpointException("POST", "chat/completions", 0, "error", json["error"].str);
         else if (json["error"].type == JSONType.object && "message" in json["error"])
             throw new EndpointException("POST", "chat/completions", 0, "error", json["error"]["message"].str);
         else

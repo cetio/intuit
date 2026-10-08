@@ -90,9 +90,9 @@ public:
         if (json.type != JSONType.object || "error" in json)
             return super.parseDecisionsResponse(json, questions);
         if ("answers" !in json || json["answers"].type != JSONType.object)
-            throw new FormatException("Expected a System One answers object.");
+            throw malformedResponse(json, "Expected a System One answers object.");
         if (questions.length == 0 || questions.length != json["answers"].object.length)
-            throw new FormatException("System One answers must match the requested questions.");
+            throw malformedResponse(json, "System One answers must match the requested questions.");
 
         JSONValue normalized = JSONValue(json.object.dup);
         normalized["answers"] = JSONValue.emptyArray;
@@ -100,23 +100,26 @@ public:
         {
             string key = questionKey(question, i);
             if (key !in json["answers"] || json["answers"][key].type != JSONType.object)
-                throw new FormatException("Missing System One answer: "~key);
+                throw malformedResponse(json, "Missing System One answer: "~key);
 
             JSONValue entry = JSONValue(json["answers"][key].object.dup);
             if ("type" !in entry || entry["type"].type != JSONType.string)
-                throw new FormatException("System One answers require a type.");
+                throw malformedResponse(json, "System One answers require a type.");
 
             entry["name"] = JSONValue(question.name);
             if (entry["type"].str == "noul")
             {
                 if ("noul" !in entry)
-                    throw new FormatException("Missing System One noul probability.");
+                    throw malformedResponse(json, "Missing System One noul probability.");
 
                 entry["type"] = JSONValue("predicate");
                 entry["probability"] = entry["noul"];
             }
             else if (entry["type"].str == "choice")
             {
+                if ("choice" !in entry || entry["choice"].type != JSONType.string)
+                    throw malformedResponse(json, "System One choice answers require a string choice.");
+
                 foreach (ref option; question.choices)
                 {
                     if (optionKey(question, option) == entry["choice"].str)
@@ -132,7 +135,7 @@ public:
                 JSONValue probabilities = entry["probabilities"];
                 size_t count = question.type == DecisionType.Choice ? question.choices.length : question.levels.length;
                 if (probabilities.type != JSONType.object || probabilities.object.length != count)
-                    throw new FormatException("System One probabilities must match the requested options.");
+                    throw malformedResponse(json, "System One probabilities must match the requested options.");
 
                 entry["probabilities"] = JSONValue.emptyArray;
                 foreach (j; 0..count)
@@ -140,7 +143,7 @@ public:
                     string option = question.type == DecisionType.Choice
                         ? optionKey(question, question.choices[j]) : j.to!string;
                     if (option !in probabilities)
-                        throw new FormatException("Missing System One option probability: "~option);
+                        throw malformedResponse(json, "Missing System One option probability: "~option);
 
                     JSONValue probability = JSONValue.emptyObject;
                     probability["value"] = question.type == DecisionType.Choice

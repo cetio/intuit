@@ -4,7 +4,7 @@ module intuit.exception;
 import std.format : format;
 import std.exception : basicExceptionCtors;
 
-/// Thrown when an endpoint returns a non-success status or invalid response.
+/// Base exception for endpoint request failures.
 class EndpointException : Exception
 {
     /// HTTP method used for the request.
@@ -65,8 +65,95 @@ private:
     }
 }
 
-/// Thrown when parsing a completion response fails.
-class ResponseFormatException : Exception
+/// Thrown when an endpoint returns an authentication error.
+class AuthException : EndpointException
+{
+    /**
+     * Constructs an AuthException.
+     *
+     * Params:
+     *   method = The HTTP method used for the request.
+     *   route = The endpoint route.
+     *   status = The HTTP status code.
+     *   reason = The HTTP reason phrase.
+     *   content = The raw response body.
+     */
+    this(
+        string method,
+        string route,
+        ushort status,
+        string reason,
+        string content,
+    )
+    {
+        super(method, route, status, reason, content);
+    }
+}
+
+/// Thrown when an endpoint returns a rate limit error.
+class RateLimitException : EndpointException
+{
+    /**
+     * Constructs a RateLimitException.
+     *
+     * Params:
+     *   method = The HTTP method used for the request.
+     *   route = The endpoint route.
+     *   status = The HTTP status code.
+     *   reason = The HTTP reason phrase.
+     *   content = The raw response body.
+     */
+    this(
+        string method,
+        string route,
+        ushort status,
+        string reason,
+        string content,
+    )
+    {
+        super(method, route, status, reason, content);
+    }
+}
+
+/// Thrown when a transport error occurs.
+class TransportException : EndpointException
+{
+    string detail;
+
+    /**
+     * Constructs a TransportException.
+     *
+     * Params:
+     *   method = The HTTP method used for the request.
+     *   route = The endpoint route.
+     *   detail = The transport error details.
+     */
+    this(string method, string route, string detail)
+    {
+        super(method, route, 0, "transport error", detail);
+        this.detail = detail;
+    }
+}
+
+/// Thrown when a request times out.
+class RequestTimeoutException : TransportException
+{
+    /**
+     * Constructs a RequestTimeoutException.
+     *
+     * Params:
+     *  method = The HTTP method used for the request.
+     *  route = The endpoint route.
+     *  detail = Additional timeout details.
+     */
+    this(string method, string route, string detail)
+    {
+        super(method, route, "Request timed out: "~detail);
+    }
+}
+
+/// Thrown when parsing a response fails.
+class MalformedResponseException : Exception
 {
     /// The raw text that could not be parsed.
     string rawText;
@@ -74,14 +161,14 @@ class ResponseFormatException : Exception
     string candidateText;
 
     /**
-     * Constructs a ResponseFormatException.
+     * Constructs a MalformedResponseException.
      *
      * Params:
      *  message = The exception message.
      *  rawText = The raw unparsable text.
      *  candidateText = The candidate text that caused the failure.
      */
-    this(string message, string rawText, string candidateText)
+    this(string message, string rawText = null, string candidateText = null)
     {
         super(message);
         this.rawText = rawText;

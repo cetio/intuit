@@ -7,7 +7,13 @@ public import intuit.provider.qwen;
 public import intuit.provider.typesafe;
 
 import intuit.context;
-import intuit.exception : EndpointException;
+import intuit.exception :
+    AuthException,
+    EndpointException,
+    MalformedResponseException,
+    RateLimitException,
+    RequestTimeoutException,
+    TransportException;
 import intuit.json : toJSON;
 import intuit.model;
 import intuit.response;
@@ -15,7 +21,7 @@ import intuit.tool;
 
 import std.conv : to;
 import std.json : JSONValue, JSONType, parseJSON;
-import std.net.curl : HTTP;
+import std.net.curl : CurlException, CurlTimeoutException, HTTP;
 import std.string : assumeUTF;
 import std.traits : isArray, isIntegral;
 import core.time : MonoTime;
@@ -75,7 +81,9 @@ interface IEndpoint
  *  The parsed JSON response.
  *
  * Throws:
- *  EndpointException on HTTP or JSON parse failures.
+ *  EndpointException subclasses on HTTP failures.
+ *  TransportException subclasses on transport failures.
+ *  MalformedResponseException if the response body is invalid JSON.
  */
 package(intuit) JSONValue request(
     ref HTTP http,
@@ -139,9 +147,22 @@ package(intuit) JSONValue request(
             responseBody ~= chunk;
         return chunk.length;
     };
-    http.perform();
+
+    try
+        http.perform();
+    catch (CurlTimeoutException error)
+        throw new RequestTimeoutException(method.to!string, url, error.msg);
+    catch (CurlException error)
+        throw new TransportException(method.to!string, url, error.msg);
 
     string content = responseBody is null ? null : responseBody.assumeUTF().idup;
+
+    if (status == 401 || status == 403)
+        throw new AuthException(method.to!string, url, status, reason, content);
+
+    if (status == 429)
+        throw new RateLimitException(method.to!string, url, status, reason, content);
+
     if (status < 200 || status >= 300)
         throw new EndpointException(method.to!string, url, status, reason, content);
 
@@ -149,16 +170,7 @@ package(intuit) JSONValue request(
     try
         ret = content.parseJSON();
     catch (Exception)
-    {
-        throw new EndpointException(
-            method.to!string,
-            url,
-            status,
-            reason,
-            content,
-            "Endpoint returned invalid JSON.",
-        );
-    }
+        throw new MalformedResponseException("Endpoint returned invalid JSON.", content);
 
     long usecs = (MonoTime.currTime - start).total!"usecs";
     ret["latency"] = JSONValue(usecs / 1000.0f);
