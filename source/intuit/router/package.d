@@ -51,6 +51,8 @@ interface IRouter
     /// Sends a raw embeddings request. Use `embeddings` instead.
     JSONValue _embeddings(JSONValue payload);
 
+    JSONValue _decisions(JSONValue payload);
+
     /// Re-fetches the model catalog. Implementation defined, and may have additional behavior.
     void refresh();
 }
@@ -109,6 +111,17 @@ private Completion completeWithPolicy(R)(R router, int maxToolRounds)
         ret = requestCompletion(router);
     }
     return ret;
+}
+
+Decision decisions(R, D)(R router, auto ref D data, DecisionQuestion[] questions)
+    if (is(R : IRouter))
+{
+    if (router.active is null)
+        throw new Exception("Router has no active model set.");
+
+    ModelConfig cfg = router.config();
+    JSONValue payload = cfg.buildDecisionsPayload(data.toJSON(), questions);
+    return cfg.parseDecisionsResponse(router._decisions(payload), questions);
 }
 
 private Completion requestCompletion(R)(R router)

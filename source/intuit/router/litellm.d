@@ -97,6 +97,11 @@ public:
         throw new Exception("LiteLLM router currently only supports catalog access.");
     }
 
+    override JSONValue _decisions(JSONValue payload)
+    {
+        throw new Exception("LiteLLM router currently only supports catalog access.");
+    }
+
     override JSONValue _embeddings(JSONValue payload)
     {
         throw new Exception("LiteLLM router currently only supports catalog access.");

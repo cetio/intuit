@@ -4,6 +4,7 @@ module intuit.provider;
 public import intuit.provider.openai;
 public import intuit.provider.claude;
 public import intuit.provider.qwen;
+public import intuit.provider.typesafe;
 
 import intuit.context;
 import intuit.exception : EndpointException;
@@ -52,6 +53,8 @@ interface IEndpoint
     JSONValue _completions(ModelConfig cfg, JSONValue payload);
     /// Sends a raw embeddings request. Use `embeddings` instead.
     JSONValue _embeddings(ModelConfig cfg, JSONValue payload);
+
+    JSONValue _decisions(ModelConfig cfg, JSONValue payload);
 }
 
 /**
@@ -223,6 +226,19 @@ Completion completions(E, D)(E ep, string modelName, auto ref D data, int maxToo
         JSONValue resp = ep._completions(cfg, payload);
         return cfg.parseResponse(resp);
     }
+}
+
+Decision decisions(E, D)(
+    E ep,
+    string modelName,
+    auto ref D data,
+    DecisionQuestion[] questions,
+)
+    if (is(E : IEndpoint))
+{
+    ModelConfig cfg = ep.config(modelName);
+    JSONValue payload = cfg.buildDecisionsPayload(data.toJSON(), questions);
+    return cfg.parseDecisionsResponse(ep._decisions(cfg, payload), questions);
 }
 
 private Completion requestCompletion(E)(E ep, ModelConfig cfg, ref Context context)

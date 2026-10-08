@@ -2,12 +2,13 @@
 module intuit.model;
 
 import intuit.exception : EndpointException, FormatException;
+import intuit.json : fromJSON;
 import intuit.response;
 import intuit.tool;
 
 import std.algorithm.searching : canFind;
 import std.json : JSONValue, JSONType, parseJSON;
-import std.math : isNaN;
+import std.math : isFinite, isNaN;
 import std.string : toLower;
 
 /// Configuration and request/response logic for an LLM model.
@@ -308,7 +309,195 @@ class ModelConfig
         return ret;
     }
 
+    JSONValue buildDecisionsPayload(JSONValue input, DecisionQuestion[] questions)
+    {
+        if (input.type != JSONType.string && input.type != JSONType.array)
+            throw new FormatException("OpenAI decisions require text or user messages.");
+
+        JSONValue ret = JSONValue.emptyObject;
+        if (params.type == JSONType.object)
+        {
+            foreach (key, value; params.object)
+                ret[key] = value;
+        }
+
+        ret["model"] = JSONValue(name);
+        ret["input"] = input;
+        ret["questions"] = decisionQuestions(questions);
+        return ret;
+    }
+
+    Decision parseDecisionsResponse(JSONValue json, DecisionQuestion[] questions = null)
+    {
+        if (json.type != JSONType.object)
+            throw new FormatException("Expected a decision response object.");
+        if ("error" in json)
+            throw new EndpointException("POST", "decisions", 0, "error", json.toString());
+        if ("answers" !in json || json["answers"].type != JSONType.array)
+            throw new FormatException("Expected a decision answers array.");
+        if (questions.length > 0 && questions.length != json["answers"].array.length)
+            throw new FormatException("Decision answer count does not match the questions.");
+
+        Decision ret;
+        ret.raw = json;
+        foreach (i, entry; json["answers"].array)
+        {
+            if (entry.type != JSONType.object || "type" !in entry)
+                throw new FormatException("Decision answers require a type.");
+
+            DecisionAnswer answer = fromJSON!DecisionAnswer(entry);
+            answer.raw = entry;
+            final switch (answer.type)
+            {
+                case DecisionType.Predicate:
+                    validateDecisionProbability(answer.probability);
+                    break;
+                case DecisionType.Choice:
+                    if (answer.choice.type != JSONType.string && answer.choice.type != JSONType.true_
+                        && answer.choice.type != JSONType.false_)
+                        throw new FormatException("Decision choices must be strings or booleans.");
+                    break;
+                case DecisionType.Score:
+                    if (!answer.score.isFinite || answer.score < 0)
+                        throw new FormatException("Invalid decision score.");
+                    break;
+                case DecisionType.Refusal:
+                    break;
+            }
+
+            if ("confidence" in entry)
+                validateDecisionProbability(answer.confidence);
+
+            foreach (ref probability; answer.probabilities)
+                validateDecisionProbability(probability.probability);
+
+            if (questions.length > 0)
+            {
+                if (answer.name != questions[i].name)
+                    throw new FormatException("Decision answer name does not match its question.");
+                if (answer.type != DecisionType.Refusal && answer.type != questions[i].type)
+                    throw new FormatException("Decision answer type does not match its question.");
+
+                if (answer.type == DecisionType.Choice)
+                {
+                    bool found;
+                    foreach (ref option; questions[i].choices)
+                        found = found || option.value == answer.choice;
+
+                    if (!found)
+                        throw new FormatException("Decision selected an unknown choice.");
+                }
+                else if (answer.type == DecisionType.Score
+                    && (answer.score < 0 || answer.score > questions[i].levels.length - 1))
+                    throw new FormatException("Decision score is outside its levels.");
+            }
+
+            ret.answers ~= answer;
+        }
+
+        ret.usage.modelName = "model" in json ? json["model"].str : name;
+        if ("latency" in json)
+            ret.usage.latency = fromJSON!float(json["latency"]);
+
+        if ("usage" in json && json["usage"].type == JSONType.object)
+        {
+            JSONValue usage = json["usage"];
+            ret.usage.promptTokens = readUint(usage, "input_tokens", null);
+            ret.usage.completionTokens = readUint(usage, "output_tokens", null);
+            ret.usage.totalTokens = readUint(usage, "total_tokens", null);
+            if ("total_tokens" !in usage)
+                ret.usage.totalTokens = ret.usage.promptTokens + ret.usage.completionTokens;
+
+            if ("input_tokens_details" in usage && usage["input_tokens_details"].type == JSONType.object)
+                ret.usage.cacheHits = readUint(usage["input_tokens_details"], "cached_tokens", null);
+
+            if (ret.usage.cacheHits > ret.usage.promptTokens)
+                throw new FormatException("Cached decision tokens exceed input tokens.");
+
+            ret.usage.cacheMisses = ret.usage.promptTokens - ret.usage.cacheHits;
+        }
+        return ret;
+    }
+
+protected:
+    static JSONValue decisionQuestions(DecisionQuestion[] questions)
+    {
+        if (questions.length == 0)
+            throw new FormatException("Decisions require at least one question.");
+
+        JSONValue ret = JSONValue.emptyArray;
+        bool[string] names;
+        foreach (ref question; questions)
+        {
+            if (question.instructions.length == 0 || question.type == DecisionType.Refusal)
+                throw new FormatException("Decision questions require instructions and a non-refusal type.");
+
+            JSONValue entry = JSONValue.emptyObject;
+            entry["type"] = JSONValue(cast(string)question.type);
+            entry["instructions"] = JSONValue(question.instructions);
+            if (question.name.length > 0)
+            {
+                if (question.name in names)
+                    throw new FormatException("Decision question names must be unique.");
+
+                names[question.name] = true;
+                entry["name"] = JSONValue(question.name);
+            }
+
+            if (question.type == DecisionType.Choice)
+            {
+                if (question.choices.length < 2)
+                    throw new FormatException("Choice questions require at least two choices.");
+
+                entry["choices"] = JSONValue.emptyArray;
+                bool[string] values;
+                foreach (ref option; question.choices)
+                {
+                    if (option.value.type != JSONType.string && option.value.type != JSONType.true_
+                        && option.value.type != JSONType.false_)
+                        throw new FormatException("Decision choice values must be strings or booleans.");
+                    if (option.value.toString() in values)
+                        throw new FormatException("Decision choice values must be unique.");
+
+                    values[option.value.toString()] = true;
+                    JSONValue choice = JSONValue(["value": option.value]);
+                    if (option.description.length > 0)
+                        choice["description"] = JSONValue(option.description);
+
+                    entry["choices"].array ~= choice;
+                }
+            }
+            else if (question.type == DecisionType.Score)
+            {
+                if (question.levels.length < 2)
+                    throw new FormatException("Score questions require at least two levels.");
+
+                entry["levels"] = JSONValue.emptyArray;
+                foreach (ref level; question.levels)
+                {
+                    if (level.label.length == 0)
+                        throw new FormatException("Decision score levels require labels.");
+
+                    JSONValue score = JSONValue(["label": JSONValue(level.label)]);
+                    if (level.description.length > 0)
+                        score["description"] = JSONValue(level.description);
+
+                    entry["levels"].array ~= score;
+                }
+            }
+
+            ret.array ~= entry;
+        }
+        return ret;
+    }
+
 private:
+    static void validateDecisionProbability(double probability)
+    {
+        if (!probability.isFinite || probability < 0 || probability > 1)
+            throw new FormatException("Decision probabilities must be between zero and one.");
+    }
+
     static JSONValue normalizeSchema(JSONValue schema)
     {
         if (schema.type == JSONType.string && isSchemaType(schema.str))

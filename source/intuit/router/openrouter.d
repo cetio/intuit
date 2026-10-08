@@ -6,6 +6,7 @@ import intuit.exception : EndpointException;
 import intuit.model;
 import intuit.router.details;
 import intuit.provider.openai;
+import intuit.provider.systemone : SystemOneModelConfig;
 import intuit.router;
 import intuit.tool;
 
@@ -106,7 +107,7 @@ public:
     {
         if (auto found = modelName in _configs)
             return *found;
-        ModelConfig ret = new ModelConfig(modelName);
+        ModelConfig ret = new SystemOneModelConfig(modelName);
         _configs[modelName] = ret;
         return ret;
     }
@@ -133,6 +134,19 @@ public:
             buildHeaders(),
             decorate(payload),
         );
+
+    override JSONValue _decisions(JSONValue payload)
+    {
+        if (provider.type != JSONType.null_)
+            payload["provider"] = provider;
+
+        return _http.request(
+            HTTP.Method.post,
+            _url~"/api/alpha/decisions",
+            buildHeaders(),
+            payload,
+        );
+    }
 
     override JSONValue _embeddings(JSONValue payload)
     {
@@ -290,6 +304,9 @@ private:
                             break;
                         case "embedding":
                             ret.outputModalities ~= Modality.embedding;
+                            break;
+                        case "decisions":
+                            ret.outputModalities ~= Modality.Decisions;
                             break;
                         default:
                             break;

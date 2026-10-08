@@ -118,6 +118,17 @@ public:
         );
     }
 
+    override JSONValue _decisions(ModelConfig cfg, JSONValue payload)
+    {
+        throw new EndpointException(
+            "POST",
+            "decisions",
+            0,
+            "not supported",
+            "Claude does not support decisions.",
+        );
+    }
+
     override JSONValue _embeddings(ModelConfig cfg, JSONValue payload)
     {
         throw new EndpointException(

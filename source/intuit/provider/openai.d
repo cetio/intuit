@@ -115,6 +115,16 @@ public:
         );
     }
 
+    override JSONValue _decisions(ModelConfig cfg, JSONValue payload)
+    {
+        return _http.request(
+            HTTP.Method.post,
+            _url~"/v1/decisions",
+            buildHeaders(),
+            payload,
+        );
+    }
+
     override JSONValue _embeddings(ModelConfig cfg, JSONValue payload)
     {
         return _http.request(

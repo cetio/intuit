@@ -14,6 +14,7 @@ enum Modality : string
     pdf = "pdf",
     /// Embedding vector output.
     embedding = "embedding",
+    Decisions = "decisions",
 }
 
 enum ModelCapability : string
