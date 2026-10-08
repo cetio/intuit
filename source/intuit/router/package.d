@@ -9,7 +9,7 @@ import intuit.context;
 import intuit.json : toJSON;
 import intuit.model;
 import intuit.response;
-import intuit.tool;
+import intuit.tool : ToolRegistry;
 
 import std.json : JSONValue, JSONType;
 import std.traits : isArray, isIntegral;
@@ -60,33 +60,80 @@ interface IRouter
  *
  * Params:
  *   router = The router to send the request through.
+ *   maxToolRounds = Maximum automatically handled tool rounds. Defaults to 8.
  *
  * Returns: The completion response.
  */
-Completion completions(R)(R router)
+Completion completions(R)(R router, int maxToolRounds = 8)
+    if (is(R : IRouter))
+{
+    return completeWithPolicy(router, maxToolRounds);
+}
+
+private Completion completeWithPolicy(R)(R router, int maxToolRounds)
+    if (is(R : IRouter))
+{
+    if (maxToolRounds < 0)
+        throw new Exception("maxToolRounds cannot be negative.");
+
+    Completion ret = requestCompletion(router);
+    if (maxToolRounds == 0)
+    {
+        foreach (i; 0..(ret.choices.length == 0 ? 0 : ret.choice.toolCalls.length))
+        {
+            ret.choice.toolCalls[i].policyResult.status = ToolPolicyStatus.Pending;
+            ret.choice.toolCalls[i].policyResult.message =
+                "Automatic tool policy execution disabled by maxToolRounds.";
+        }
+        return ret;
+    }
+
+    foreach (round; 0..maxToolRounds)
+    {
+        if (ret.choices.length == 0 || ret.choice.toolCalls.length == 0)
+            return ret;
+
+        router.context.executePolicy(router.tools, ret.choice.toolCalls);
+        bool requiresManualHandling;
+        foreach (call; ret.choice.toolCalls)
+        {
+            if (call.policyResult.status == ToolPolicyStatus.Failed
+                || call.policyResult.status == ToolPolicyStatus.Pending)
+            {
+                requiresManualHandling = true;
+                break;
+            }
+        }
+        if (requiresManualHandling || round + 1 == maxToolRounds)
+            return ret;
+        ret = requestCompletion(router);
+    }
+    return ret;
+}
+
+private Completion requestCompletion(R)(R router)
     if (is(R : IRouter))
 {
     if (router.active is null)
         throw new Exception("Router has no active model set.");
 
     ModelConfig cfg = router.config();
-
     JSONValue payload = cfg.buildPayload(router.context.toJSON(), router.tools);
     JSONValue resp = router._completions(payload);
     Completion ret = cfg.parseResponse(resp);
-
     router.context.assistant(ret);
-
     return ret;
 }
 
-Completion completions(R, D)(R router, auto ref D data)
+Completion completions(R, D)(R router, auto ref D data, int maxToolRounds = 8)
     if (is(R : IRouter))
 {
+    if (maxToolRounds < 0)
+        throw new Exception("maxToolRounds cannot be negative.");
     if (router.active is null)
         throw new Exception("Router has no active model set.");
     router.context.user(data);
-    return completions(router);
+    return completeWithPolicy(router, maxToolRounds);
 }
 
 /**

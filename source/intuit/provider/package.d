@@ -170,22 +170,68 @@ package(intuit) JSONValue request(
  *   modelName = The name of the model to use.
  *   data = The input data. If this is a Context, it will be mutated
  *          in-place with the assistant response.
+ *   maxToolRounds = Maximum automatically handled tool rounds. Defaults to 8.
  *
  * Returns: The completion response.
  */
-Completion completions(E, D)(E ep, string modelName, auto ref D data)
+Completion completions(E, D)(E ep, string modelName, auto ref D data, int maxToolRounds = 8)
     if (is(E : IEndpoint))
 {
-    ModelConfig cfg = ep.config(modelName);
-    JSONValue input = data.toJSON();
+    if (maxToolRounds < 0)
+        throw new Exception("maxToolRounds cannot be negative.");
 
-    JSONValue payload = cfg.buildPayload(input, ep.tools);
+    ModelConfig cfg = ep.config(modelName);
+    static if (is(D == Context))
+    {
+        Completion ret = requestCompletion(ep, cfg, data);
+        if (maxToolRounds == 0)
+        {
+            foreach (i; 0..(ret.choices.length == 0 ? 0 : ret.choice.toolCalls.length))
+            {
+                ret.choice.toolCalls[i].policyResult.status = ToolPolicyStatus.Pending;
+                ret.choice.toolCalls[i].policyResult.message =
+                    "Automatic tool policy execution disabled by maxToolRounds.";
+            }
+            return ret;
+        }
+
+        foreach (round; 0..maxToolRounds)
+        {
+            if (ret.choices.length == 0 || ret.choice.toolCalls.length == 0)
+                return ret;
+
+            data.executePolicy(ep.tools, ret.choice.toolCalls);
+            bool requiresManualHandling;
+            foreach (call; ret.choice.toolCalls)
+            {
+                if (call.policyResult.status == ToolPolicyStatus.Failed
+                    || call.policyResult.status == ToolPolicyStatus.Pending)
+                {
+                    requiresManualHandling = true;
+                    break;
+                }
+            }
+            if (requiresManualHandling || round + 1 == maxToolRounds)
+                return ret;
+            ret = requestCompletion(ep, cfg, data);
+        }
+        return ret;
+    }
+    else
+    {
+        JSONValue payload = cfg.buildPayload(data.toJSON(), ep.tools);
+        JSONValue resp = ep._completions(cfg, payload);
+        return cfg.parseResponse(resp);
+    }
+}
+
+private Completion requestCompletion(E)(E ep, ModelConfig cfg, ref Context context)
+    if (is(E : IEndpoint))
+{
+    JSONValue payload = cfg.buildPayload(context.toJSON(), ep.tools);
     JSONValue resp = ep._completions(cfg, payload);
     Completion ret = cfg.parseResponse(resp);
-
-    static if (is(D == Context))
-        data.assistant(ret);
-
+    context.assistant(ret);
     return ret;
 }
 

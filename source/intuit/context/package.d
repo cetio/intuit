@@ -3,10 +3,12 @@ module intuit.context;
 
 public import intuit.context.message;
 public import intuit.context.compactor;
-public import intuit.context.guardrails;
+public import intuit.context.policy;
 
 import intuit.json : toJSON;
 import intuit.response;
+import intuit.tool : Tool, ToolRegistry;
+
 import std.json : JSONValue;
 
 /// Mutable conversation context that accumulates typed messages for LLM requests.
@@ -15,6 +17,7 @@ struct Context
     IMessage[] messages;
     /// The compactor applied after each append. Disabled if set to null.
     Compactor compactor;
+    ToolPolicy toolPolicy;
 
     /**
      * Appends a pre-built message, compacting afterwards if a compactor is set.
@@ -107,4 +110,67 @@ struct Context
     /// Gets the number of messages in the context.
     size_t length() const
         => messages.length;
+
+    package(intuit) void executePolicy(ToolRegistry registry, ToolCall[] calls)
+    {
+        foreach (i; 0..calls.length)
+        {
+            calls[i].policyResult.status = ToolPolicyStatus.None;
+            calls[i].policyResult.message = null;
+
+            Tool registeredTool;
+            try
+                registeredTool = registry.get(calls[i].name);
+            catch (Exception e)
+            {
+                calls[i].policyResult.status = ToolPolicyStatus.Failed;
+                calls[i].policyResult.message = e.msg;
+                continue;
+            }
+
+            ToolPolicyStatus decision;
+            try
+                decision = toolPolicy.eval(registeredTool);
+            catch (Exception e)
+            {
+                calls[i].policyResult.status = ToolPolicyStatus.Failed;
+                calls[i].policyResult.message = "Tool policy evaluation failed: "~e.msg;
+                continue;
+            }
+
+            JSONValue output;
+            final switch (decision)
+            {
+                case ToolPolicyStatus.None:
+                    calls[i].policyResult.status = ToolPolicyStatus.Pending;
+                    calls[i].policyResult.message = "No policy rule matched.";
+                    continue;
+                case ToolPolicyStatus.Pending:
+                    calls[i].policyResult.status = ToolPolicyStatus.Pending;
+                    calls[i].policyResult.message = "Policy evaluation is pending.";
+                    continue;
+                case ToolPolicyStatus.Failed:
+                    calls[i].policyResult.status = ToolPolicyStatus.Failed;
+                    calls[i].policyResult.message = "Tool policy failed to resolve the tool.";
+                    continue;
+                case ToolPolicyStatus.Allowed:
+                    calls[i].policyResult.status = ToolPolicyStatus.Allowed;
+                    try
+                        output = registeredTool.impl(calls[i].arguments);
+                    catch (Exception e)
+                    {
+                        calls[i].policyResult.status = ToolPolicyStatus.Failed;
+                        calls[i].policyResult.message = "Tool execution failed: "~e.msg;
+                        output = JSONValue(calls[i].policyResult.message);
+                    }
+                    break;
+                case ToolPolicyStatus.Denied:
+                    calls[i].policyResult.status = ToolPolicyStatus.Denied;
+                    calls[i].policyResult.message = "Tool execution denied by policy.";
+                    output = JSONValue(calls[i].policyResult.message);
+                    break;
+            }
+            tool(calls[i].id, output);
+        }
+    }
 }

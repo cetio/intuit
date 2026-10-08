@@ -97,9 +97,30 @@ cfg.setRequiredTool(ep.tools.get("getWeather"));
 
 Passing `null` clears the tool choice. Provider and model support varies; Intuit serializes the requested setting but cannot force an incompatible model to honor it.
 
+## Tool Execution Policy
+
+A `Context` has a `toolPolicy` that can allow or deny named tools or delegate decisions:
+
+```d
+router.context.toolPolicy.allow("getWeather");
+router.context.toolPolicy.deny("deleteFile");
+
+router.context.toolPolicy.evaluator = (Tool tool) {
+    if (tool.name == "lookupAccount")
+        return ToolPolicyStatus.Allowed;
+    return ToolPolicyStatus.Pending;
+};
+```
+
+A deny-list match takes precedence over an allow-list match; list matches take precedence over the evaluator. If no list matches and the evaluator is null, `eval` returns `ToolPolicyStatus.None`.
+
+Context-backed router and endpoint completions process tool batches on a best-effort basis. `Allowed` tools run and append their result; `Denied` tools are not run and append a policy-rejection result. Unregistered tools and policy/execution errors are marked `Failed`. A `None` policy decision is exposed as `Pending` on the `ToolCall`, as is an evaluator that explicitly returns `Pending`. Inspect each call's `policyResult.status` and `policyResult.message`. If any call is `Pending` or `Failed`, the batch is still fully evaluated, then completion returns so the caller can resolve those calls manually. When automatic policy rounds finish, inspect the stored assistant message in the context to review prior call results.
+
+Context-backed completions accept `maxToolRounds` (default `8`) to limit automatic policy-managed tool rounds. For example, use `completions(router, "Question", 3)` or `completions(ep, "model", context, 3)`. Setting it to zero skips policy execution and marks returned calls `Pending`. Reaching the round limit returns the last tool-call completion with its per-call results attached.
+
 ## Executing Tool Calls
 
-Intuit parses requested tools but does not execute them automatically. Look up each call by name, invoke its wrapper with the parsed arguments, and append the result to the context:
+Without a policy decision, Intuit returns requested calls for application code to handle. Look up each call by name, invoke its wrapper with the parsed arguments, and append the result to the context:
 
 ```d
 import intuit;

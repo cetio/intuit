@@ -128,7 +128,7 @@ OpenRouter-specific request and header options are public fields on the router:
 | Field | Destination | Purpose |
 | --- | --- | --- |
 | `referer` | `HTTP-Referer` header | Identifies the calling application. |
-| `title` | `X-Title` header | Supplies the application title. |
+| `title` | `X-OpenRouter-Title` header | Supplies the application title. |
 | `categories` | `X-OpenRouter-Categories` header | Comma-separated marketplace categories. |
 | `route` | Chat request | Routing strategy such as `"fallback"`. |
 | `transforms` | Chat request | Message transforms such as `"middle-out"`. |

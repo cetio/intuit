@@ -1,6 +1,8 @@
 /// Completion response types.
 module intuit.response.completion;
 
+import intuit.context.policy.tool : ToolPolicyResult;
+
 import std.json : JSONValue, JSONType, parseJSON;
 
 /// Reason why a completion generation finished.
@@ -31,6 +33,7 @@ struct ToolCall
     string name;
     /// Arguments to pass to the tool as JSON.
     JSONValue arguments;
+    ToolPolicyResult policyResult;
 }
 
 /// A single choice within a completion response.
