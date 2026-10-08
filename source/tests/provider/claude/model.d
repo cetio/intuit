@@ -2,6 +2,7 @@ module tests.provider.claude.model;
 
 import intuit.provider.claude.model;
 import intuit.response;
+import intuit.tool : Tool;
 import unit_threaded;
 import std.json : JSONValue, JSONType;
 
@@ -27,6 +28,60 @@ unittest
     payload["system"].str.should == "Be helpful.";
     payload["messages"].type.should == JSONType.array;
     payload["messages"].array.length.should == 1;
+}
+
+@Name("buildPayload uses the Anthropic structured output format")
+unittest
+{
+    ClaudeModelConfig cfg = new ClaudeModelConfig("claude-opus-4-8");
+    JSONValue schema = JSONValue.emptyObject;
+    schema["type"] = JSONValue("object");
+    schema["properties"] = JSONValue.emptyObject;
+    schema["properties"]["answer"] = JSONValue("string");
+    schema["required"] = JSONValue([JSONValue("answer")]);
+    schema["additionalProperties"] = JSONValue(false);
+    cfg.setResponseSchema("screen_result", schema);
+
+    JSONValue payload = cfg.buildPayload(JSONValue("Classify this content."));
+    JSONValue format = payload["output_config"]["format"];
+
+    format["type"].str.should == "json_schema";
+    format["schema"]["properties"]["answer"]["type"].str.should == "string";
+    format["schema"]["additionalProperties"].boolean.should == false;
+    format.object.length.should == 2;
+    assert("response_format" !in payload);
+}
+
+@Name("buildPayload translates tool liability to Anthropic choices")
+unittest
+{
+    ClaudeModelConfig cfg = new ClaudeModelConfig("claude-opus-4-8");
+
+    foreach (string liability; ["auto", "required", "none"])
+    {
+        cfg.setToolLiability(liability);
+        JSONValue payload = cfg.buildPayload(JSONValue("Hello"));
+        payload["tool_choice"]["type"].str.should ==
+            (liability == "required" ? "any" : liability);
+    }
+}
+
+@Name("buildPayload translates a required tool to Anthropic format")
+unittest
+{
+    ClaudeModelConfig cfg = new ClaudeModelConfig("claude-opus-4-8");
+    Tool tool = new Tool(
+        "get_weather",
+        "Get the weather.",
+        JSONValue.emptyObject,
+        (JSONValue args) => args
+    );
+    cfg.setRequiredTool(tool);
+
+    JSONValue payload = cfg.buildPayload(JSONValue("Hello"));
+
+    payload["tool_choice"]["type"].str.should == "tool";
+    payload["tool_choice"]["name"].str.should == "get_weather";
 }
 
 @Name("buildPayload extracts role system messages to top level")

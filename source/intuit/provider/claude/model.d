@@ -74,9 +74,32 @@ public:
             ret["thinking"] = thinking;
         }
         if (!responseSchema.isNull)
-            ret["response_format"] = responseSchema;
+        {
+            JSONValue outputConfig = JSONValue.emptyObject;
+            JSONValue format = JSONValue.emptyObject;
+            format["type"] = JSONValue("json_schema");
+            format["schema"] = responseSchema["json_schema"]["schema"];
+            outputConfig["format"] = format;
+            ret["output_config"] = outputConfig;
+        }
         if (!toolConfig.isNull)
-            ret["tool_choice"] = toolConfig;
+        {
+            JSONValue toolChoice = toolConfig;
+            if (toolConfig.type == JSONType.string)
+            {
+                toolChoice = JSONValue.emptyObject;
+                toolChoice["type"] = JSONValue(
+                    toolConfig.str == "required" ? "any" : toolConfig.str
+                );
+            }
+            else if (toolConfig.type == JSONType.object && "function" in toolConfig)
+            {
+                toolChoice = JSONValue.emptyObject;
+                toolChoice["type"] = JSONValue("tool");
+                toolChoice["name"] = toolConfig["function"]["name"];
+            }
+            ret["tool_choice"] = toolChoice;
+        }
 
         Tool[] toolList = tools.list();
         if (toolList.length > 0)
