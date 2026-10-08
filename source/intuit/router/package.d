@@ -3,6 +3,7 @@ module intuit.router;
 
 public import intuit.router.details;
 public import intuit.router.litellm;
+public import intuit.router.modelsdev;
 public import intuit.router.openrouter;
 
 import intuit.context;
