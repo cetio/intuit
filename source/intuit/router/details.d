@@ -13,7 +13,7 @@ enum Modality : string
     /// Video input or output.
     Video = "video",
     /// PDF document input.
-    Pdf = "pdf",
+    PDF = "pdf",
     /// Embedding vector output.
     Embedding = "embedding",
     /// Structured decision output.

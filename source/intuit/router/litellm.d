@@ -194,7 +194,7 @@ private:
                 ret.outputModalities ~= Modality.Rerank;
                 break;
             case "pdf":
-                ret.outputModalities ~= Modality.Pdf;
+                ret.outputModalities ~= Modality.PDF;
                 break;
             default:
                 break;
@@ -206,7 +206,7 @@ private:
         if ("supports_audio_input" in modelInfo && modelInfo["supports_audio_input"].type == JSONType.true_)
             ret.inputModalities ~= Modality.Audio;
         if ("supports_pdf_input" in modelInfo && modelInfo["supports_pdf_input"].type == JSONType.true_)
-            ret.inputModalities ~= Modality.Pdf;
+            ret.inputModalities ~= Modality.PDF;
 
         if ("supports_audio_output" in modelInfo && modelInfo["supports_audio_output"].type == JSONType.true_)
             ret.outputModalities ~= Modality.Audio;

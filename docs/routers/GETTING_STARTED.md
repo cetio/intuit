@@ -50,7 +50,7 @@ router.refresh();
 | `promptCost` | Cost in USD per million input tokens. |
 | `completionCost` | Cost in USD per million output tokens. |
 
-Modalities use the `Modality` enum: `Text`, `Image`, `Audio`, `Video`, `Pdf`, `Embedding`, `Decisions`, `File`, `Embeddings`, `Rerank`, `Speech`, and `Transcription`. 
+Modalities use the `Modality` enum: `Text`, `Image`, `Audio`, `Video`, `PDF`, `Embedding`, `Decisions`, `File`, `Embeddings`, `Rerank`, `Speech`, and `Transcription`. 
 Capabilities use the `ModelCapability` enum, normalizing the known parameters shared across provider catalogs.
 
 ## Selecting a Model
