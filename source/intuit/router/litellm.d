@@ -2,6 +2,7 @@
 module intuit.router.litellm;
 
 import intuit.context;
+import intuit.json : fromJSON;
 import intuit.model;
 import intuit.provider : request;
 import intuit.router.details;
@@ -163,10 +164,10 @@ private:
             && modelInfo["max_tokens"].type == JSONType.integer)
             ret.maxCompletionTokens = cast(size_t)modelInfo["max_tokens"].integer;
 
-        if ("input_cost_per_token" in modelInfo)
-            ret.promptCost = parseCost(modelInfo["input_cost_per_token"]) * 1_000_000;
-        if ("output_cost_per_token" in modelInfo)
-            ret.completionCost = parseCost(modelInfo["output_cost_per_token"]) * 1_000_000;
+        if ("input_cost_per_token" in modelInfo && modelInfo["input_cost_per_token"].type != JSONType.null_)
+            ret.promptCost = modelInfo["input_cost_per_token"].fromJSON!double * 1_000_000;
+        if ("output_cost_per_token" in modelInfo && modelInfo["output_cost_per_token"].type != JSONType.null_)
+            ret.completionCost = modelInfo["output_cost_per_token"].fromJSON!double * 1_000_000;
 
         ret.inputModalities = [Modality.Text];
 
@@ -174,23 +175,29 @@ private:
         {
             switch (modelInfo["mode"].str)
             {
-                case "chat", "completion", "text":
-                    ret.outputModalities ~= Modality.Text;
-                    break;
-                case "embedding":
-                    ret.outputModalities ~= Modality.Embedding;
-                    break;
-                case "image_generation", "image":
-                    ret.outputModalities ~= Modality.Image;
-                    break;
-                case "audio_speech", "audio":
-                    ret.outputModalities ~= Modality.Audio;
-                    break;
-                case "pdf":
-                    ret.outputModalities ~= Modality.Pdf;
-                    break;
-                default:
-                    break;
+            case "chat", "completion", "text":
+                ret.outputModalities ~= Modality.Text;
+                break;
+            case "embedding":
+                ret.outputModalities ~= Modality.Embedding;
+                break;
+            case "image_generation", "image":
+                ret.outputModalities ~= Modality.Image;
+                break;
+            case "audio_speech", "audio":
+                ret.outputModalities ~= Modality.Audio;
+                break;
+            case "audio_transcription", "transcription":
+                ret.outputModalities ~= Modality.Transcription;
+                break;
+            case "rerank":
+                ret.outputModalities ~= Modality.Rerank;
+                break;
+            case "pdf":
+                ret.outputModalities ~= Modality.Pdf;
+                break;
+            default:
+                break;
             }
         }
 
@@ -221,25 +228,5 @@ private:
             ret.capabilities ~= ModelCapability.WebSearch;
 
         return ret;
-    }
-
-    static double parseCost(JSONValue value)
-    {
-        double ret;
-        switch (value.type)
-        {
-            case JSONType.float_:
-                ret = value.floating;
-                break;
-            case JSONType.integer:
-                ret = cast(double)value.integer;
-                break;
-            case JSONType.uinteger:
-                ret = cast(double)value.uinteger;
-                break;
-            default:
-                break;
-        }
-        return ret >= 0 ? ret : 0;
     }
 }

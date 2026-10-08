@@ -3,6 +3,7 @@ module intuit.router.openrouter;
 
 import intuit.context;
 import intuit.exception : EndpointException;
+import intuit.json : fromJSON;
 import intuit.model;
 import intuit.router.details;
 import intuit.provider.openai;
@@ -10,7 +11,6 @@ import intuit.provider.systemone : SystemOneModelConfig;
 import intuit.router;
 import intuit.tool;
 
-import std.conv : to;
 import std.json : JSONType, JSONValue;
 import std.net.curl : HTTP;
 import std.string : join;
@@ -243,6 +243,7 @@ private:
             if (ret.contextLength == 0 && "context_length" in topProvider
                 && topProvider["context_length"].type == JSONType.integer)
                 ret.contextLength = cast(size_t)topProvider["context_length"].integer;
+                
             if ("max_completion_tokens" in topProvider
                 && topProvider["max_completion_tokens"].type == JSONType.integer)
                 ret.maxCompletionTokens = cast(size_t)topProvider["max_completion_tokens"].integer;
@@ -258,30 +259,7 @@ private:
                 {
                     if (entry.type != JSONType.string)
                         continue;
-
-                    switch (entry.str)
-                    {
-                    case "text":
-                        ret.inputModalities ~= Modality.Text;
-                        break;
-                    case "image":
-                        ret.inputModalities ~= Modality.Image;
-                        break;
-                    case "audio":
-                        ret.inputModalities ~= Modality.Audio;
-                        break;
-                    case "video":
-                        ret.inputModalities ~= Modality.Video;
-                        break;
-                    case "pdf":
-                        ret.inputModalities ~= Modality.Pdf;
-                        break;
-                    case "embedding":
-                        ret.inputModalities ~= Modality.Embedding;
-                        break;
-                    default:
-                        break;
-                    }
+                    ret.inputModalities ~= cast(Modality)entry.str;
                 }
             }
 
@@ -292,32 +270,7 @@ private:
                 {
                     if (entry.type != JSONType.string)
                         continue;
-                    switch (entry.str)
-                    {
-                    case "text":
-                        ret.outputModalities ~= Modality.Text;
-                        break;
-                    case "image":
-                        ret.outputModalities ~= Modality.Image;
-                        break;
-                    case "audio":
-                        ret.outputModalities ~= Modality.Audio;
-                        break;
-                    case "video":
-                        ret.outputModalities ~= Modality.Video;
-                        break;
-                    case "pdf":
-                        ret.outputModalities ~= Modality.Pdf;
-                        break;
-                    case "embedding":
-                        ret.outputModalities ~= Modality.Embedding;
-                        break;
-                    case "decisions":
-                        ret.outputModalities ~= Modality.Decisions;
-                        break;
-                    default:
-                        break;
-                    }
+                    ret.outputModalities ~= cast(Modality)entry.str;
                 }
             }
         }
@@ -328,157 +281,19 @@ private:
             {
                 if (entry.type != JSONType.string)
                     continue;
-                switch (entry.str)
-                {
-                case "audio":
-                    ret.capabilities ~= ModelCapability.Audio;
-                    break;
-                case "n":
-                    ret.capabilities ~= ModelCapability.CandidateCount;
-                    break;
-                case "frequency_penalty":
-                    ret.capabilities ~= ModelCapability.FrequencyPenalty;
-                    break;
-                case "function_call":
-                    ret.capabilities ~= ModelCapability.FunctionCall;
-                    break;
-                case "functions":
-                    ret.capabilities ~= ModelCapability.Functions;
-                    break;
-                case "include_reasoning":
-                    ret.capabilities ~= ModelCapability.IncludeReasoning;
-                    break;
-                case "logit_bias":
-                    ret.capabilities ~= ModelCapability.LogitBias;
-                    break;
-                case "logprobs":
-                    ret.capabilities ~= ModelCapability.Logprobs;
-                    break;
-                case "max_completion_tokens":
-                    ret.capabilities ~= ModelCapability.MaxCompletionTokens;
-                    break;
-                case "max_tokens":
-                    ret.capabilities ~= ModelCapability.MaxTokens;
-                    break;
-                case "min_p":
-                    ret.capabilities ~= ModelCapability.MinP;
-                    break;
-                case "modalities":
-                    ret.capabilities ~= ModelCapability.Modalities;
-                    break;
-                case "parallel_tool_calls":
-                    ret.capabilities ~= ModelCapability.ParallelToolCalls;
-                    break;
-                case "presence_penalty":
-                    ret.capabilities ~= ModelCapability.PresencePenalty;
-                    break;
-                case "prompt_caching":
-                    ret.capabilities ~= ModelCapability.PromptCaching;
-                    break;
-                case "reasoning":
-                    ret.capabilities ~= ModelCapability.Reasoning;
-                    break;
-                case "repetition_penalty":
-                    ret.capabilities ~= ModelCapability.RepetitionPenalty;
-                    break;
-                case "response_format":
-                    ret.capabilities ~= ModelCapability.ResponseFormat;
-                    break;
-                case "seed":
-                    ret.capabilities ~= ModelCapability.Seed;
-                    break;
-                case "service_tier":
-                    ret.capabilities ~= ModelCapability.ServiceTier;
-                    break;
-                case "stop":
-                    ret.capabilities ~= ModelCapability.Stop;
-                    break;
-                case "store":
-                    ret.capabilities ~= ModelCapability.Store;
-                    break;
-                case "structured_outputs":
-                    ret.capabilities ~= ModelCapability.StructuredOutputs;
-                    break;
-                case "system":
-                    ret.capabilities ~= ModelCapability.System;
-                    break;
-                case "temperature":
-                    ret.capabilities ~= ModelCapability.Temperature;
-                    break;
-                case "tool_choice":
-                    ret.capabilities ~= ModelCapability.ToolChoice;
-                    break;
-                case "tools":
-                    ret.capabilities ~= ModelCapability.Tools;
-                    break;
-                case "top_a":
-                    ret.capabilities ~= ModelCapability.TopA;
-                    break;
-                case "top_k":
-                    ret.capabilities ~= ModelCapability.TopK;
-                    break;
-                case "top_logprobs":
-                    ret.capabilities ~= ModelCapability.TopLogprobs;
-                    break;
-                case "top_p":
-                    ret.capabilities ~= ModelCapability.TopP;
-                    break;
-                case "user":
-                    ret.capabilities ~= ModelCapability.User;
-                    break;
-                case "verbosity":
-                    ret.capabilities ~= ModelCapability.Verbosity;
-                    break;
-                case "web_search":
-                    ret.capabilities ~= ModelCapability.WebSearch;
-                    break;
-                case "web_search_options":
-                    ret.capabilities ~= ModelCapability.WebSearchOptions;
-                    break;
-                default:
-                    break;
-                }
+                ret.capabilities ~= cast(ModelCapability)entry.str;
             }
         }
 
         if ("pricing" in item && item["pricing"].type == JSONType.object)
         {
             JSONValue pricing = item["pricing"];
-            if ("prompt" in pricing)
-                ret.promptCost = parseCost(pricing["prompt"]) * 1_000_000;
-            if ("completion" in pricing)
-                ret.completionCost = parseCost(pricing["completion"]) * 1_000_000;
+            if ("prompt" in pricing && pricing["prompt"].type != JSONType.null_)
+                ret.promptCost = pricing["prompt"].fromJSON!double * 1_000_000;
+            if ("completion" in pricing && pricing["completion"].type != JSONType.null_)
+                ret.completionCost = pricing["completion"].fromJSON!double * 1_000_000;
         }
 
-        return ret;
-    }
-
-    static double parseCost(JSONValue value)
-    {
-        double ret;
-        switch (value.type)
-        {
-        case JSONType.float_:
-            ret = value.floating;
-            break;
-
-        case JSONType.integer:
-            ret = cast(double)value.integer;
-            break;
-
-        case JSONType.uinteger:
-            ret = cast(double)value.uinteger;
-            break;
-
-        case JSONType.string:
-            try
-                ret = value.str.to!double;
-            catch (Exception)
-                return ret;
-            break;
-        default:
-            break;
-        }
         return ret;
     }
 }
