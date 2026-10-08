@@ -44,10 +44,13 @@ public:
     {
         if (denyList.canFind(tool.name))
             return ToolPolicyStatus.Denied;
+            
         if (allowList.canFind(tool.name))
             return ToolPolicyStatus.Allowed;
+
         if (evaluator !is null)
             return evaluator(tool);
+
         return ToolPolicyStatus.None;
     }
 }
