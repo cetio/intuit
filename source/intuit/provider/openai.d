@@ -115,6 +115,17 @@ public:
         );
     }
 
+    deprecated("The legacy completions API is deprecated. Use chat completions instead.")
+    JSONValue legacyCompletions(JSONValue payload)
+    {
+        return _http.request(
+            HTTP.Method.post,
+            _url~"/v1/completions",
+            buildHeaders(),
+            payload,
+        );
+    }
+
     override JSONValue _decisions(ModelConfig cfg, JSONValue payload)
     {
         return _http.request(

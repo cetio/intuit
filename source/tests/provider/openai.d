@@ -7,6 +7,7 @@ import intuit.exception :
     RequestTimeoutException,
     TransportException;
 import intuit.model;
+import intuit.provider : legacyCompletions;
 import intuit.provider.openai : OpenAI;
 import intuit.response;
 import unit_threaded;
@@ -79,6 +80,13 @@ unittest
 {
     OpenAI endpoint = new OpenAI("unsupported://transport-test");
     endpoint.available().shouldThrow!TransportException;
+}
+
+@Name("Generic legacy completions delegate to OpenAI endpoints")
+unittest
+{
+    OpenAI endpoint = new OpenAI("unsupported://transport-test");
+    endpoint.legacyCompletions(JSONValue.emptyObject).shouldThrow!TransportException;
 }
 
 @Name("Completion JSON parsing classifies malformed model text")

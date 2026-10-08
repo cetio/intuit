@@ -240,6 +240,13 @@ Completion completions(E, D)(E ep, string modelName, auto ref D data, int maxToo
     }
 }
 
+deprecated("The legacy completions API is deprecated. Use chat completions instead.")
+JSONValue legacyCompletions(E)(E ep, JSONValue payload)
+    if (is(E : OpenAI))
+{
+    return ep.legacyCompletions(payload);
+}
+
 Decision decisions(E, D)(
     E ep,
     string modelName,
