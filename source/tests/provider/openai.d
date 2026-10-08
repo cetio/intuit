@@ -19,6 +19,8 @@ import unit_threaded;
 import std.conv : to;
 import std.json : JSONValue, JSONType, parseJSON;
 import std.socket : InternetAddress, Socket, TcpSocket;
+import std.string : indexOf, split, strip;
+import std.uni : icmp;
 import core.thread : Thread;
 import core.time : Duration, dur;
 
@@ -300,9 +302,63 @@ void withServer(
             if (response !is null)
             {
                 ubyte[8192] buffer;
-                connection.receive(buffer);
-                connection.send("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: "
-                    ~response.length.to!string~"\r\nConnection: close\r\n\r\n"~response);
+                size_t bytesReceived;
+                size_t requestLength = size_t.max;
+                while (bytesReceived < buffer.length)
+                {
+                    ptrdiff_t readCount = connection.receive(buffer[bytesReceived..$]);
+                    if (readCount <= 0)
+                        break;
+                    bytesReceived += cast(size_t)readCount;
+
+                    if (requestLength == size_t.max)
+                    {
+                        size_t headersEnd = size_t.max;
+                        for (size_t position; position + 3 < bytesReceived; position++)
+                        {
+                            if (buffer[position] == '\r' && buffer[position + 1] == '\n'
+                                && buffer[position + 2] == '\r' && buffer[position + 3] == '\n')
+                            {
+                                headersEnd = position;
+                                break;
+                            }
+                        }
+
+                        if (headersEnd != size_t.max)
+                        {
+                            size_t bodyLength;
+                            string headers = cast(string)buffer[0..headersEnd];
+                            foreach (line; headers.split("\r\n"))
+                            {
+                                ptrdiff_t separator = line.indexOf(':');
+                                if (separator >= 0
+                                    && line[0..cast(size_t)separator].icmp("Content-Length") == 0)
+                                {
+                                    bodyLength = line[cast(size_t)separator + 1..$].strip.to!size_t;
+                                    break;
+                                }
+                            }
+
+                            requestLength = headersEnd + 4 + bodyLength;
+                        }
+                    }
+
+                    if (requestLength != size_t.max && bytesReceived >= requestLength)
+                        break;
+                }
+                assert(requestLength != size_t.max && bytesReceived >= requestLength);
+
+                string reply = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: "
+                    ~response.length.to!string~"\r\nConnection: close\r\n\r\n"~response;
+                size_t bytesSent;
+                while (bytesSent < reply.length)
+                {
+                    ptrdiff_t writeCount = connection.send(reply[bytesSent..$]);
+                    if (writeCount <= 0)
+                        break;
+                    bytesSent += cast(size_t)writeCount;
+                }
+                assert(bytesSent == reply.length);
             }
         }
     });
