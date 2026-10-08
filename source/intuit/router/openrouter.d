@@ -232,8 +232,28 @@ private:
             {
                 foreach (entry; architecture["input_modalities"].array)
                 {
-                    if (entry.type == JSONType.string)
-                        ret.inputModalities ~= cast(Modality)entry.str;
+                    if (entry.type != JSONType.string)
+                        continue;
+                    switch (entry.str)
+                    {
+                        case "text":
+                            ret.inputModalities ~= Modality.text;
+                            break;
+                        case "image":
+                            ret.inputModalities ~= Modality.image;
+                            break;
+                        case "audio":
+                            ret.inputModalities ~= Modality.audio;
+                            break;
+                        case "pdf":
+                            ret.inputModalities ~= Modality.pdf;
+                            break;
+                        case "embedding":
+                            ret.inputModalities ~= Modality.embedding;
+                            break;
+                        default:
+                            break;
+                    }
                 }
             }
 
@@ -242,8 +262,28 @@ private:
             {
                 foreach (entry; architecture["output_modalities"].array)
                 {
-                    if (entry.type == JSONType.string)
-                        ret.outputModalities ~= cast(Modality)entry.str;
+                    if (entry.type != JSONType.string)
+                        continue;
+                    switch (entry.str)
+                    {
+                        case "text":
+                            ret.outputModalities ~= Modality.text;
+                            break;
+                        case "image":
+                            ret.outputModalities ~= Modality.image;
+                            break;
+                        case "audio":
+                            ret.outputModalities ~= Modality.audio;
+                            break;
+                        case "pdf":
+                            ret.outputModalities ~= Modality.pdf;
+                            break;
+                        case "embedding":
+                            ret.outputModalities ~= Modality.embedding;
+                            break;
+                        default:
+                            break;
+                    }
                 }
             }
         }
@@ -252,8 +292,118 @@ private:
         {
             foreach (entry; item["supported_parameters"].array)
             {
-                if (entry.type == JSONType.string)
-                    ret.supportedParameters ~= entry.str;
+                if (entry.type != JSONType.string)
+                    continue;
+                switch (entry.str)
+                {
+                    case "audio":
+                        ret.capabilities ~= ModelCapability.Audio;
+                        break;
+                    case "n":
+                        ret.capabilities ~= ModelCapability.CandidateCount;
+                        break;
+                    case "frequency_penalty":
+                        ret.capabilities ~= ModelCapability.FrequencyPenalty;
+                        break;
+                    case "function_call":
+                        ret.capabilities ~= ModelCapability.FunctionCall;
+                        break;
+                    case "functions":
+                        ret.capabilities ~= ModelCapability.Functions;
+                        break;
+                    case "include_reasoning":
+                        ret.capabilities ~= ModelCapability.IncludeReasoning;
+                        break;
+                    case "logit_bias":
+                        ret.capabilities ~= ModelCapability.LogitBias;
+                        break;
+                    case "logprobs":
+                        ret.capabilities ~= ModelCapability.Logprobs;
+                        break;
+                    case "max_completion_tokens":
+                        ret.capabilities ~= ModelCapability.MaxCompletionTokens;
+                        break;
+                    case "max_tokens":
+                        ret.capabilities ~= ModelCapability.MaxTokens;
+                        break;
+                    case "min_p":
+                        ret.capabilities ~= ModelCapability.MinP;
+                        break;
+                    case "modalities":
+                        ret.capabilities ~= ModelCapability.Modalities;
+                        break;
+                    case "parallel_tool_calls":
+                        ret.capabilities ~= ModelCapability.ParallelToolCalls;
+                        break;
+                    case "presence_penalty":
+                        ret.capabilities ~= ModelCapability.PresencePenalty;
+                        break;
+                    case "prompt_caching":
+                        ret.capabilities ~= ModelCapability.PromptCaching;
+                        break;
+                    case "reasoning":
+                        ret.capabilities ~= ModelCapability.Reasoning;
+                        break;
+                    case "repetition_penalty":
+                        ret.capabilities ~= ModelCapability.RepetitionPenalty;
+                        break;
+                    case "response_format":
+                        ret.capabilities ~= ModelCapability.ResponseFormat;
+                        break;
+                    case "seed":
+                        ret.capabilities ~= ModelCapability.Seed;
+                        break;
+                    case "service_tier":
+                        ret.capabilities ~= ModelCapability.ServiceTier;
+                        break;
+                    case "stop":
+                        ret.capabilities ~= ModelCapability.Stop;
+                        break;
+                    case "store":
+                        ret.capabilities ~= ModelCapability.Store;
+                        break;
+                    case "structured_outputs":
+                        ret.capabilities ~= ModelCapability.StructuredOutputs;
+                        break;
+                    case "system":
+                        ret.capabilities ~= ModelCapability.System;
+                        break;
+                    case "temperature":
+                        ret.capabilities ~= ModelCapability.Temperature;
+                        break;
+                    case "tool_choice":
+                        ret.capabilities ~= ModelCapability.ToolChoice;
+                        break;
+                    case "tools":
+                        ret.capabilities ~= ModelCapability.Tools;
+                        break;
+                    case "top_a":
+                        ret.capabilities ~= ModelCapability.TopA;
+                        break;
+                    case "top_k":
+                        ret.capabilities ~= ModelCapability.TopK;
+                        break;
+                    case "top_logprobs":
+                        ret.capabilities ~= ModelCapability.TopLogprobs;
+                        break;
+                    case "top_p":
+                        ret.capabilities ~= ModelCapability.TopP;
+                        break;
+                    case "user":
+                        ret.capabilities ~= ModelCapability.User;
+                        break;
+                    case "verbosity":
+                        ret.capabilities ~= ModelCapability.Verbosity;
+                        break;
+                    case "web_search":
+                        ret.capabilities ~= ModelCapability.WebSearch;
+                        break;
+                    case "web_search_options":
+                        ret.capabilities ~= ModelCapability.WebSearchOptions;
+                        break;
+                    default:
+                        break;
+                }
             }
         }
 

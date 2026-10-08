@@ -18,3 +18,4 @@ bin/*
 playground/*
 !bin/.gitkeep
 !playground/.gitkeep
+.env

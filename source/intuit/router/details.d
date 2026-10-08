@@ -16,7 +16,47 @@ enum Modality : string
     embedding = "embedding",
 }
 
+enum ModelCapability : string
+{
+    Audio = "audio",
+    CandidateCount = "n",
+    FrequencyPenalty = "frequency_penalty",
+    FunctionCall = "function_call",
+    Functions = "functions",
+    IncludeReasoning = "include_reasoning",
+    LogitBias = "logit_bias",
+    Logprobs = "logprobs",
+    MaxCompletionTokens = "max_completion_tokens",
+    MaxTokens = "max_tokens",
+    MinP = "min_p",
+    Modalities = "modalities",
+    ParallelToolCalls = "parallel_tool_calls",
+    PresencePenalty = "presence_penalty",
+    PromptCaching = "prompt_caching",
+    Reasoning = "reasoning",
+    RepetitionPenalty = "repetition_penalty",
+    ResponseFormat = "response_format",
+    Seed = "seed",
+    ServiceTier = "service_tier",
+    Stop = "stop",
+    Store = "store",
+    StructuredOutputs = "structured_outputs",
+    System = "system",
+    Temperature = "temperature",
+    ToolChoice = "tool_choice",
+    Tools = "tools",
+    TopA = "top_a",
+    TopK = "top_k",
+    TopLogprobs = "top_logprobs",
+    TopP = "top_p",
+    User = "user",
+    Verbosity = "verbosity",
+    WebSearch = "web_search",
+    WebSearchOptions = "web_search_options",
+}
+
 /// Dynamic metadata for a single model, populated from provider catalogs.
+// TODO: TPS and proper pricing support for multiple providers.
 struct ModelDetails
 {
     /// The model slug, e.g. "openai/gpt-4o".
@@ -33,8 +73,8 @@ struct ModelDetails
     Modality[] inputModalities;
     /// Supported output modalities, e.g. [Modality.text].
     Modality[] outputModalities;
-    /// OpenAI-compatible parameters the model accepts, e.g. ["tools", "temperature"].
-    string[] supportedParameters;
+    /// Normalized OpenAI-compatible parameters and features supported by the model.
+    ModelCapability[] capabilities;
     /// Cost in USD per input token.
     double promptCost;
     /// Cost in USD per output token.

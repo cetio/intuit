@@ -46,11 +46,12 @@ router.refresh();
 | `maxCompletionTokens` | Maximum completion size reported by the top provider. |
 | `inputModalities` | Supported input modalities. |
 | `outputModalities` | Supported output modalities. |
-| `supportedParameters` | Accepted OpenAI-compatible parameters. |
+| `capabilities` | Normalized OpenAI-compatible parameters and features. |
 | `promptCost` | Cost in USD per input token. |
 | `completionCost` | Cost in USD per output token. |
 
-Modalities use the `Modality` enum: `text`, `image`, `audio`, `pdf`, and `embedding`.
+Modalities use the `Modality` enum: `text`, `image`, `audio`, `pdf`, and `embedding`. Capabilities use the
+`ModelCapability` enum, normalizing the known parameters shared across provider catalogs.
 
 ## Selecting a Model
 

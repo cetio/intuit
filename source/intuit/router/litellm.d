@@ -165,26 +165,28 @@ private:
 
         ret.inputModalities = [Modality.text];
 
-        string mode;
         if ("mode" in modelInfo && modelInfo["mode"].type == JSONType.string)
-            mode = modelInfo["mode"].str;
-        switch (mode)
         {
-            case "chat", "completion":
-                ret.outputModalities ~= Modality.text;
-                break;
-            case "embedding":
-                ret.outputModalities ~= Modality.embedding;
-                break;
-            case "image_generation":
-                ret.outputModalities ~= Modality.image;
-                break;
-            case "audio_speech":
-                ret.outputModalities ~= Modality.audio;
-                break;
-            default:
-                ret.outputModalities ~= cast(Modality)mode;
-                break;
+            switch (modelInfo["mode"].str)
+            {
+                case "chat", "completion", "text":
+                    ret.outputModalities ~= Modality.text;
+                    break;
+                case "embedding":
+                    ret.outputModalities ~= Modality.embedding;
+                    break;
+                case "image_generation", "image":
+                    ret.outputModalities ~= Modality.image;
+                    break;
+                case "audio_speech", "audio":
+                    ret.outputModalities ~= Modality.audio;
+                    break;
+                case "pdf":
+                    ret.outputModalities ~= Modality.pdf;
+                    break;
+                default:
+                    break;
+            }
         }
 
         if ("supports_vision" in modelInfo && modelInfo["supports_vision"].type == JSONType.true_)
@@ -197,24 +199,21 @@ private:
         if ("supports_audio_output" in modelInfo && modelInfo["supports_audio_output"].type == JSONType.true_)
             ret.outputModalities ~= Modality.audio;
 
-        // TODO: This is terrible.
-        string[] parameters;
-        if ("supports_function_calling" in modelInfo && modelInfo["supports_function_calling"].type == JSONType.true_)
-            parameters ~= "tools";
+        if ("supports_function_calling" in modelInfo
+            && modelInfo["supports_function_calling"].type == JSONType.true_)
+            ret.capabilities ~= ModelCapability.Tools;
         if ("supports_tool_choice" in modelInfo && modelInfo["supports_tool_choice"].type == JSONType.true_)
-            parameters ~= "tool_choice";
+            ret.capabilities ~= ModelCapability.ToolChoice;
         if ("supports_response_schema" in modelInfo && modelInfo["supports_response_schema"].type == JSONType.true_)
-            parameters ~= "response_format";
+            ret.capabilities ~= ModelCapability.ResponseFormat;
         if ("supports_system_messages" in modelInfo && modelInfo["supports_system_messages"].type == JSONType.true_)
-            parameters ~= "system";
+            ret.capabilities ~= ModelCapability.System;
         if ("supports_reasoning" in modelInfo && modelInfo["supports_reasoning"].type == JSONType.true_)
-            parameters ~= "reasoning";
+            ret.capabilities ~= ModelCapability.Reasoning;
         if ("supports_prompt_caching" in modelInfo && modelInfo["supports_prompt_caching"].type == JSONType.true_)
-            parameters ~= "prompt_caching";
+            ret.capabilities ~= ModelCapability.PromptCaching;
         if ("supports_web_search" in modelInfo && modelInfo["supports_web_search"].type == JSONType.true_)
-            parameters ~= "web_search";
-
-        ret.supportedParameters = parameters;
+            ret.capabilities ~= ModelCapability.WebSearch;
 
         return ret;
     }
