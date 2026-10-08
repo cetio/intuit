@@ -55,6 +55,7 @@ Routers sit beside endpoints with their own interface (`IRouter`) and request fu
 | --- | --- | --- |
 | `OpenRouter` | OpenRouter router with dynamic model discovery. | https://openrouter.ai/ |
 | `LiteLLM` | LiteLLM proxy router. Catalog access only. | https://docs.litellm.ai/ |
+| `ModelsDev` | Unauthenticated models.dev catalog. No inference support. | https://models.dev/ |
 
 Router request functions omit the model parameter. When data is provided it is appended to the maintained context; when omitted, the existing context state is used:
 

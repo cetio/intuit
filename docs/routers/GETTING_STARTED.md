@@ -47,8 +47,8 @@ router.refresh();
 | `inputModalities` | Supported input modalities. |
 | `outputModalities` | Supported output modalities. |
 | `capabilities` | Normalized OpenAI-compatible parameters and features. |
-| `promptCost` | Cost in USD per input token. |
-| `completionCost` | Cost in USD per output token. |
+| `promptCost` | Cost in USD per million input tokens. |
+| `completionCost` | Cost in USD per million output tokens. |
 
 Modalities use the `Modality` enum: `Text`, `Image`, `Audio`, `Pdf`, `Embedding`, and `Decisions`. Capabilities use the
 `ModelCapability` enum, normalizing the known parameters shared across provider catalogs.
