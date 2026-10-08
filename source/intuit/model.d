@@ -269,6 +269,12 @@ class ModelConfig
                     ? entry["message"]
                     : (("delta" in entry) ? entry["delta"] : JSONValue.init);
                 parseMessage(choice, msg);
+                if (msg.type != JSONType.object && "text" in entry && entry["text"].type == JSONType.string)
+                {
+                    choice.content = entry["text"];
+                    choice.text = entry["text"].str;
+                }
+
                 choice.finishReason = parseFinishReason(
                     "finish_reason" in entry ? entry["finish_reason"] : JSONValue.init
                 );

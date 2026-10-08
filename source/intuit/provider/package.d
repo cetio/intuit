@@ -24,7 +24,7 @@ import std.json : JSONValue, JSONType, parseJSON;
 import std.net.curl : CurlException, CurlTimeoutException, HTTP;
 import std.string : assumeUTF;
 import std.traits : isArray, isIntegral;
-import core.time : MonoTime;
+import core.time : Duration, MonoTime;
 
 /// Interface for LLM endpoint implementations.
 interface IEndpoint
@@ -61,6 +61,10 @@ interface IEndpoint
     JSONValue _embeddings(ModelConfig cfg, JSONValue payload);
 
     JSONValue _decisions(ModelConfig cfg, JSONValue payload);
+
+    void operationTimeout(Duration timeout);
+
+    void connectTimeout(Duration timeout);
 }
 
 /**
@@ -241,7 +245,7 @@ Completion completions(E, D)(E ep, string modelName, auto ref D data, int maxToo
 }
 
 deprecated("The legacy completions API is deprecated. Use chat completions instead.")
-JSONValue legacyCompletions(E)(E ep, JSONValue payload)
+Completion legacyCompletions(E)(E ep, JSONValue payload)
     if (is(E : OpenAI))
 {
     return ep.legacyCompletions(payload);

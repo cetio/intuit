@@ -14,6 +14,7 @@ import intuit.tool : ToolRegistry;
 
 import std.json : JSONValue, JSONType;
 import std.traits : isArray, isIntegral;
+import core.time : Duration;
 
 /// Interface for routers that select among endpoints behind a single active model.
 interface IRouter
@@ -53,6 +54,10 @@ interface IRouter
     JSONValue _embeddings(JSONValue payload);
 
     JSONValue _decisions(JSONValue payload);
+
+    void operationTimeout(Duration timeout);
+
+    void connectTimeout(Duration timeout);
 
     /// Re-fetches the model catalog. Implementation defined, and may have additional behavior.
     void refresh();

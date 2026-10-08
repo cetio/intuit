@@ -14,6 +14,7 @@ import intuit.tool;
 import std.json : JSONType, JSONValue;
 import std.net.curl : HTTP;
 import std.string : join;
+import core.time : Duration;
 
 /// OpenRouter router implementation.
 class OpenRouter : IRouter
@@ -65,6 +66,16 @@ public:
         this._key = key;
         this._http = HTTP();
         this._context.compactor = new Compactor();
+    }
+
+    override void operationTimeout(Duration timeout)
+    {
+        _http.operationTimeout = timeout;
+    }
+
+    override void connectTimeout(Duration timeout)
+    {
+        _http.connectTimeout = timeout;
     }
 
     override ref string name()
@@ -152,6 +163,7 @@ public:
     {
         if (provider.type != JSONType.null_)
             payload["provider"] = provider;
+            
         return _http.request(
             HTTP.Method.post,
             _url~"/api/v1/embeddings",

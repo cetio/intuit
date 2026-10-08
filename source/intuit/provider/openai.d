@@ -3,10 +3,12 @@ module intuit.provider.openai;
 
 public import intuit.provider;
 import intuit.model;
+import intuit.response : Completion;
 import intuit.tool;
 
 import std.net.curl : HTTP;
 import std.json : JSONType, JSONValue;
+import core.time : Duration;
 
 /// OpenAI-compatible LLM endpoint.
 class OpenAI : IEndpoint
@@ -48,6 +50,16 @@ public:
         _url = url;
         _key = key;
         _http = HTTP();
+    }
+
+    override void operationTimeout(Duration timeout)
+    {
+        _http.operationTimeout = timeout;
+    }
+
+    override void connectTimeout(Duration timeout)
+    {
+        _http.connectTimeout = timeout;
     }
 
     override ref string name()
@@ -116,14 +128,14 @@ public:
     }
 
     deprecated("The legacy completions API is deprecated. Use chat completions instead.")
-    JSONValue legacyCompletions(JSONValue payload)
+    Completion legacyCompletions(JSONValue payload)
     {
-        return _http.request(
+        return new ModelConfig("model" in payload ? payload["model"].str : null).parseResponse(_http.request(
             HTTP.Method.post,
             _url~"/v1/completions",
             buildHeaders(),
             payload,
-        );
+        ));
     }
 
     override JSONValue _decisions(ModelConfig cfg, JSONValue payload)

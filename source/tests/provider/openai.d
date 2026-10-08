@@ -7,12 +7,86 @@ import intuit.exception :
     RequestTimeoutException,
     TransportException;
 import intuit.model;
-import intuit.provider : legacyCompletions;
+import intuit.provider : IEndpoint, legacyCompletions;
+import intuit.provider.claude : Claude;
 import intuit.provider.openai : OpenAI;
+import intuit.provider.qwen : Qwen;
+import intuit.provider.typesafe : TypeSafe;
+import intuit.router : IRouter, LiteLLM, ModelsDev, OpenRouter;
 import intuit.response;
 import unit_threaded;
 
-import std.json : JSONValue, JSONType;
+import std.conv : to;
+import std.json : JSONValue, JSONType, parseJSON;
+import std.socket : InternetAddress, Socket, TcpSocket;
+import core.thread : Thread;
+import core.time : Duration, dur;
+
+@Name("Legacy completions return parsed text choices and usage")
+unittest
+{
+    withServer(`{"model":"resolved","choices":[
+        {"text":"A","finish_reason":"stop","logprobs":{"tokens":["A"]}},
+        {"text":"B","finish_reason":"length"}],
+        "usage":{"prompt_tokens":12,"completion_tokens":2,"total_tokens":14}}`, delegate void(string url) {
+        OpenAI endpoint = new OpenAI(url);
+        Completion ret = legacyCompletions(endpoint, parseJSON(`{"model":"decider","prompt":"Answer: ("}`));
+        ret.text.should == "A";
+        ret.choice.content.str.should == "A";
+        ret.text(1).should == "B";
+        ret.choice.finishReason.should == FinishReason.Stop;
+        ret.choice(1).finishReason.should == FinishReason.Length;
+        ret.choice.logProbs["tokens"][0].str.should == "A";
+        ret.usage.modelName.should == "resolved";
+        ret.usage.promptTokens.should == 12;
+        ret.usage.completionTokens.should == 2;
+        ret.usage.totalTokens.should == 14;
+        ret.raw["choices"][0]["text"].str.should == "A";
+    });
+}
+
+@Name("Endpoint operation timeouts apply to HTTP requests")
+unittest
+{
+    withServer(
+        null,
+        delegate void(string url) {
+            IEndpoint[] endpoints = [
+                cast(IEndpoint)new OpenAI(url),
+                new Claude(url),
+                new Qwen(url),
+                new TypeSafe(url),
+            ];
+            foreach (endpoint; endpoints)
+            {
+                endpoint.connectTimeout(dur!"seconds"(1));
+                endpoint.operationTimeout(dur!"msecs"(30));
+                endpoint.available().shouldThrow!RequestTimeoutException;
+            }
+        },
+        dur!"msecs"(200),
+        4,
+    );
+}
+
+@Name("Router operation timeouts apply to catalog requests")
+unittest
+{
+    withServer(
+        null,
+        delegate void(string url) {
+            IRouter[] routers = [cast(IRouter)new OpenRouter(null, url), new LiteLLM(url), new ModelsDev(url)];
+            foreach (router; routers)
+            {
+                router.connectTimeout(dur!"seconds"(1));
+                router.operationTimeout(dur!"msecs"(30));
+                router.refresh().shouldThrow!RequestTimeoutException;
+            }
+        },
+        dur!"msecs"(200),
+        3,
+    );
+}
 
 @Name("ModelConfig parseResponse captures OpenAI usage and latency")
 unittest
@@ -196,4 +270,45 @@ unittest
     completion.usage.totalTokens.should == 20;
     completion.usage.cacheHits.should == 3;
     completion.usage.cacheMisses.should == 12;
+}
+
+private:
+
+void withServer(
+    string response,
+    scope void delegate(string) request,
+    Duration delay = Duration.zero,
+    size_t count = 1,
+)
+{
+    TcpSocket listener = new TcpSocket();
+    listener.bind(new InternetAddress("127.0.0.1", 0));
+    listener.listen(cast(int)count);
+    scope(exit)
+        listener.close();
+
+    Thread server = new Thread(delegate void() {
+        foreach (i; 0..count)
+        {
+            Socket connection = listener.accept();
+            scope(exit)
+                connection.close();
+
+            if (delay > Duration.zero)
+                Thread.sleep(delay);
+
+            if (response !is null)
+            {
+                ubyte[8192] buffer;
+                connection.receive(buffer);
+                connection.send("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: "
+                    ~response.length.to!string~"\r\nConnection: close\r\n\r\n"~response);
+            }
+        }
+    });
+    server.start();
+    scope(exit)
+        server.join();
+
+    request("http://127.0.0.1:"~(cast(InternetAddress)listener.localAddress).port.to!string);
 }

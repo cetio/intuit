@@ -9,6 +9,7 @@ import intuit.tool;
 
 import std.net.curl : HTTP;
 import std.json : JSONType, JSONValue;
+import core.time : Duration;
 
 /// Anthropic Claude LLM endpoint.
 class Claude : IEndpoint
@@ -51,6 +52,16 @@ public:
         _url = url;
         _key = key;
         _http = HTTP();
+    }
+
+    override void operationTimeout(Duration timeout)
+    {
+        _http.operationTimeout = timeout;
+    }
+
+    override void connectTimeout(Duration timeout)
+    {
+        _http.connectTimeout = timeout;
     }
 
     override ref string name()

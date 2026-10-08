@@ -11,6 +11,7 @@ import intuit.tool;
 
 import std.json : JSONType, JSONValue;
 import std.net.curl : HTTP;
+import core.time : Duration;
 
 class ModelsDev : IRouter
 {
@@ -36,6 +37,16 @@ public:
         this._url = url;
         this._http = HTTP();
         this._context.compactor = new Compactor();
+    }
+
+    override void operationTimeout(Duration timeout)
+    {
+        _http.operationTimeout = timeout;
+    }
+
+    override void connectTimeout(Duration timeout)
+    {
+        _http.connectTimeout = timeout;
     }
 
     override ref string name()
