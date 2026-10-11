@@ -4,8 +4,6 @@ import intuit.response.completion : Usage;
 
 import std.json : JSONValue;
 
-public:
-
 enum DecisionType : string
 {
     Predicate = "predicate",

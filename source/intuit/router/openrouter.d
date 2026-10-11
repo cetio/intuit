@@ -118,18 +118,12 @@ public:
     {
         if (auto found = modelName in _configs)
             return *found;
-        ModelConfig ret = new SystemOneModelConfig(modelName);
-        _configs[modelName] = ret;
-        return ret;
+
+        return _configs[modelName] = new SystemOneModelConfig(modelName);
     }
 
     override ModelConfig[] configs()
-    {
-        ModelConfig[] ret;
-        foreach (cfg; _configs.byValue)
-            ret ~= cfg;
-        return ret;
-    }
+        => _configs.values;
 
     override ModelDetails[string] catalog()
     {
@@ -195,8 +189,7 @@ public:
 private:
     string[string] buildHeaders()
     {
-        string[string] ret;
-        ret["Content-Type"] = "application/json";
+        string[string] ret = ["Content-Type": "application/json"];
         if (_key.length > 0)
             ret["Authorization"] = "Bearer "~_key;
         if (referer.length > 0)

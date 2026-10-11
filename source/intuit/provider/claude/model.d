@@ -15,7 +15,6 @@ import std.string : toLower;
 /// Anthropic Claude model with Messages API parameters.
 class ClaudeModelConfig : ModelConfig
 {
-public:
     /// Top-k sampling parameter.
     long topK = -1;
     /// Stop sequences.

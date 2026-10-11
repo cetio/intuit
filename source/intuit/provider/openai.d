@@ -25,8 +25,7 @@ protected:
 
     string[string] buildHeaders()
     {
-        string[string] ret;
-        ret["Content-Type"] = "application/json";
+        string[string] ret = ["Content-Type": "application/json"];
         if (_key.length > 0)
             ret["Authorization"] = "Bearer "~_key;
         return ret;
@@ -109,9 +108,8 @@ public:
                 return cfg;
         }
         
-        ModelConfig cfg = new ModelConfig(modelName);
-        _configs ~= cfg;
-        return cfg;
+        _configs ~= new ModelConfig(modelName);
+        return _configs[$ - 1];
     }
 
     override ModelConfig[] configs()

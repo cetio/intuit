@@ -88,12 +88,7 @@ struct ToolRegistry
 
     /// Lists all registered tools.
     Tool[] list()
-    {
-        Tool[] result;
-        foreach (tool; tools)
-            result ~= tool;
-        return result;
-    }
+        => tools.values;
 
 private:
 static:

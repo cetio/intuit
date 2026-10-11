@@ -50,10 +50,7 @@ class Qwen : OpenAI
                     }
                 }
                 if (!found)
-                {
-                    ModelConfig cfg = new QwenModelConfig(name);
-                    _configs ~= cfg;
-                }
+                    _configs ~= new QwenModelConfig(name);
             }
         }
         return _configs;
@@ -67,8 +64,7 @@ class Qwen : OpenAI
                 return cfg;
         }
 
-        ModelConfig cfg = new QwenModelConfig(modelName);
-        _configs ~= cfg;
-        return cfg;
+        _configs ~= new QwenModelConfig(modelName);
+        return _configs[$ - 1];
     }
 }

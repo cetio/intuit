@@ -21,7 +21,6 @@ struct ToolPolicyResult
 
 struct ToolPolicy
 {
-public:
     string[] allowList;
     string[] denyList;
     ToolPolicyStatus delegate(Tool) evaluator;

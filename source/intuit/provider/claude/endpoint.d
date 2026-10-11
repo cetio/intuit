@@ -23,9 +23,10 @@ private:
 
     string[string] buildHeaders()
     {
-        string[string] ret;
-        ret["Content-Type"] = "application/json";
-        ret["anthropic-version"] = "2023-06-01";
+        string[string] ret = [
+            "Content-Type": "application/json",
+            "anthropic-version": "2023-06-01"
+        ];
         if (_key.length > 0)
             ret["x-api-key"] = _key;
         return ret;
@@ -111,9 +112,8 @@ public:
                 return cfg;
         }
         
-        ModelConfig cfg = new ClaudeModelConfig(modelName);
-        _configs ~= cfg;
-        return cfg;
+        _configs ~= new ClaudeModelConfig(modelName);
+        return _configs[$ - 1];
     }
 
     override ModelConfig[] configs()

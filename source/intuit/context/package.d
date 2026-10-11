@@ -121,20 +121,20 @@ struct Context
             Tool registeredTool;
             try
                 registeredTool = registry.get(calls[i].name);
-            catch (Exception e)
+            catch (Exception error)
             {
                 calls[i].policyResult.status = ToolPolicyStatus.Failed;
-                calls[i].policyResult.message = e.msg;
+                calls[i].policyResult.message = error.msg;
                 continue;
             }
 
             ToolPolicyStatus decision;
             try
                 decision = toolPolicy.eval(registeredTool);
-            catch (Exception e)
+            catch (Exception error)
             {
                 calls[i].policyResult.status = ToolPolicyStatus.Failed;
-                calls[i].policyResult.message = "Tool policy evaluation failed: "~e.msg;
+                calls[i].policyResult.message = "Tool policy evaluation failed: "~error.msg;
                 continue;
             }
 
@@ -160,10 +160,10 @@ struct Context
                 calls[i].policyResult.status = ToolPolicyStatus.Allowed;
                 try
                     output = registeredTool.impl(calls[i].arguments);
-                catch (Exception e)
+                catch (Exception error)
                 {
                     calls[i].policyResult.status = ToolPolicyStatus.Failed;
-                    calls[i].policyResult.message = "Tool execution failed: "~e.msg;
+                    calls[i].policyResult.message = "Tool execution failed: "~error.msg;
                     output = JSONValue(calls[i].policyResult.message);
                 }
                 break;

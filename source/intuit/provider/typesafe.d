@@ -38,9 +38,8 @@ class TypeSafe : OpenAI
                 return cfg;
         }
 
-        ModelConfig ret = new SystemOneModelConfig(modelName);
-        _configs ~= ret;
-        return ret;
+        _configs ~= new SystemOneModelConfig(modelName);
+        return _configs[$-1];
     }
 
     override JSONValue _decisions(ModelConfig cfg, JSONValue payload)
