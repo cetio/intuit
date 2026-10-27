@@ -13,7 +13,7 @@ import intuit.response;
 import intuit.tool : ToolRegistry;
 
 import std.json : JSONValue, JSONType;
-import std.traits : isArray, isIntegral;
+import std.traits : isArray;
 import core.time : Duration;
 
 /// Interface for routers that select among endpoints behind a single active model.
@@ -126,8 +126,8 @@ Decision decisions(R, D)(R router, auto ref D data, DecisionQuestion[] questions
         throw new Exception("Router has no active model set.");
 
     ModelConfig cfg = router.config();
-    JSONValue payload = cfg.buildDecisionsPayload(data.toJSON(), questions);
-    return cfg.parseDecisionsResponse(router._decisions(payload), questions);
+    JSONValue payload = cfg.buildDecisionPayload(data.toJSON(), questions);
+    return cfg.parseDecisionResponse(router._decisions(payload), questions);
 }
 
 private Completion requestCompletion(R)(R router)
@@ -137,9 +137,9 @@ private Completion requestCompletion(R)(R router)
         throw new Exception("Router has no active model set.");
 
     ModelConfig cfg = router.config();
-    JSONValue payload = cfg.buildPayload(router.context.toJSON(), router.tools);
+    JSONValue payload = cfg.buildCompletionPayload(router.context.toJSON(), router.tools);
     JSONValue resp = router._completions(payload);
-    Completion ret = cfg.parseResponse(resp);
+    Completion ret = cfg.parseCompletionResponse(resp);
     router.context.assistant(ret);
     return ret;
 }
@@ -171,13 +171,13 @@ Embedding!T embeddings(T = float, R, D)(R router, D data)
         throw new Exception("Router has no active model set.");
 
     ModelConfig cfg = router.config();
-    JSONValue payload = cfg.buildEmbeddingsPayload(data.toJSON());
+    JSONValue payload = cfg.buildEmbeddingPayload(data.toJSON());
     JSONValue resp = router._embeddings(payload);
-    JSONValue arr = cfg.parseEmbeddingsResponse(resp);
+    JSONValue arr = cfg.parseEmbeddingResponse(resp);
 
     Embedding!T ret;
     if (arr.type == JSONType.array && arr.array.length > 0)
-        ret.value = toVector!T(arr.array[0]);
+        ret.value = intuit.response.embedding.parseEmbeddingVector!T(arr.array[0]);
     return ret;
 }
 
@@ -197,50 +197,16 @@ Embedding!T[] embeddings(T = float, R, D)(R router, D data)
         throw new Exception("Router has no active model set.");
 
     ModelConfig cfg = router.config();
-    JSONValue payload = cfg.buildEmbeddingsPayload(data.toJSON());
+    JSONValue payload = cfg.buildEmbeddingPayload(data.toJSON());
     JSONValue resp = router._embeddings(payload);
-    JSONValue arr = cfg.parseEmbeddingsResponse(resp);
+    JSONValue arr = cfg.parseEmbeddingResponse(resp);
 
     Embedding!T[] ret;
     if (arr.type == JSONType.array)
     {
         ret.length = arr.array.length;
         foreach (i, v; arr.array)
-            ret[i].value = toVector!T(v);
-    }
-    return ret;
-}
-
-/// Converts a JSON array into a typed vector.
-private T[] toVector(T)(JSONValue arr)
-{
-    if (arr.type != JSONType.array)
-        return null;
-
-    T[] ret = new T[](arr.array.length);
-    foreach (i, v; arr.array)
-    {
-        if (v.type == JSONType.null_)
-            continue;
-
-        static if (isIntegral!T)
-        {
-            if (v.type == JSONType.integer)
-                ret[i] = cast(T)v.integer;
-            else if (v.type == JSONType.uinteger)
-                ret[i] = cast(T)v.uinteger;
-            else if (v.type == JSONType.float_)
-                ret[i] = cast(T)v.floating;
-        }
-        else
-        {
-            if (v.type == JSONType.float_)
-                ret[i] = cast(T)v.floating;
-            else if (v.type == JSONType.integer)
-                ret[i] = cast(T)v.integer;
-            else if (v.type == JSONType.uinteger)
-                ret[i] = cast(T)v.uinteger;
-        }
+            ret[i].value = intuit.response.embedding.parseEmbeddingVector!T(v);
     }
     return ret;
 }
