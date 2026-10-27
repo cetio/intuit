@@ -162,7 +162,9 @@ Implement a `ModelConfig` subclass when a provider needs a different payload or 
 
 | Method | Purpose |
 | --- | --- |
-| `buildPayload(input, tools)` | Build a completion request body. |
-| `buildEmbeddingsPayload(input)` | Build an embedding request body. |
-| `parseResponse(json)` | Translate a completion response to `Completion`. |
-| `parseEmbeddingsResponse(json)` | Extract embedding arrays from a response. |
+| `buildCompletionPayload(input, tools)` | Build a completion request body. |
+| `buildEmbeddingPayload(input)` | Build an embedding request body. |
+| `buildDecisionPayload(input, questions)` | Build a decision request body. |
+| `parseCompletionResponse(json)` | Translate a completion response to `Completion`. |
+| `parseEmbeddingResponse(json)` | Extract embedding arrays from a response. |
+| `parseDecisionResponse(json, questions)` | Translate a decision response to `Decision`. |

@@ -60,7 +60,7 @@ OpenAI-compatible parsing accepts string content and recursively extracts text a
 | `EndTurn` | A normal Anthropic turn ending. |
 | `Length` or `MaxTokens` | The token limit was reached. |
 | `StopSequence` | A configured stop sequence matched. |
-| `ToolCall`, `ToolUse`, or `FunctionCall` | The model requested a tool or function. |
+| `ToolCall`, `ToolCalls`, `ToolUse`, or `FunctionCall` | The model requested a tool or function. |
 | `ContentFilter` or `Refusal` | Output was filtered or refused. |
 | `Pause` or `PauseTurn` | The provider paused generation. |
 | `Missing` | The provider reported a missing reason. |
