@@ -2,6 +2,7 @@
 module intuit.provider.claude.model;
 
 import intuit.exception : EndpointException;
+import intuit.json : fromJSON;
 import intuit.model;
 import intuit.response;
 import intuit.tool;
@@ -45,7 +46,7 @@ class ClaudeModelConfig : ModelConfig
      * Returns:
      *  The JSON payload for the messages endpoint.
      */
-    override JSONValue buildPayload(JSONValue input, ToolRegistry tools = ToolRegistry.init)
+    override JSONValue buildCompletionPayload(JSONValue input, ToolRegistry tools = ToolRegistry.init)
     {
         JSONValue ret = JSONValue.emptyObject;
         ret["model"] = JSONValue(name);
@@ -163,7 +164,7 @@ class ClaudeModelConfig : ModelConfig
      * Throws:
      *  EndpointException because Claude has no embeddings endpoint.
      */
-    override JSONValue buildEmbeddingsPayload(JSONValue input)
+    override JSONValue buildEmbeddingPayload(JSONValue input)
     {
         throw new EndpointException("POST", "embeddings", 0, "not supported", "Claude does not support embeddings.");
     }
@@ -177,30 +178,49 @@ class ClaudeModelConfig : ModelConfig
      * Returns:
      *  The parsed Completion.
      */
-    override Completion parseResponse(JSONValue json)
+    override Completion parseCompletionResponse(JSONValue json)
     {
         Completion ret;
         ret.raw = json;
-        checkException(json);
+        /// Throws if the JSON response contains an exception field.
+        if ("error" in json)
+        {
+            if (json["error"].type == JSONType.string)
+                throw new EndpointException("POST", "messages", 0, "error", json["error"].str);
+            else if (json["error"].type == JSONType.object && "message" in json["error"])
+                throw new EndpointException(
+                    "POST",
+                    "messages",
+                    0,
+                    "error",
+                    json["error"]["message"].str,
+                );
+            else
+                throw new EndpointException("POST", "messages", 0, "error", json.toPrettyString());
+        }
 
         if ("model" in json && json["model"].type == JSONType.string)
             ret.usage.modelName = json["model"].str;
         else
             ret.usage.modelName = name;
 
-        if ("latency" in json && json["latency"].type == JSONType.float_)
-            ret.usage.latency = cast(float)json["latency"].floating;
-        else if ("latency" in json && json["latency"].type == JSONType.integer)
-            ret.usage.latency = cast(float)json["latency"].integer;
+        if ("latency" in json
+            && (json["latency"].type == JSONType.float_ || json["latency"].type == JSONType.integer))
+            ret.usage.latency = fromJSON!float(json["latency"]);
 
+        /// Reads an integral value from a JSON object under the primary or fallback key.
         if ("usage" in json && json["usage"].type == JSONType.object)
         {
             JSONValue usage = json["usage"];
-            size_t inputTokens = readUint(usage, "input_tokens", null);
-            size_t cacheReadTokens = readUint(usage, "cache_read_input_tokens", null);
-            size_t cacheCreationTokens = readUint(usage, "cache_creation_input_tokens", null);
+            size_t inputTokens = "input_tokens" in usage
+                ? fromJSON!size_t(usage["input_tokens"]) : 0;
+            size_t cacheReadTokens = "cache_read_input_tokens" in usage
+                ? fromJSON!size_t(usage["cache_read_input_tokens"]) : 0;
+            size_t cacheCreationTokens = "cache_creation_input_tokens" in usage
+                ? fromJSON!size_t(usage["cache_creation_input_tokens"]) : 0;
             ret.usage.promptTokens = inputTokens + cacheReadTokens + cacheCreationTokens;
-            ret.usage.completionTokens = readUint(usage, "output_tokens", null);
+            ret.usage.completionTokens = "output_tokens" in usage
+                ? fromJSON!size_t(usage["output_tokens"]) : 0;
             ret.usage.totalTokens = ret.usage.promptTokens + ret.usage.completionTokens;
             ret.usage.cacheHits = cacheReadTokens;
             ret.usage.cacheMisses = inputTokens + cacheCreationTokens;
@@ -238,9 +258,9 @@ class ClaudeModelConfig : ModelConfig
             }
         }
 
-        choice.finishReason = parseFinishReason(
-            "stop_reason" in json ? json["stop_reason"] : JSONValue.init
-        );
+        /// Maps a JSON finish reason string to the FinishReason enum.
+        choice.finishReason = "stop_reason" in json && json["stop_reason"].type == JSONType.string
+            ? cast(FinishReason)json["stop_reason"].str : FinishReason.Unknown;
 
         ret.choices ~= choice;
         return ret;
@@ -254,67 +274,8 @@ class ClaudeModelConfig : ModelConfig
      * Throws:
      *  EndpointException because Claude has no embeddings endpoint.
      */
-    override JSONValue parseEmbeddingsResponse(JSONValue json)
+    override JSONValue parseEmbeddingResponse(JSONValue json)
     {
         throw new EndpointException("POST", "embeddings", 0, "not supported", "Claude does not support embeddings.");
-    }
-
-private:
-    /// Reads an integral value from a JSON object under the primary or fallback key.
-    static size_t readUint(
-        JSONValue obj,
-        string primary,
-        string fallback = null,
-    )
-    {
-        foreach (key; [primary, fallback])
-        {
-            if (key is null || key !in obj)
-                continue;
-
-            JSONValue value = obj[key];
-            if (value.type == JSONType.integer)
-                return cast(size_t)value.integer;
-            if (value.type == JSONType.uinteger)
-                return cast(size_t)value.uinteger;
-        }
-        return 0;
-    }
-
-    /// Maps a JSON finish reason string to the FinishReason enum.
-    static FinishReason parseFinishReason(JSONValue value)
-    {
-        if (value.type != JSONType.string)
-            return FinishReason.Unknown;
-
-        switch (value.str)
-        {
-        case "end_turn":
-            return FinishReason.EndTurn;
-        case "max_tokens":
-            return FinishReason.MaxTokens;
-        case "stop_sequence":
-            return FinishReason.StopSequence;
-        case "tool_use":
-            return FinishReason.ToolUse;
-        case "content_filter":
-            return FinishReason.ContentFilter;
-        default:
-            return FinishReason.Unknown;
-        }
-    }
-
-    /// Throws if the JSON response contains an exception field.
-    static void checkException(JSONValue json)
-    {
-        if ("error" !in json)
-            return;
-
-        if (json["error"].type == JSONType.string)
-            throw new EndpointException("POST", "messages", 0, "error", json["error"].str);
-        else if (json["error"].type == JSONType.object && "message" in json["error"])
-            throw new EndpointException("POST", "messages", 0, "error", json["error"]["message"].str);
-        else
-            throw new EndpointException("POST", "messages", 0, "error", json.toPrettyString());
     }
 }

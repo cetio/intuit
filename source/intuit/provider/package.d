@@ -23,7 +23,7 @@ import std.conv : to;
 import std.json : JSONValue, JSONType, parseJSON;
 import std.net.curl : CurlException, CurlTimeoutException, HTTP;
 import std.string : assumeUTF;
-import std.traits : isArray, isIntegral;
+import std.traits : isArray;
 import core.time : Duration, MonoTime;
 
 /// Interface for LLM endpoint implementations.
@@ -238,9 +238,9 @@ Completion completions(E, D)(E ep, string modelName, auto ref D data, int maxToo
     }
     else
     {
-        JSONValue payload = cfg.buildPayload(data.toJSON(), ep.tools);
+        JSONValue payload = cfg.buildCompletionPayload(data.toJSON(), ep.tools);
         JSONValue resp = ep._completions(cfg, payload);
-        return cfg.parseResponse(resp);
+        return cfg.parseCompletionResponse(resp);
     }
 }
 
@@ -260,16 +260,16 @@ Decision decisions(E, D)(
     if (is(E : IEndpoint))
 {
     ModelConfig cfg = ep.config(modelName);
-    JSONValue payload = cfg.buildDecisionsPayload(data.toJSON(), questions);
-    return cfg.parseDecisionsResponse(ep._decisions(cfg, payload), questions);
+    JSONValue payload = cfg.buildDecisionPayload(data.toJSON(), questions);
+    return cfg.parseDecisionResponse(ep._decisions(cfg, payload), questions);
 }
 
 private Completion requestCompletion(E)(E ep, ModelConfig cfg, ref Context context)
     if (is(E : IEndpoint))
 {
-    JSONValue payload = cfg.buildPayload(context.toJSON(), ep.tools);
+    JSONValue payload = cfg.buildCompletionPayload(context.toJSON(), ep.tools);
     JSONValue resp = ep._completions(cfg, payload);
-    Completion ret = cfg.parseResponse(resp);
+    Completion ret = cfg.parseCompletionResponse(resp);
     context.assistant(ret);
     return ret;
 }
@@ -289,13 +289,13 @@ Embedding!T embeddings(T = float, E, D)(E ep, string modelName, D data)
         && (is(D == string) || !isArray!D))
 {
     ModelConfig cfg = ep.config(modelName);
-    JSONValue payload = cfg.buildEmbeddingsPayload(data.toJSON());
+    JSONValue payload = cfg.buildEmbeddingPayload(data.toJSON());
     JSONValue resp = ep._embeddings(cfg, payload);
-    JSONValue arr = cfg.parseEmbeddingsResponse(resp);
+    JSONValue arr = cfg.parseEmbeddingResponse(resp);
 
     Embedding!T ret;
     if (arr.type == JSONType.array && arr.array.length > 0)
-        ret.value = toVector!T(arr.array[0]);
+        ret.value = intuit.response.embedding.parseEmbeddingVector!T(arr.array[0]);
     return ret;
 }
 
@@ -314,50 +314,16 @@ Embedding!T[] embeddings(T = float, E, D)(E ep, string modelName, D data)
         && isArray!D && !is(D == string))
 {
     ModelConfig cfg = ep.config(modelName);
-    JSONValue payload = cfg.buildEmbeddingsPayload(data.toJSON());
+    JSONValue payload = cfg.buildEmbeddingPayload(data.toJSON());
     JSONValue resp = ep._embeddings(cfg, payload);
-    JSONValue arr = cfg.parseEmbeddingsResponse(resp);
+    JSONValue arr = cfg.parseEmbeddingResponse(resp);
 
     Embedding!T[] ret;
     if (arr.type == JSONType.array)
     {
         ret.length = arr.array.length;
         foreach (i, v; arr.array)
-            ret[i].value = toVector!T(v);
-    }
-    return ret;
-}
-
-/// Converts a JSON array into a typed vector.
-private T[] toVector(T)(JSONValue arr)
-{
-    if (arr.type != JSONType.array)
-        return null;
-
-    T[] ret = new T[](arr.array.length);
-    foreach (i, v; arr.array)
-    {
-        if (v.type == JSONType.null_)
-            continue;
-
-        static if (isIntegral!T)
-        {
-            if (v.type == JSONType.integer)
-                ret[i] = cast(T)v.integer;
-            else if (v.type == JSONType.uinteger)
-                ret[i] = cast(T)v.uinteger;
-            else if (v.type == JSONType.float_)
-                ret[i] = cast(T)v.floating;
-        }
-        else
-        {
-            if (v.type == JSONType.float_)
-                ret[i] = cast(T)v.floating;
-            else if (v.type == JSONType.integer)
-                ret[i] = cast(T)v.integer;
-            else if (v.type == JSONType.uinteger)
-                ret[i] = cast(T)v.uinteger;
-        }
+            ret[i].value = intuit.response.embedding.parseEmbeddingVector!T(v);
     }
     return ret;
 }

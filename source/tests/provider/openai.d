@@ -90,7 +90,7 @@ unittest
     );
 }
 
-@Name("ModelConfig parseResponse captures OpenAI usage and latency")
+@Name("ModelConfig parseCompletionResponse captures OpenAI usage and latency")
 unittest
 {
     ModelConfig cfg = new ModelConfig("gpt-4");
@@ -116,7 +116,7 @@ unittest
     json["usage"]["prompt_tokens_details"] = JSONValue.emptyObject;
     json["usage"]["prompt_tokens_details"]["cached_tokens"] = JSONValue(8);
 
-    Completion completion = cfg.parseResponse(json);
+    Completion completion = cfg.parseCompletionResponse(json);
 
     completion.usage.modelName.should == "gpt-4-Resolved";
     completion.usage.latency.should == 99.5f;
@@ -199,6 +199,44 @@ unittest
     normalized["properties"]["status"]["enum"][0].str.should == "draft";
 }
 
+@Name("ModelConfig schema normalization preserves nested keywords and metadata")
+unittest
+{
+    ModelConfig cfg = new ModelConfig("gpt-4");
+    JSONValue schema = parseJSON(`{
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "description": "metadata stays intact",
+        "type": "object",
+        "$defs": {"item": "string"},
+        "properties": {
+            "items": {
+                "type": "array",
+                "prefixItems": ["integer", {
+                    "type": "object",
+                    "properties": {"active": "boolean"}
+                }]
+            }
+        },
+        "allOf": [{
+            "if": {"properties": {"state": "string"}},
+            "then": {"additionalProperties": "number"}
+        }],
+        "unevaluatedProperties": false
+    }`);
+
+    cfg.setResponseSchema("nested", schema);
+    JSONValue normalized = cfg.responseSchema["json_schema"]["schema"];
+    normalized["$schema"].str.should == schema["$schema"].str;
+    normalized["description"].str.should == "metadata stays intact";
+    normalized["$defs"]["item"]["type"].str.should == "string";
+    normalized["properties"]["items"]["prefixItems"][0]["type"].str.should == "integer";
+    normalized["properties"]["items"]["prefixItems"][1]["properties"]["active"]["type"].str
+        .should == "boolean";
+    normalized["allOf"][0]["if"]["properties"]["state"]["type"].str.should == "string";
+    normalized["allOf"][0]["then"]["additionalProperties"]["type"].str.should == "number";
+    normalized["unevaluatedProperties"].boolean.should == false;
+}
+
 @Name("ModelConfig parses Gemma reasoning_content")
 unittest
 {
@@ -215,7 +253,7 @@ unittest
     choices.array ~= choice;
     json["choices"] = choices;
 
-    Completion completion = cfg.parseResponse(json);
+    Completion completion = cfg.parseCompletionResponse(json);
 
     completion.text.should == "The answer.";
     completion.reasoning.should == "First inspect the clues. Then answer.";
@@ -237,14 +275,14 @@ unittest
     choices.array ~= choice;
     json["choices"] = choices;
 
-    Completion completion = cfg.parseResponse(json);
+    Completion completion = cfg.parseCompletionResponse(json);
 
     completion.text.should == "";
     completion.reasoning.should == "The response needs more tokens to finish.";
     completion.choice.finishReason.should == FinishReason.Length;
 }
 
-@Name("ModelConfig parseResponse derives total and cache miss")
+@Name("ModelConfig parseCompletionResponse derives total and cache miss")
 unittest
 {
     ModelConfig cfg = new ModelConfig("gpt-4");
@@ -266,7 +304,7 @@ unittest
     json["usage"]["prompt_tokens_details"] = JSONValue.emptyObject;
     json["usage"]["prompt_tokens_details"]["cached_tokens"] = JSONValue(3);
 
-    Completion completion = cfg.parseResponse(json);
+    Completion completion = cfg.parseCompletionResponse(json);
 
     completion.usage.modelName.should == "gpt-4";
     completion.usage.totalTokens.should == 20;

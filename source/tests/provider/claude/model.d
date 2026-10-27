@@ -20,7 +20,7 @@ unittest
     msg["content"] = JSONValue("Hello");
     input.array ~= msg;
 
-    JSONValue payload = cfg.buildPayload(input);
+    JSONValue payload = cfg.buildCompletionPayload(input);
 
     payload["model"].str.should == "claude-opus-4-8";
     payload["max_tokens"].integer.should == 1024;
@@ -30,7 +30,7 @@ unittest
     payload["messages"].array.length.should == 1;
 }
 
-@Name("buildPayload uses the Anthropic structured output format")
+@Name("buildCompletionPayload uses the Anthropic structured output format")
 unittest
 {
     ClaudeModelConfig cfg = new ClaudeModelConfig("claude-opus-4-8");
@@ -42,7 +42,7 @@ unittest
     schema["additionalProperties"] = JSONValue(false);
     cfg.setResponseSchema("screen_result", schema);
 
-    JSONValue payload = cfg.buildPayload(JSONValue("Classify this content."));
+    JSONValue payload = cfg.buildCompletionPayload(JSONValue("Classify this content."));
     JSONValue format = payload["output_config"]["format"];
 
     format["type"].str.should == "json_schema";
@@ -52,7 +52,7 @@ unittest
     assert("response_format" !in payload);
 }
 
-@Name("buildPayload translates tool liability to Anthropic choices")
+@Name("buildCompletionPayload translates tool liability to Anthropic choices")
 unittest
 {
     ClaudeModelConfig cfg = new ClaudeModelConfig("claude-opus-4-8");
@@ -60,13 +60,13 @@ unittest
     foreach (string liability; ["auto", "required", "none"])
     {
         cfg.setToolLiability(liability);
-        JSONValue payload = cfg.buildPayload(JSONValue("Hello"));
+        JSONValue payload = cfg.buildCompletionPayload(JSONValue("Hello"));
         payload["tool_choice"]["type"].str.should ==
             (liability == "required" ? "any" : liability);
     }
 }
 
-@Name("buildPayload translates a required tool to Anthropic format")
+@Name("buildCompletionPayload translates a required tool to Anthropic format")
 unittest
 {
     ClaudeModelConfig cfg = new ClaudeModelConfig("claude-opus-4-8");
@@ -78,13 +78,13 @@ unittest
     );
     cfg.setRequiredTool(tool);
 
-    JSONValue payload = cfg.buildPayload(JSONValue("Hello"));
+    JSONValue payload = cfg.buildCompletionPayload(JSONValue("Hello"));
 
     payload["tool_choice"]["type"].str.should == "tool";
     payload["tool_choice"]["name"].str.should == "get_weather";
 }
 
-@Name("buildPayload extracts role system messages to top level")
+@Name("buildCompletionPayload extracts role system messages to top level")
 unittest
 {
     ClaudeModelConfig cfg = new ClaudeModelConfig("claude-opus-4-8");
@@ -102,18 +102,18 @@ unittest
     userMsg["content"] = JSONValue("Hello");
     input.array ~= userMsg;
 
-    JSONValue payload = cfg.buildPayload(input);
+    JSONValue payload = cfg.buildCompletionPayload(input);
 
     payload["system"].str.should == "Original system.\nExtracted system.";
     payload["messages"].array.length.should == 1;
     payload["messages"].array[0]["role"].str.should == "user";
 }
 
-@Name("buildPayload wraps raw string input")
+@Name("buildCompletionPayload wraps raw string input")
 unittest
 {
     ClaudeModelConfig cfg = new ClaudeModelConfig("claude-opus-4-8");
-    JSONValue payload = cfg.buildPayload(JSONValue("Hello"));
+    JSONValue payload = cfg.buildCompletionPayload(JSONValue("Hello"));
 
     payload["messages"].type.should == JSONType.array;
     payload["messages"].array.length.should == 1;
@@ -121,7 +121,7 @@ unittest
     payload["messages"].array[0]["content"].str.should == "Hello";
 }
 
-@Name("parseResponse extracts text and finish reason")
+@Name("parseCompletionResponse extracts text and finish reason")
 unittest
 {
     ClaudeModelConfig cfg = new ClaudeModelConfig("claude-opus-4-8");
@@ -145,7 +145,7 @@ unittest
     json["usage"]["input_tokens"] = JSONValue(12);
     json["usage"]["output_tokens"] = JSONValue(6);
 
-    Completion completion = cfg.parseResponse(json);
+    Completion completion = cfg.parseCompletionResponse(json);
 
     completion.choices.length.should == 1;
     completion.choices[0].text.should == "Hello!";
@@ -155,7 +155,7 @@ unittest
     completion.usage.totalTokens.should == 18;
 }
 
-@Name("parseResponse extracts tool use blocks")
+@Name("parseCompletionResponse extracts tool use blocks")
 unittest
 {
     ClaudeModelConfig cfg = new ClaudeModelConfig("claude-opus-4-8");
@@ -178,7 +178,7 @@ unittest
     json["model"] = JSONValue("claude-opus-4-8");
     json["stop_reason"] = JSONValue("tool_use");
 
-    Completion completion = cfg.parseResponse(json);
+    Completion completion = cfg.parseCompletionResponse(json);
 
     completion.choices.length.should == 1;
     completion.choices[0].toolCalls.length.should == 1;
@@ -187,7 +187,7 @@ unittest
     completion.choices[0].finishReason.should == FinishReason.ToolUse;
 }
 
-@Name("parseResponse captures usage metadata and latency")
+@Name("parseCompletionResponse captures usage metadata and latency")
 unittest
 {
     ClaudeModelConfig cfg = new ClaudeModelConfig("claude-opus-4-8");
@@ -213,7 +213,7 @@ unittest
     json["usage"]["cache_read_input_tokens"] = JSONValue(3);
     json["usage"]["cache_creation_input_tokens"] = JSONValue(2);
 
-    Completion completion = cfg.parseResponse(json);
+    Completion completion = cfg.parseCompletionResponse(json);
 
     completion.usage.modelName.should == "claude-opus-4-8-resolved";
     completion.usage.latency.should == 123.456f;
@@ -224,7 +224,7 @@ unittest
     completion.usage.cacheMisses.should == 12;
 }
 
-@Name("parseResponse falls back to config name when model is missing")
+@Name("parseCompletionResponse falls back to config name when model is missing")
 unittest
 {
     ClaudeModelConfig cfg = new ClaudeModelConfig("claude-opus-4-8");
@@ -239,7 +239,7 @@ unittest
     json["usage"]["input_tokens"] = JSONValue(1);
     json["usage"]["output_tokens"] = JSONValue(1);
 
-    Completion completion = cfg.parseResponse(json);
+    Completion completion = cfg.parseCompletionResponse(json);
 
     completion.usage.modelName.should == "claude-opus-4-8";
     completion.usage.promptTokens.should == 1;
@@ -251,5 +251,5 @@ unittest
 unittest
 {
     ClaudeModelConfig cfg = new ClaudeModelConfig("claude-opus-4-8");
-    cfg.parseEmbeddingsResponse(JSONValue("test")).shouldThrow!Exception;
+    cfg.parseEmbeddingResponse(JSONValue("test")).shouldThrow!Exception;
 }

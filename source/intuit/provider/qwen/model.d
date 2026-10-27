@@ -53,9 +53,9 @@ class QwenModelConfig : ModelConfig
      * Returns:
      *  The JSON payload for the completions endpoint.
      */
-    override JSONValue buildPayload(JSONValue input, ToolRegistry tools = ToolRegistry.init)
+    override JSONValue buildCompletionPayload(JSONValue input, ToolRegistry tools = ToolRegistry.init)
     {
-        JSONValue ret = super.buildPayload(input, tools);
+        JSONValue ret = super.buildCompletionPayload(input, tools);
 
         if (topK >= 0)
             ret["top_k"] = JSONValue(topK);
@@ -80,9 +80,9 @@ class QwenModelConfig : ModelConfig
      * Returns:
      *  The JSON payload for the embeddings endpoint.
      */
-    override JSONValue buildEmbeddingsPayload(JSONValue input)
+    override JSONValue buildEmbeddingPayload(JSONValue input)
     {
-        JSONValue ret = super.buildEmbeddingsPayload(input);
+        JSONValue ret = super.buildEmbeddingPayload(input);
         if (encodingFormat != "float")
             ret["encoding_format"] = JSONValue(encodingFormat);
         if (dimensions > 0)
@@ -99,9 +99,9 @@ class QwenModelConfig : ModelConfig
      * Returns:
      *  The parsed Completion.
      */
-    override Completion parseResponse(JSONValue json)
+    override Completion parseCompletionResponse(JSONValue json)
     {
-        Completion ret = super.parseResponse(json);
+        Completion ret = super.parseCompletionResponse(json);
         foreach (ref choice; ret.choices)
         {
             if (choice.toolCalls.length == 0 && choice.text.length > 0)

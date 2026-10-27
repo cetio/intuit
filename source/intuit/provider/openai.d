@@ -128,7 +128,7 @@ public:
     deprecated("The legacy completions API is deprecated. Use chat completions instead.")
     Completion legacyCompletions(JSONValue payload)
     {
-        return new ModelConfig("model" in payload ? payload["model"].str : null).parseResponse(_http.request(
+        return new ModelConfig("model" in payload ? payload["model"].str : null).parseCompletionResponse(_http.request(
             HTTP.Method.post,
             _url~"/v1/completions",
             buildHeaders(),

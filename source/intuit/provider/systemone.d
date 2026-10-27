@@ -1,8 +1,13 @@
 module intuit.provider.systemone;
 
-import intuit.exception : FormatException;
+import intuit.exception : FormatException, MalformedResponseException;
 import intuit.model : ModelConfig;
-import intuit.response.decision;
+import intuit.response.decision :
+    Decision,
+    DecisionOption,
+    DecisionQuestion,
+    DecisionType,
+    decisionQuestions;
 
 import std.conv : to;
 import std.json : JSONType, JSONValue;
@@ -14,7 +19,7 @@ class SystemOneModelConfig : ModelConfig
         super(name);
     }
 
-    override JSONValue buildDecisionsPayload(JSONValue input, DecisionQuestion[] questions)
+    override JSONValue buildDecisionPayload(JSONValue input, DecisionQuestion[] questions)
     {
         if (input.type != JSONType.string && input.type != JSONType.object && input.type != JSONType.array)
             throw new FormatException("System One state must be text, an object, or an array.");
@@ -82,14 +87,17 @@ class SystemOneModelConfig : ModelConfig
         return ret;
     }
 
-    override Decision parseDecisionsResponse(JSONValue json, DecisionQuestion[] questions = null)
+    override Decision parseDecisionResponse(JSONValue json, DecisionQuestion[] questions = null)
     {
         if (json.type != JSONType.object || "error" in json)
-            return super.parseDecisionsResponse(json, questions);
+            return super.parseDecisionResponse(json, questions);
         if ("answers" !in json || json["answers"].type != JSONType.object)
-            throw malformedResponse(json, "Expected a System One answers object.");
+            throw new MalformedResponseException("Expected a System One answers object.", json.toString());
         if (questions.length == 0 || questions.length != json["answers"].object.length)
-            throw malformedResponse(json, "System One answers must match the requested questions.");
+            throw new MalformedResponseException(
+                "System One answers must match the requested questions.",
+                json.toString(),
+            );
 
         JSONValue normalized = JSONValue(json.object.dup);
         normalized["answers"] = JSONValue.emptyArray;
@@ -97,17 +105,20 @@ class SystemOneModelConfig : ModelConfig
         {
             string key = questionKey(question, i);
             if (key !in json["answers"] || json["answers"][key].type != JSONType.object)
-                throw malformedResponse(json, "Missing System One answer: "~key);
+                throw new MalformedResponseException("Missing System One answer: "~key, json.toString());
 
             JSONValue entry = JSONValue(json["answers"][key].object.dup);
             if ("type" !in entry || entry["type"].type != JSONType.string)
-                throw malformedResponse(json, "System One answers require a type.");
+                throw new MalformedResponseException("System One answers require a type.", json.toString());
 
             entry["name"] = JSONValue(question.name);
             if (entry["type"].str == "noul")
             {
                 if ("noul" !in entry)
-                    throw malformedResponse(json, "Missing System One noul probability.");
+                    throw new MalformedResponseException(
+                        "Missing System One noul probability.",
+                        json.toString(),
+                    );
 
                 entry["type"] = JSONValue("predicate");
                 entry["probability"] = entry["noul"];
@@ -115,7 +126,10 @@ class SystemOneModelConfig : ModelConfig
             else if (entry["type"].str == "choice")
             {
                 if ("choice" !in entry || entry["choice"].type != JSONType.string)
-                    throw malformedResponse(json, "System One choice answers require a string choice.");
+                    throw new MalformedResponseException(
+                        "System One choice answers require a string choice.",
+                        json.toString(),
+                    );
 
                 foreach (ref option; question.choices)
                 {
@@ -132,7 +146,10 @@ class SystemOneModelConfig : ModelConfig
                 JSONValue probabilities = entry["probabilities"];
                 size_t count = question.type == DecisionType.Choice ? question.choices.length : question.levels.length;
                 if (probabilities.type != JSONType.object || probabilities.object.length != count)
-                    throw malformedResponse(json, "System One probabilities must match the requested options.");
+                    throw new MalformedResponseException(
+                        "System One probabilities must match the requested options.",
+                        json.toString(),
+                    );
 
                 entry["probabilities"] = JSONValue.emptyArray;
                 foreach (j; 0..count)
@@ -140,7 +157,10 @@ class SystemOneModelConfig : ModelConfig
                     string option = question.type == DecisionType.Choice
                         ? optionKey(question, question.choices[j]) : j.to!string;
                     if (option !in probabilities)
-                        throw malformedResponse(json, "Missing System One option probability: "~option);
+                        throw new MalformedResponseException(
+                            "Missing System One option probability: "~option,
+                            json.toString(),
+                        );
 
                     JSONValue probability = JSONValue.emptyObject;
                     probability["value"] = question.type == DecisionType.Choice
@@ -156,7 +176,7 @@ class SystemOneModelConfig : ModelConfig
             normalized["answers"].array ~= entry;
         }
 
-        Decision ret = super.parseDecisionsResponse(normalized, questions);
+        Decision ret = super.parseDecisionResponse(normalized, questions);
         ret.raw = json;
         foreach (i, ref answer; ret.answers)
             answer.raw = json["answers"][questionKey(questions[i], i)];
