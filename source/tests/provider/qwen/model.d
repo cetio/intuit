@@ -32,7 +32,7 @@ unittest
     choices.array ~= choice;
     response["choices"] = choices;
 
-    Completion completion = cfg.parseResponse(response);
+    Completion completion = cfg.parseCompletionResponse(response);
     completion.choices.length.should == 1;
     completion.choices[0].toolCalls.length.should == 1;
     completion.choices[0].toolCalls[0].name.should == "get_weather";
@@ -62,7 +62,7 @@ unittest
     choices.array ~= choice;
     response["choices"] = choices;
 
-    Completion completion = cfg.parseResponse(response);
+    Completion completion = cfg.parseCompletionResponse(response);
     completion.choices.length.should == 1;
     completion.choices[0].toolCalls.length.should == 1;
     completion.choices[0].toolCalls[0].name.should == "search_products";
@@ -88,7 +88,7 @@ unittest
     choices.array ~= choice;
     response["choices"] = choices;
 
-    Completion completion = cfg.parseResponse(response);
+    Completion completion = cfg.parseCompletionResponse(response);
     completion.choices.length.should == 1;
     completion.choices[0].toolCalls.length.should == 1;
     completion.choices[0].toolCalls[0].name.should == "get_weather";
@@ -115,7 +115,7 @@ Here are the results.`;
     choices.array ~= choice;
     response["choices"] = choices;
 
-    Completion completion = cfg.parseResponse(response);
+    Completion completion = cfg.parseCompletionResponse(response);
     completion.choices.length.should == 1;
     completion.choices[0].toolCalls.length.should == 1;
     completion.choices[0].toolCalls[0].name.should == "search";
@@ -142,7 +142,7 @@ unittest
     choices.array ~= choice;
     response["choices"] = choices;
 
-    Completion completion = cfg.parseResponse(response);
+    Completion completion = cfg.parseCompletionResponse(response);
     completion.choices[0].toolCalls.length.should == 2;
     completion.choices[0].toolCalls[0].name.should == "a";
     completion.choices[0].toolCalls[1].name.should == "b";
@@ -163,12 +163,12 @@ unittest
     choices.array ~= choice;
     response["choices"] = choices;
 
-    Completion completion = model.parseResponse(response);
+    Completion completion = model.parseCompletionResponse(response);
     completion.choices[0].toolCalls.length.should == 0;
     completion.choices[0].text.should == "Just a regular message.";
 }
 
-@Name("parseResponse captures OpenAI-compatible usage and latency")
+@Name("parseCompletionResponse captures OpenAI-compatible usage and latency")
 unittest
 {
     QwenModelConfig cfg = new QwenModelConfig("qwen-test");
@@ -194,7 +194,7 @@ unittest
     response["usage"]["prompt_tokens_details"] = JSONValue.emptyObject;
     response["usage"]["prompt_tokens_details"]["cached_tokens"] = JSONValue(2048);
 
-    Completion completion = cfg.parseResponse(response);
+    Completion completion = cfg.parseCompletionResponse(response);
 
     completion.usage.modelName.should == "qwen-resolved";
     completion.usage.latency.should == 77.25f;

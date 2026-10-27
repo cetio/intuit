@@ -18,15 +18,15 @@ unittest
     question.name = "urgent";
     question.instructions = "Is this urgent?";
 
-    JSONValue payload = cfg.buildDecisionsPayload(JSONValue("Help now"), [question]);
+    JSONValue payload = cfg.buildDecisionPayload(JSONValue("Help now"), [question]);
     payload["model"].str.should == "gpt-6-luna";
     payload["questions"][0]["type"].str.should == "predicate";
     payload["questions"][0]["name"].str.should == "urgent";
     assert("messages" !in payload);
     assert("temperature" !in payload);
     assert("max_tokens" !in payload);
-    cfg.buildDecisionsPayload(JSONValue("text"), []).shouldThrow!FormatException;
-    cfg.buildDecisionsPayload(JSONValue("text"), [question, question]).shouldThrow!FormatException;
+    cfg.buildDecisionPayload(JSONValue("text"), []).shouldThrow!FormatException;
+    cfg.buildDecisionPayload(JSONValue("text"), [question, question]).shouldThrow!FormatException;
 }
 
 @Name("Decision parses OpenAI typed values refusals distributions and usage")
@@ -47,7 +47,7 @@ unittest
         "usage": {"input_tokens": 20, "output_tokens": 5, "total_tokens": 25,
                   "input_tokens_details": {"cached_tokens": 3}}
     }`);
-    Decision ret = cfg.parseDecisionsResponse(json);
+    Decision ret = cfg.parseDecisionResponse(json);
     ret.answers.length.should == 4;
     ret.answer("urgent").probability.should == 0;
     ret.answer(1).choice.type.should == JSONType.true_;
@@ -64,8 +64,8 @@ unittest
     ret.raw.should == json;
     ret.answer("missing").shouldThrow!Exception;
     ret.answer(4).shouldThrow!Exception;
-    cfg.parseDecisionsResponse(parseJSON(`{"answers": [{}]}`)).shouldThrow!MalformedResponseException;
-    cfg.parseDecisionsResponse(
+    cfg.parseDecisionResponse(parseJSON(`{"answers": [{}]}`)).shouldThrow!MalformedResponseException;
+    cfg.parseDecisionResponse(
         parseJSON(`{"answers": [{"type": "predicate", "probability": 2}]}`),
     ).shouldThrow!MalformedResponseException;
 }
@@ -88,7 +88,7 @@ unittest
     score.instructions = "How severe?";
     score.levels = [DecisionLevel("Low", "Minor"), DecisionLevel("High", "Blocking")];
     DecisionQuestion[] questions = [predicate, choice, score];
-    JSONValue payload = cfg.buildDecisionsPayload(parseJSON(`{"ticket": "Help"}`), questions);
+    JSONValue payload = cfg.buildDecisionPayload(parseJSON(`{"ticket": "Help"}`), questions);
     payload["state"]["ticket"].str.should == "Help";
     payload["questions"]["route"]["criteria"]["billing"].str.should == "Payments";
     payload["questions"]["severity"]["criteria"][0].str.should == "Low: Minor";
@@ -110,7 +110,7 @@ unittest
         }, "usage": {"input_tokens": 12, "output_tokens": 4, "cost": 0.001}
     }`);
     json["answers"][predicateName] = parseJSON(`{"type": "noul", "noul": 0.9}`);
-    Decision ret = cfg.parseDecisionsResponse(json, questions);
+    Decision ret = cfg.parseDecisionResponse(json, questions);
     ret.answer.probability.should == 0.9;
     ret.answer.name.should == "";
     ret.answer("route").choice.str.should == "support";
@@ -130,12 +130,12 @@ unittest
     question.type = DecisionType.Choice;
     question.instructions = "Pick a value";
     question.choices = [DecisionOption(JSONValue(true)), DecisionOption(JSONValue("true"))];
-    JSONValue payload = cfg.buildDecisionsPayload(JSONValue("test"), [question]);
+    JSONValue payload = cfg.buildDecisionPayload(JSONValue("test"), [question]);
     payload["questions"]["choice"]["criteria"].object.length.should == 2;
     JSONValue json = parseJSON(`{"answers": {"choice": {
         "type": "choice", "choice": "true", "probabilities": {"true": 0.9, "\"true\"": 0.1}
     }}}`);
-    Decision ret = cfg.parseDecisionsResponse(json, [question]);
+    Decision ret = cfg.parseDecisionResponse(json, [question]);
     ret.answer.choice.type.should == JSONType.true_;
     ret.answer.probabilities[1].value.type.should == JSONType.string;
 }
@@ -151,15 +151,15 @@ unittest
     question.instructions = "Urgent?";
     DecisionQuestion[] questions = new DecisionQuestion[255];
     questions[] = question;
-    cfg.buildDecisionsPayload(JSONValue("text"), questions)["questions"].object.length.should == 255;
-    cfg.buildDecisionsPayload(JSONValue("text"), questions~question).shouldThrow!FormatException;
+    cfg.buildDecisionPayload(JSONValue("text"), questions)["questions"].object.length.should == 255;
+    cfg.buildDecisionPayload(JSONValue("text"), questions~question).shouldThrow!FormatException;
 
     question.type = DecisionType.Score;
     question.levels = new DecisionLevel[10];
     question.levels[] = DecisionLevel("Level");
-    cfg.buildDecisionsPayload(JSONValue("text"), [question]);
+    cfg.buildDecisionPayload(JSONValue("text"), [question]);
     question.levels ~= DecisionLevel("Extra");
-    cfg.buildDecisionsPayload(JSONValue("text"), [question]).shouldThrow!FormatException;
+    cfg.buildDecisionPayload(JSONValue("text"), [question]).shouldThrow!FormatException;
 
     question.type = DecisionType.Choice;
     question.levels = null;
@@ -167,9 +167,9 @@ unittest
     foreach (i; 0..question.choices.length)
         question.choices[i] = DecisionOption(JSONValue(i.to!string));
 
-    cfg.buildDecisionsPayload(JSONValue("text"), [question]);
+    cfg.buildDecisionPayload(JSONValue("text"), [question]);
     question.choices ~= DecisionOption(JSONValue("extra"));
-    cfg.buildDecisionsPayload(JSONValue("text"), [question]).shouldThrow!FormatException;
+    cfg.buildDecisionPayload(JSONValue("text"), [question]).shouldThrow!FormatException;
 }
 
 @Name("Decision validation rejects mismatched answers without changing raw responses")
@@ -179,27 +179,26 @@ unittest
     DecisionQuestion question;
     question.name = "urgent";
     question.instructions = "Urgent?";
-    cfg.parseDecisionsResponse(parseJSON(`{"answers": []}`), [question])
+    cfg.parseDecisionResponse(parseJSON(`{"answers": []}`), [question])
         .shouldThrow!MalformedResponseException;
-    cfg.parseDecisionsResponse(parseJSON(`{"answers": []}`))
+    cfg.parseDecisionResponse(parseJSON(`{"answers": []}`))
         .shouldThrow!MalformedResponseException;
-    cfg.parseDecisionsResponse(
+    cfg.parseDecisionResponse(
         parseJSON(`{"answers": [{"type": "predicate", "name": "other", "probability": 0.5}]}`),
         [question],
     ).shouldThrow!MalformedResponseException;
-    cfg.parseDecisionsResponse(parseJSON(`{"error": {"message": "failed"}}`))
+    cfg.parseDecisionResponse(parseJSON(`{"error": {"message": "failed"}}`))
         .shouldThrow!EndpointException;
 
     SystemOneModelConfig systemOne = new SystemOneModelConfig("jev-latest");
     JSONValue json = parseJSON(`{"answers": {"urgent": {"type": "noul", "noul": 0.5}}}`);
-    Decision ret = systemOne.parseDecisionsResponse(json, [question]);
+    Decision ret = systemOne.parseDecisionResponse(json, [question]);
     ret.answer.raw["type"].str.should == "noul";
     json["answers"]["urgent"]["type"].str.should == "noul";
-    systemOne.parseDecisionsResponse(parseJSON(`{"answers": {}}`), [question])
+    systemOne.parseDecisionResponse(parseJSON(`{"answers": {}}`), [question])
         .shouldThrow!MalformedResponseException;
     (new TypeSafe()._completions(cfg, JSONValue.init)).shouldThrow!EndpointException;
     (new TypeSafe()._embeddings(cfg, JSONValue.init)).shouldThrow!EndpointException;
     (new Claude("http://localhost")._decisions(cfg, JSONValue.init)).shouldThrow!EndpointException;
     (new LiteLLM()._decisions(JSONValue.init)).shouldThrow!Exception;
 }
-
