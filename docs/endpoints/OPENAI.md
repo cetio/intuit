@@ -1,3 +1,11 @@
+---
+layout: default
+title: OpenAI
+parent: Endpoints
+nav_order: 2
+permalink: /endpoints/openai/
+---
+
 # OpenAI
 
 `OpenAI` implements OpenAI-compatible chat completions, embeddings, and decisions. It can connect to a hosted API or a local server such as Ollama or LM Studio. The server and model determine which operations actually work.
@@ -30,12 +38,12 @@ Intuit doesn't start a server, download models, or load them into memory. Start 
 
 `config(modelName)` gets or creates a configuration without checking the server. Model IDs must match what your deployment accepts.
 
-See [Getting Started](GETTING_STARTED.md) for completions, [Models](../MODELS.md) for request settings, and [Responses](../RESPONSES.md#embeddings) for single and batch embeddings. Decision requests have their own [guide](../DECISIONS.md).
+See [Getting Started](../getting-started/) for completions, [Models](../../models/) for request settings, and [Responses](../../responses/#embeddings) for single and batch embeddings. Decision requests have their own [guide](../../decisions/).
 
 ## Compatibility
 
 OpenAI-compatible describes a payload shape, not identical behavior across servers. Structured output, tools, reasoning, embeddings, and decisions need support from the selected model and deployment. Sending an extra field doesn't make the server implement it.
 
-The parser accepts ordinary message text, structured text/reasoning content, and native function tool calls. It preserves raw responses for provider fields outside the shared types. Qwen XML tool calls require the [Qwen](QWEN.md) adapter.
+The parser accepts ordinary message text, structured text/reasoning content, and native function tool calls. It preserves raw responses for provider fields outside the shared types. Qwen XML tool calls require the [Qwen](../qwen/) adapter.
 
 Streaming and the OpenAI Responses API aren't implemented. `legacyCompletions(ep, payload)` still sends `/v1/completions`, but it's deprecated in favor of chat completions.

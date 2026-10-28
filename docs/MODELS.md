@@ -1,3 +1,10 @@
+---
+layout: default
+title: Models
+nav_order: 5
+permalink: /models/
+---
+
 # Models
 
 A `ModelConfig` stores request settings and translates provider payloads and responses. Endpoints and inference-capable routers cache configurations by model name. Changes apply to later requests for that name.
@@ -11,7 +18,7 @@ auto ep = new OpenAI("http://localhost:1234");
 ModelConfig cfg = ep.config("llama3");
 ```
 
-`ep.config(modelName)` creates a configuration if the name isn't cached. It doesn't check whether the server offers that model. `ep.configs()` returns cached configurations without making a request. See [Endpoints](endpoints/GETTING_STARTED.md) for discovery.
+`ep.config(modelName)` creates a configuration if the name isn't cached. It doesn't check whether the server offers that model. `ep.configs()` returns cached configurations without making a request. See [Endpoints](../endpoints/getting-started/) for discovery.
 
 On an inference-capable router, `router.config()` returns the active model's configuration. `router.config(modelName)` gets or creates another configuration without activating it. Catalog-only routers don't support either operation.
 
@@ -28,7 +35,7 @@ OpenRouter also uses `SystemOneModelConfig`, which inherits the common completio
 
 ## Completion Parameters
 
-These omission rules describe the base OpenAI-compatible payload builder. [Claude](endpoints/ANTHROPIC.md) and [Qwen](endpoints/QWEN.md) have additional rules.
+These omission rules describe the base OpenAI-compatible payload builder. [Claude](../endpoints/anthropic/) and [Qwen](../endpoints/qwen/) have additional rules.
 
 | Field | Purpose | Omitted when |
 | --- | --- | --- |
@@ -107,17 +114,17 @@ Accepted values are:
 
 Any other value throws `FormatException`.
 
-After [registering a tool](TOOLS.md#registering-a-function), use `setRequiredTool` to request that specific tool:
+After [registering a tool](../tools/#registering-a-function), use `setRequiredTool` to request that specific tool:
 
 ```d
 cfg.setRequiredTool(ep.tools.get("getWeather"));
 ```
 
-Passing `null` or a tool without a name clears the tool choice. These settings ask the model to produce tool calls. They don't authorize execution in your application. See [Tools](TOOLS.md) for registration, execution policy, and manual handling.
+Passing `null` or a tool without a name clears the tool choice. These settings ask the model to produce tool calls. They don't authorize execution in your application. See [Tools](../tools/) for registration, execution policy, and manual handling.
 
 ## Provider Settings
 
-- [Anthropic](endpoints/ANTHROPIC.md) covers system prompts, thinking budgets, and Messages API translation.
-- [Qwen](endpoints/QWEN.md) covers thinking controls, embedding settings, and XML tool calls.
-- [TypeSafe](endpoints/TYPESAFE.md) and [OpenRouter](routers/OPENROUTER.md) cover System One decisions.
-- [Extending Intuit](EXTENDING.md) covers custom payload builders and parsers.
+- [Anthropic](../endpoints/anthropic/) covers system prompts, thinking budgets, and Messages API translation.
+- [Qwen](../endpoints/qwen/) covers thinking controls, embedding settings, and XML tool calls.
+- [TypeSafe](../endpoints/typesafe/) and [OpenRouter](../routers/openrouter/) cover System One decisions.
+- [Extending Intuit](../extending/) covers custom payload builders and parsers.

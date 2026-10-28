@@ -1,3 +1,11 @@
+---
+layout: default
+title: Model Catalogs
+parent: Routers
+nav_order: 6
+permalink: /routers/catalog/
+---
+
 # Model Catalogs
 
 A router catalog describes models. It doesn't establish that you can run them through that router or that your account has access. LiteLLM and Models.dev expose catalogs without implementing inference.
@@ -20,7 +28,7 @@ foreach (id, details; catalog)
 
 `refresh()` fetches the remote catalog again. It doesn't clear conversation history, activate a model, or replace cached model configurations. OpenRouter, LiteLLM, and Models.dev fetch again on later catalog access if their cache is empty. Zen tracks whether a catalog has loaded, even when it contains no models.
 
-Catalog access is a network operation on a cold cache. Connection and operation timeouts apply to it too. See [Errors](../ERRORS.md#timeouts).
+Catalog access is a network operation on a cold cache. Connection and operation timeouts apply to it too. See [Errors](../../errors/#timeouts).
 
 ## Model Details
 
@@ -49,13 +57,13 @@ Inference-capable routers activate one model at a time. Changing it preserves hi
 
 OpenRouter sets the context compactor's token limit when it finds metadata for the selected ID. Zen does so only when the reported context length is positive. Neither change immediately compacts existing messages. Catalog refresh alone doesn't update the active model's limit.
 
-A catalog entry doesn't configure the request's maximum output tokens. Set that through [ModelConfig](../MODELS.md) when needed. Compaction is an estimate based on prior reported usage, not a tokenizer or a guarantee that a request fits. See [Context](../CONTEXT.md#compaction).
+A catalog entry doesn't configure the request's maximum output tokens. Set that through [ModelConfig](../../models/) when needed. Compaction is an estimate based on prior reported usage, not a tokenizer or a guarantee that a request fits. See [Context](../../context/#compaction).
 
 ## Provider Mapping
 
-- [OpenRouter](OPENROUTER.md) preserves API model slugs and maps advertised parameters and pricing.
-- [LiteLLM](LITELLM.md) uses proxy model names and maps its `model_info` fields.
-- [Models.dev](MODELSDEV.md) prefixes each model ID with its catalog provider.
-- [Zen](ZEN.md) currently maps IDs, names, descriptions, and context lengths only.
+- [OpenRouter](../openrouter/) preserves API model slugs and maps advertised parameters and pricing.
+- [LiteLLM](../litellm/) uses proxy model names and maps its `model_info` fields.
+- [Models.dev](../modelsdev/) prefixes each model ID with its catalog provider.
+- [Zen](../zen/) currently maps IDs, names, descriptions, and context lengths only.
 
 Provider guides explain omitted metadata and ID formats. Catalog capabilities don't add request methods to Intuit, and a model listed by a remote service can still use an API family the adapter doesn't support.

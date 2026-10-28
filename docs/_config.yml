@@ -1,0 +1,25 @@
+title: Intuit
+description: SDK for interfacing with AI LLMs and embeddings models with streaming, tools, routing, and much more.
+theme: just-the-docs
+
+url: https://cetio.github.io
+baseurl: /intuit
+repository: cetio/intuit
+
+color_scheme: light
+search_enabled: true
+heading_anchors: true
+nav_sort: case_insensitive
+back_to_top: true
+back_to_top_text: Back to top
+
+aux_links:
+  "GitHub Repository": https://github.com/cetio/intuit
+  "DUB Package": https://code.dlang.org/packages/intuit
+aux_links_new_tab: true
+
+gh_edit_link: true
+gh_edit_link_text: Edit this page on GitHub.
+gh_edit_repository: https://github.com/cetio/intuit
+gh_edit_branch: main
+gh_edit_source: docs

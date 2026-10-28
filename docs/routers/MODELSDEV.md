@@ -1,3 +1,11 @@
+---
+layout: default
+title: Models.dev
+parent: Routers
+nav_order: 5
+permalink: /routers/modelsdev/
+---
+
 # Models.dev
 
 `ModelsDev` reads the public models.dev catalog without authentication. It doesn't run models. Model activation, configuration access, completions, embeddings, and decisions throw plain `Exception`.
@@ -32,4 +40,4 @@ Reported `decision`, `embedding`, and `reranking` model types add the correspond
 
 Cache, audio, and reasoning prices aren't represented. Neither are pricing tiers, lifecycle flags, or provider connection settings. Missing values retain their defaults rather than being inferred.
 
-See [Model Catalogs](CATALOG.md) for shared fields and [Routers](README.md) for inference-capable alternatives.
+See [Model Catalogs](../catalog/) for shared fields and [Routers](../) for inference-capable alternatives.

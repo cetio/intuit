@@ -1,3 +1,11 @@
+---
+layout: default
+title: OpenRouter
+parent: Routers
+nav_order: 2
+permalink: /routers/openrouter/
+---
+
 # OpenRouter
 
 `OpenRouter` supports model discovery, completions, embeddings, and System One decisions. It owns conversation history and uses one active model for requests.
@@ -30,7 +38,7 @@ Activation preserves messages. If the model is in the catalog, it sets `router.c
 
 Every configuration is a `SystemOneModelConfig`. Its inherited methods build ordinary OpenAI-compatible completion and embedding payloads, while its decision methods translate System One requests. The router doesn't choose `ClaudeModelConfig` or `QwenModelConfig` from a model's provider prefix.
 
-See [Getting Started](GETTING_STARTED.md) for conversation requests and [Models](../MODELS.md) for common settings. Embedding and decision requests use the active model without changing history.
+See [Getting Started](../getting-started/) for conversation requests and [Models](../../models/) for common settings. Embedding and decision requests use the active model without changing history.
 
 ## Request Options
 
@@ -62,4 +70,4 @@ Nonempty router options are added after model payload construction, so they can 
 
 Metadata includes descriptions, context/output limits, architecture modalities, and advertised parameters. Input/output prices are converted from USD per token to USD per million tokens. Detailed pricing tiers and other provider metadata aren't represented by `ModelDetails`.
 
-Catalog entries can describe operations a particular account or deployment doesn't support. For decisions, choose a System One-compatible model ID and follow [Decisions](../DECISIONS.md). Streaming isn't implemented.
+Catalog entries can describe operations a particular account or deployment doesn't support. For decisions, choose a System One-compatible model ID and follow [Decisions](../../decisions/). Streaming isn't implemented.

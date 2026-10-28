@@ -1,6 +1,13 @@
+---
+layout: default
+title: Responses
+nav_order: 7
+permalink: /responses/
+---
+
 # Responses
 
-Intuit exposes shared completion and embedding types. Decision answers have their own [guide](DECISIONS.md).
+Intuit exposes shared completion and embedding types. Decision answers have their own [guide](../decisions/).
 
 ## Completion
 
@@ -86,7 +93,7 @@ Each `ToolCall` contains:
 | `arguments` | Parsed JSON arguments. |
 | `policyResult` | Execution-policy status and explanation for context-backed requests. |
 
-Returned calls may already have been evaluated or executed. See [Tools](TOOLS.md) before invoking them. The guide covers manual-only execution, policy-managed rounds, and partial batches.
+Returned calls may already have been evaluated or executed. See [Tools](../tools/) before invoking them. The guide covers manual-only execution, policy-managed rounds, and partial batches.
 
 ## Usage
 
@@ -149,4 +156,4 @@ The server and selected model must support embeddings. Claude, TypeSafe, Zen, an
 
 Use `Completion.raw` when provider fields are not represented by the shared types. The HTTP helper also adds a numeric `latency` field to parsed response objects before model parsing.
 
-HTTP failures and detected provider error envelopes throw `EndpointException` or a subclass. Invalid HTTP response JSON and invalid `Completion.json` text throw `MalformedResponseException`, which isn't an `EndpointException`. Other field and tool-argument parsing errors can propagate from conversion code. See [Errors](ERRORS.md) for the full distinction.
+HTTP failures and detected provider error envelopes throw `EndpointException` or a subclass. Invalid HTTP response JSON and invalid `Completion.json` text throw `MalformedResponseException`, which isn't an `EndpointException`. Other field and tool-argument parsing errors can propagate from conversion code. See [Errors](../errors/) for the full distinction.

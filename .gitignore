@@ -19,3 +19,6 @@ playground/*
 !bin/.gitkeep
 !playground/.gitkeep
 .env
+docs/_site/
+docs/.bundle/
+.jekyll-cache
