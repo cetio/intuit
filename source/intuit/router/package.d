@@ -54,10 +54,13 @@ interface IRouter
     /// Sends a raw embeddings request. Use `embeddings` instead.
     JSONValue _embeddings(JSONValue payload);
 
+    /// Sends a raw decisions request. Use `decisions` instead.
     JSONValue _decisions(JSONValue payload);
 
+    /// Sets the HTTP operation timeout.
     void operationTimeout(Duration timeout);
 
+    /// Sets the HTTP connection timeout.
     void connectTimeout(Duration timeout);
 
     /// Re-fetches the model catalog. Implementation defined, and may have additional behavior.
@@ -120,6 +123,16 @@ private Completion completeWithPolicy(R)(R router, int maxToolRounds)
     return ret;
 }
 
+/**
+ * Send a decision request using the router's active model.
+ *
+ * Params:
+ *   router = The router to send the request through.
+ *   data = The input data.
+ *   questions = The decision questions to answer.
+ *
+ * Returns: The decision response.
+ */
 Decision decisions(R, D)(R router, auto ref D data, DecisionQuestion[] questions)
     if (is(R : IRouter))
 {
@@ -145,6 +158,16 @@ private Completion requestCompletion(R)(R router)
     return ret;
 }
 
+/**
+ * Send a completion request after appending input data to the router's context.
+ *
+ * Params:
+ *   router = The router to send the request through.
+ *   data = The user input appended to the context.
+ *   maxToolRounds = Maximum automatically handled tool rounds. Defaults to 8.
+ *
+ * Returns: The completion response.
+ */
 Completion completions(R, D)(R router, auto ref D data, int maxToolRounds = 8)
     if (is(R : IRouter))
 {

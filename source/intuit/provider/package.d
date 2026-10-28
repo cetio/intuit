@@ -60,10 +60,13 @@ interface IEndpoint
     /// Sends a raw embeddings request. Use `embeddings` instead.
     JSONValue _embeddings(ModelConfig cfg, JSONValue payload);
 
+    /// Sends a raw decisions request. Use `decisions` instead.
     JSONValue _decisions(ModelConfig cfg, JSONValue payload);
 
+    /// Sets the HTTP operation timeout.
     void operationTimeout(Duration timeout);
 
+    /// Sets the HTTP connection timeout.
     void connectTimeout(Duration timeout);
 }
 
@@ -251,6 +254,17 @@ Completion legacyCompletions(E)(E ep, JSONValue payload)
     return ep.legacyCompletions(payload);
 }
 
+/**
+ * Send a decision request to the endpoint using a specific model name.
+ *
+ * Params:
+ *   ep = The endpoint to send the request to.
+ *   modelName = The name of the model to use.
+ *   data = The input data.
+ *   questions = The decision questions to answer.
+ *
+ * Returns: The decision response.
+ */
 Decision decisions(E, D)(
     E ep,
     string modelName,
