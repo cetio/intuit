@@ -182,7 +182,7 @@ class ClaudeModelConfig : ModelConfig
     {
         Completion ret;
         ret.raw = json;
-        /// Throws if the JSON response contains an exception field.
+        // Throws if the JSON response contains an exception field.
         if ("error" in json)
         {
             if (json["error"].type == JSONType.string)
@@ -208,7 +208,7 @@ class ClaudeModelConfig : ModelConfig
             && (json["latency"].type == JSONType.float_ || json["latency"].type == JSONType.integer))
             ret.usage.latency = fromJSON!float(json["latency"]);
 
-        /// Reads an integral value from a JSON object under the primary or fallback key.
+        // Reads an integral value from a JSON object under the primary or fallback key.
         if ("usage" in json && json["usage"].type == JSONType.object)
         {
             JSONValue usage = json["usage"];
@@ -258,7 +258,7 @@ class ClaudeModelConfig : ModelConfig
             }
         }
 
-        /// Maps a JSON finish reason string to the FinishReason enum.
+        // Maps a JSON finish reason string to the FinishReason enum.
         choice.finishReason = "stop_reason" in json && json["stop_reason"].type == JSONType.string
             ? cast(FinishReason)json["stop_reason"].str : FinishReason.Unknown;
 

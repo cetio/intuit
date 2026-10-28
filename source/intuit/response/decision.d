@@ -1,3 +1,4 @@
+/// Decision request and response types.
 module intuit.response.decision;
 
 import intuit.exception : EndpointException, FormatException, MalformedResponseException;
@@ -7,60 +8,95 @@ import intuit.response.completion : Usage;
 import std.json : JSONType, JSONValue;
 import std.math : isFinite;
 
+/// The kind of question a decision asks or answer provides.
 enum DecisionType : string
 {
+    /// Probability estimate for a yes/no question.
     Predicate = "predicate",
+    /// Selection among named options.
     Choice = "choice",
+    /// Numeric score on a level scale.
     Score = "score",
+    /// The model refused to answer.
     Refusal = "refusal"
 }
 
+/// A selectable option for a choice question.
 struct DecisionOption
 {
+    /// The option value.
     JSONValue value;
+    /// Optional human-readable description.
     string description;
 }
 
+/// A labeled level for a score question.
 struct DecisionLevel
 {
+    /// The level label.
     string label;
+    /// Optional human-readable description.
     string description;
 }
 
+/// A single question within a decision request.
 struct DecisionQuestion
 {
+    /// The question type.
     DecisionType type;
+    /// Optional unique question name.
     string name;
+    /// Instructions given to the model.
     string instructions;
+    /// Options for Choice questions.
     DecisionOption[] choices;
+    /// Levels for Score questions.
     DecisionLevel[] levels;
 }
 
+/// A probability assigned to a single option or level.
 struct DecisionProbability
 {
+    /// The option value or level index.
     JSONValue value;
+    /// The assigned probability between zero and one.
     double probability = double.nan;
+    /// The level label for score questions.
     string label;
 }
 
+/// The model's answer to a decision question.
 struct DecisionAnswer
 {
+    /// The raw JSON value for this answer.
     JSONValue raw;
+    /// The answer type.
     DecisionType type;
+    /// The name of the question this answers.
     string name;
+    /// Probability estimate for Predicate answers.
     double probability = double.nan;
+    /// Selected option for Choice answers.
     JSONValue choice;
+    /// Numeric score for Score answers.
     double score = double.nan;
+    /// Optional model-reported confidence between zero and one.
     double confidence = double.nan;
+    /// Per-option or per-level probability distribution.
     DecisionProbability[] probabilities;
 }
 
+/// Parsed result from a decisions request.
 struct Decision
 {
+    /// The raw JSON response.
     JSONValue raw;
+    /// All returned answers.
     DecisionAnswer[] answers;
+    /// Token accounting for the request, when reported by the endpoint.
     Usage usage;
 
+    /// Gets the answer at `index`.
     ref inout(DecisionAnswer) answer(size_t index = 0) inout
     {
         if (index >= answers.length)
@@ -68,6 +104,7 @@ struct Decision
         return answers[index];
     }
 
+    /// Gets the answer for the question named `name`.
     ref inout(DecisionAnswer) answer(string name) inout
     {
         foreach (ref entry; answers)
@@ -283,7 +320,7 @@ Decision parseDecisionResponse(
             throw new MalformedResponseException("Invalid decision latency.", json.toString());
     }
 
-    /// Reads an integral value from the JSON usage object.
+    // Reads an integral value from the JSON usage object.
     if ("usage" in json && json["usage"].type == JSONType.object)
     {
         JSONValue usage = json["usage"];

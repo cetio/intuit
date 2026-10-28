@@ -30,6 +30,7 @@ enum Modality : string
     Transcription = "transcription",
 }
 
+/// OpenAI-compatible parameter or feature supported by a model.
 enum ModelCapability : string
 {
     /// Supports audio processing. This does NOT guarantee audio input/output support; check modalities for that.

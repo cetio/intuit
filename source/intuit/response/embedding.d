@@ -18,7 +18,7 @@ struct Embedding(T)
 package(intuit):
 JSONValue parseEmbeddingResponse(JSONValue json)
 {
-    /// Throws if the JSON response contains an exception field.
+    // Throws if the JSON response contains an exception field.
     if ("error" in json)
     {
         if (json["error"].type == JSONType.string)

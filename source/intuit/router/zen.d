@@ -204,12 +204,14 @@ private:
         return ret;
     }
 
+    /// Returns true when the model uses the Anthropic Messages API.
     static bool usesMessages(string modelName)
     {
         return modelName.startsWith("claude-")
             || (modelName.startsWith("qwen") && !modelName.startsWith("qwen3-coder"));
     }
 
+    /// Returns true when the model's API family is unsupported by Zen.
     static bool isUnsupported(string modelName)
     {
         return modelName.startsWith("gpt-")

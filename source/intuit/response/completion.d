@@ -38,6 +38,7 @@ struct ToolCall
     string name;
     /// Arguments to pass to the tool as JSON.
     JSONValue arguments;
+    /// Result of tool policy evaluation for this call.
     ToolPolicyResult policyResult;
 }
 
@@ -152,7 +153,7 @@ Completion parseCompletionResponse(JSONValue json, string modelName = null)
 {
     Completion ret;
     ret.raw = json;
-    /// Throws if the JSON response contains an exception field.
+    // Throws if the JSON response contains an exception field.
     if ("error" in json)
     {
         if (json["error"].type == JSONType.string)
@@ -175,7 +176,7 @@ Completion parseCompletionResponse(JSONValue json, string modelName = null)
         && (json["latency"].type == JSONType.float_ || json["latency"].type == JSONType.integer))
         ret.usage.latency = fromJSON!float(json["latency"]);
 
-    /// Reads integral token counts, including provider-specific fallback keys.
+    // Reads integral token counts, including provider-specific fallback keys.
     if ("usage" in json && json["usage"].type == JSONType.object)
     {
         JSONValue usage = json["usage"];
@@ -207,7 +208,7 @@ Completion parseCompletionResponse(JSONValue json, string modelName = null)
                 ? entry["message"]
                 : (("delta" in entry) ? entry["delta"] : JSONValue.init);
 
-            /// Extracts text, reasoning, and tool calls from a message JSON object.
+            // Extracts text, reasoning, and tool calls from a message JSON object.
             if (msg.type == JSONType.object)
             {
                 if ("content" in msg && !msg["content"].isNull)
@@ -243,7 +244,7 @@ Completion parseCompletionResponse(JSONValue json, string modelName = null)
                 choice.text = entry["text"].str;
             }
 
-            /// Maps a JSON finish reason string to the FinishReason enum.
+            // Maps a JSON finish reason string to the FinishReason enum.
             choice.finishReason = "finish_reason" in entry
                 && entry["finish_reason"].type == JSONType.string
                 ? cast(FinishReason)entry["finish_reason"].str : FinishReason.Unknown;
@@ -271,7 +272,7 @@ void parseContent(
     switch (value.type)
     {
     case JSONType.string:
-        /// Appends text to a target string if non-empty.
+        // Appends text to a target string if non-empty.
         if (value.str.length > 0)
         {
             if (reasoningMode)
@@ -290,7 +291,7 @@ void parseContent(
         bool nextReasoning = reasoningMode;
         if ("type" in value && value["type"].type == JSONType.string)
         {
-            /// Checks if a content type string indicates reasoning content.
+            // Checks if a content type string indicates reasoning content.
             string kind = value["type"].str.toLower;
             nextReasoning = kind.canFind("reason")
                 || kind.canFind("think")

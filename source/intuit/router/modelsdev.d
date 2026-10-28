@@ -13,6 +13,7 @@ import std.json : JSONType, JSONValue;
 import std.net.curl : HTTP;
 import core.time : Duration;
 
+/// models.dev catalog router implementation.
 class ModelsDev : IRouter
 {
 private:

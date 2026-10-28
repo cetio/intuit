@@ -1,3 +1,4 @@
+/// TypeSafe endpoint implementation.
 module intuit.provider.typesafe;
 
 import intuit.exception : EndpointException, MalformedResponseException;
@@ -9,8 +10,20 @@ import intuit.provider.systemone : SystemOneModelConfig;
 import std.json : JSONType, JSONValue;
 import std.net.curl : HTTP;
 
+/// TypeSafe endpoint for System One decisions.
 class TypeSafe : OpenAI
 {
+    /**
+     * Constructs a TypeSafe endpoint.
+     *
+     * The provided URL is used as-is and the caller is responsible for
+     * supplying the correct base URL for the endpoint.
+     *
+     * Params:
+     *  url = The base URL of the endpoint.
+     *  key = Optional API key.
+     *  name = Display name for the endpoint.
+     */
     this(string url = "https://api.typesafe.ai", string key = null, string name = "TypeSafe")
     {
         super(url, key, name);

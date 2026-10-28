@@ -1,3 +1,4 @@
+/// System One decision model implementation.
 module intuit.provider.systemone;
 
 import intuit.exception : FormatException, MalformedResponseException;
@@ -12,8 +13,15 @@ import intuit.response.decision :
 import std.conv : to;
 import std.json : JSONType, JSONValue;
 
+/// System One model for decision requests.
 class SystemOneModelConfig : ModelConfig
 {
+    /**
+     * Constructs a SystemOneModelConfig.
+     *
+     * Params:
+     *  name = The model name.
+     */
     this(string name)
     {
         super(name);
