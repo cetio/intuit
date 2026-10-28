@@ -3,3 +3,6 @@ site_name = "Intuit"
 site_description = "SDK for interfacing with AI LLMs and embeddings models with streaming, tools, routing, and much more."
 site_url = "https://mortifying.si/intuit/"
 repo_url = "https://github.com/cetio/intuit"
+
+[project.theme.palette]
+scheme = "slate"
