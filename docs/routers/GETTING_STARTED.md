@@ -1,92 +1,36 @@
 # Getting Started with Routers
 
-Routers provide model discovery and a stateful completion interface over one or more backing providers. They maintain conversation context and select one active model for requests.
+Inference-capable routers keep conversation history and use one active model. This guide uses OpenRouter. See [Quick Start](../QUICK_START.md) for installation and [Routers](README.md) for the capability comparison.
 
-## OpenRouter
+## Creating a Router
 
-Construct `OpenRouter` with an API key. The public OpenRouter host is used by default:
+Create an OpenRouter account and supply its API key.
 
 ```d
 import intuit;
 
-auto router = new OpenRouter("sk-or-key");
+auto router = new OpenRouter("your-openrouter-key");
 ```
 
-The complete constructor accepts a base URL and display name:
-
-```d
-auto router = new OpenRouter(
-    "sk-or-key",
-    "https://openrouter.ai",
-    "OpenRouter"
-);
-```
-
-The URL is used as-is. Requests append `/api/v1/models`, `/api/v1/chat/completions`, or `/api/v1/embeddings`.
-
-## Model Catalog
-
-`catalog()` lazily fetches model metadata and caches it by model ID. `refresh()` replaces the cache from the remote catalog:
-
-```d
-ModelDetails[string] catalog = router.catalog();
-ModelDetails details = catalog["openai/gpt-4o"];
-
-router.refresh();
-```
-
-`ModelDetails` exposes:
-
-| Field | Purpose |
-| --- | --- |
-| `id` | Model slug used for activation and requests. |
-| `name` | Human-readable display name. |
-| `description` | Provider description. |
-| `contextLength` | Total context window in tokens. |
-| `maxCompletionTokens` | Maximum completion size reported by the top provider. |
-| `inputModalities` | Supported input modalities. |
-| `outputModalities` | Supported output modalities. |
-| `capabilities` | Normalized OpenAI-compatible parameters and features. |
-| `promptCost` | Cost in USD per million input tokens. |
-| `completionCost` | Cost in USD per million output tokens. |
-
-Modalities use the `Modality` enum: `Text`, `Image`, `Audio`, `Video`, `PDF`, `Embedding`, `Decisions`, `File`, `Embeddings`, `Rerank`, `Speech`, and `Transcription`. 
-Capabilities use the `ModelCapability` enum, normalizing the known parameters shared across provider catalogs.
+The public host is used by default. Provider-specific headers, routes, and other options are covered in [OpenRouter](OPENROUTER.md).
 
 ## Selecting a Model
 
-Set the active model before making requests:
+Set the active model before making requests. Replace the ID with a model available to your account.
 
 ```d
 router.active("openai/gpt-4o");
-writeln(router.active);
 ```
 
-On first activation, OpenRouter fetches the catalog if it is empty. Aliases absent from the catalog are still accepted. When metadata exists, activation updates `router.context.compactor.maxTokens` to the model's `contextLength` while preserving existing messages.
-
-Every active model has a cached `ModelConfig`:
-
-```d
-ModelConfig cfg = router.config();
-cfg.temperature = 0.4;
-cfg.maxTokens = 1024;
-
-ModelConfig other = router.config("anthropic/claude-sonnet-4");
-```
-
-`config()` returns the active model's configuration and throws when no model is active. `config(modelName)` creates or returns a configuration without changing the active model.
+Activation may fetch the catalog. It preserves existing history and can update the context compactor's token limit from model metadata.
 
 ## Completions
 
-Supplying data appends a user message to the maintained context, sends the complete context, and appends the assistant response:
+Each prompt is appended to the router's context. The request sends that history, and the first assistant choice is appended to it.
 
 ```d
-import intuit;
-
 import std.stdio : writeln;
 
-auto router = new OpenRouter("sk-or-key");
-router.active("openai/gpt-4o");
 router.context.system("You are a concise assistant.");
 
 Completion first = completions(router, "Why is the sky blue?");
@@ -103,110 +47,23 @@ router.context.user("Give me one example.");
 Completion result = completions(router);
 ```
 
-Both overloads throw when no active model is set. See [Context](../CONTEXT.md) for message and compaction behavior.
+Both overloads throw a plain `Exception` when no model is active. Clear history with `router.context.clear()`. Switching models doesn't clear it automatically.
 
-## Embeddings
-
-Embedding requests use the active model but do not modify the maintained context:
+## Configuring Requests
 
 ```d
-router.active("openai/text-embedding-3-small");
-
-Embedding!float vector = embeddings(router, "Hello, world!");
-Embedding!float[] vectors = embeddings(
-    router,
-    ["Hello, world!", "Goodbye, world!"]
-);
+ModelConfig cfg = router.config();
+cfg.temperature = 0.4;
+cfg.maxTokens = 1024;
 ```
 
-The backing model and provider must support embeddings.
+`config()` returns the active model's cached configuration. `config(modelName)` gets or creates a configuration without activating that model. Neither operation is supported by catalog-only routers.
 
-## OpenRouter Options
+## Next Steps
 
-OpenRouter-specific request and header options are public fields on the router:
-
-| Field | Destination | Purpose |
-| --- | --- | --- |
-| `referer` | `HTTP-Referer` header | Identifies the calling application. |
-| `title` | `X-OpenRouter-Title` header | Supplies the application title. |
-| `categories` | `X-OpenRouter-Categories` header | Comma-separated marketplace categories. |
-| `route` | Chat request | Routing strategy such as `"fallback"`. |
-| `transforms` | Chat request | Message transforms such as `"middle-out"`. |
-| `includeReasoning` | Chat request | Requests reasoning data when true. |
-| `provider` | Chat and embedding requests | Provider preference object. |
-| `plugins` | Chat requests | OpenRouter plugin array. |
-
-```d
-import std.json : JSONValue;
-
-router.referer = "https://example.com";
-router.title = "Example App";
-router.categories = ["productivity"];
-router.transforms = ["middle-out"];
-router.includeReasoning = true;
-
-router.provider = JSONValue.emptyObject;
-router.provider["allow_fallbacks"] = JSONValue(true);
-```
-
-## Tools
-
-The router owns a tool registry separate from endpoint registries:
-
-```d
-@Description("Return the current temperature for a city.")
-int getTemperature(string city)
-{
-    return 21;
-}
-
-router.tools.add!getTemperature();
-router.config().setToolLiability("auto");
-```
-
-Registered tools are included in completion payloads. See [Tools](../TOOLS.md) for handling returned tool calls.
-
-## LiteLLM Catalog Access
-
-`LiteLLM` currently supports model-catalog access only:
-
-```d
-import intuit;
-
-auto litellm = new LiteLLM("http://localhost:4000", "proxy-key");
-ModelDetails[string] catalog = litellm.catalog();
-```
-
-It requests `/v1/model/info` and maps LiteLLM metadata to shared `ModelDetails`, including context and output limits, prices in USD per million tokens, modalities, and supported features.
-
-The following operations are not implemented for `LiteLLM` and throw an exception:
-
-- `active(modelName)`
-- `config()` and `config(modelName)`
-- `configs()`
-- completion requests
-- embedding requests
-
-Use an `OpenAI` endpoint against a LiteLLM proxy when OpenAI-compatible completion or embedding requests are needed without router-managed state.
-
-## Models.dev catalog
-
-`ModelsDev` uses the public models.dev API; it does not need an API key and is catalog-only:
-
-```d
-import intuit;
-
-ModelsDev models = new ModelsDev();
-ModelDetails[string] catalog = models.catalog;
-ModelDetails gpt4o = catalog["openrouter/openai/gpt-4o"];
-
-models.refresh();
-```
-
-The router fetches `/api.json?type=all`, which includes specialized model types such as decision models. Catalog IDs are prefixed with the provider ID so that provider-specific limits and prices remain distinct. `ModelDetails.promptCost` and `completionCost` use USD per million tokens for all routers; models.dev prices are already reported in those units, while LiteLLM and OpenRouter prices are converted from USD per token.
-
-The models.dev router only supplies model metadata. Active-model selection, model configuration, completions, decisions, and embeddings are unsupported.
-
-## Current Limitations
-
-Router streaming is not implemented. `OpenRouter` is the only built-in router that currently supports completion and embedding requests. Router errors for an unset active model and unsupported LiteLLM operations are currently plain `Exception` values rather than specialized exception types.
+- [Model Catalogs](CATALOG.md) for metadata and discovery.
+- [Models](../MODELS.md) for request settings and structured output.
+- [Context](../CONTEXT.md) for history management and compaction.
+- [Responses](../RESPONSES.md) for completion fields and embedding requests.
+- [Tools](../TOOLS.md) and [Decisions](../DECISIONS.md) for those workflows.
+- [Router guides](README.md#implementations) for options and limitations.

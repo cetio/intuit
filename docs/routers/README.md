@@ -1,28 +1,24 @@
 # Routers
 
-An `IRouter` presents models from one or more backing providers through a single stateful interface. A router owns a `Context`, a tool registry, a model catalog, and one active model.
+Routers implement `IRouter`, which exposes conversation history, tools, model configurations, and a catalog. Inference-capable routers use one active model instead of accepting a model name with each request. Some implementations currently provide catalog access only.
 
-- [Getting Started](GETTING_STARTED.md) — discover models, select an active model, configure requests, and use the maintained context.
+- [Getting Started](GETTING_STARTED.md) makes a conversation through OpenRouter.
+- [Model Catalogs](CATALOG.md) explains discovery, metadata, and pricing units.
+- [Models](../MODELS.md) covers common request settings.
 
-Built-in routers:
+## Implementations
 
-| Class | Model catalog | Requests |
+| Guide | Class | Inference support |
 | --- | --- | --- |
-| `OpenRouter` | Dynamic catalog from `/api/v1/models`. | Completions and embeddings. |
-| `LiteLLM` | Dynamic catalog from `/v1/model/info`. | Not yet implemented. |
-| `ModelsDev` | Public catalog from `/api.json?type=all`, including decision models. | Catalog only; not an inference provider. |
+| [OpenRouter](OPENROUTER.md) | `OpenRouter` | Completions, embeddings, and System One decisions. |
+| [OpenCode Zen](ZEN.md) | `Zen` | Completions for supported API families. |
+| [LiteLLM](LITELLM.md) | `LiteLLM` | Catalog only. |
+| [Models.dev](MODELSDEV.md) | `ModelsDev` | Catalog only, without authentication. |
 
-`OpenRouter` can make requests through the public OpenRouter API or a compatible deployment. `LiteLLM` currently exposes catalog metadata only; active-model selection, model configuration, completions, and embeddings throw.
+Provider and model support still determines whether a particular request works. Catalog metadata doesn't guarantee inference support, and streaming isn't implemented.
 
-`ModelsDev` needs no API key. Construct it with `new ModelsDev()` and access `router.catalog` to fetch and cache the catalog; `router.refresh()` explicitly reloads it.
+## Conversation History
 
-Catalog IDs use `provider/model` (for example, `openrouter/openai/gpt-5`) to preserve provider-specific limits and prices. Prices use USD per million tokens, consistent across router catalogs. Only fields represented by `ModelDetails` are mapped: names, descriptions, base input/output prices, context/output limits, modalities, and explicitly reported capabilities. Cache/audio/reasoning prices, pricing tiers, lifecycle flags, and provider wiring are not represented.
+Completion requests use and update the router's `Context`. Embedding and decision requests use the active model but don't change conversation history.
 
-Active-model selection, model configuration, completions, decisions, and embeddings always throw; models.dev is not an inference provider.
-
-Routers differ from endpoints in two important ways:
-
-- Router request functions use the active model instead of accepting a model name.
-- Completion requests always use and update the router's maintained context.
-
-See [Getting Started](GETTING_STARTED.md) for the implemented surface and current limitations.
+Changing models preserves history. If you want to keep history yourself and name a model per request, use an [endpoint](../endpoints/README.md) instead.

@@ -1,16 +1,23 @@
 # Endpoints
 
-An endpoint wraps one provider API. Every endpoint implements `IEndpoint` and exposes model configuration, completion, and embedding request functions.
+An endpoint connects to one provider API through `IEndpoint`. Requests name a model explicitly. The endpoint caches model settings and tools, but doesn't keep conversation history.
 
-- [Getting Started](GETTING_STARTED.md) — construct endpoints, fetch and configure models, and send completion and embedding requests.
-- [Models](MODELS.md) — `ModelConfig` fields, provider-specific subclasses, structured output, and tool choice.
+- [Getting Started](GETTING_STARTED.md) makes a request and continues a conversation.
+- [Models](../MODELS.md) covers shared request settings and structured output.
 
-Built-in endpoint classes:
+## Providers
 
-| Class | Module | API |
+| Guide | Class | Supported operations |
 | --- | --- | --- |
-| `OpenAI` | `intuit.provider.openai` | OpenAI Chat Completions and Embeddings. |
-| `Claude` | `intuit.provider.claude` | Anthropic Messages API. No embeddings. |
-| `Qwen` | `intuit.provider.qwen` | Extends `OpenAI` with Qwen-specific parameters and XML tool-call extraction. |
+| [OpenAI](OPENAI.md) | `OpenAI` | Completions, embeddings, and decisions when the server supports them. |
+| [Anthropic](ANTHROPIC.md) | `Claude` | Completions through the Messages API. |
+| [Qwen](QWEN.md) | `Qwen` | OpenAI-compatible requests with Qwen settings and XML tool-call extraction. |
+| [TypeSafe](TYPESAFE.md) | `TypeSafe` | System One decisions only. |
 
-Endpoints are constructed with a base URL and an optional API key. Intuit does not normalize it; provider request paths such as `/v1/chat/completions` are appended to it. Intuit does not host endpoints — use a local server such as [Ollama](https://ollama.com/) or [LM Studio](https://lmstudio.ai/), a router, or the vendor's API directly.
+The interface exposes all request methods, but each provider can reject unsupported operations. Check the provider guide rather than assuming every endpoint supports every method.
+
+## Choosing an Endpoint
+
+Use `OpenAI` for a compatible local or hosted server, `Qwen` for its additional settings and parsing, `Claude` for Anthropic's Messages API, and `TypeSafe` for System One decisions.
+
+Intuit doesn't host services or load models. See [Quick Start](../QUICK_START.md) for prerequisites, [Responses](../RESPONSES.md) for embedding requests, and [Decisions](../DECISIONS.md) for typed question/answer requests.
