@@ -30,7 +30,7 @@ Activation preserves messages. If the model is in the catalog, it sets `router.c
 
 Every configuration is a `SystemOneModelConfig`. Its inherited methods build ordinary OpenAI-compatible completion and embedding payloads, while its decision methods translate System One requests. The router doesn't choose `ClaudeModelConfig` or `QwenModelConfig` from a model's provider prefix.
 
-See [Getting Started](GETTING_STARTED.md) for conversation requests and [Models](../MODELS.md) for common settings. Embedding and decision requests use the active model without changing history.
+See [Getting Started](README.md) for conversation requests and [Models](../MODELS.md) for common settings. Embedding and decision requests use the active model without changing history.
 
 ## Request Options
 

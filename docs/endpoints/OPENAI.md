@@ -30,7 +30,7 @@ Intuit doesn't start a server, download models, or load them into memory. Start 
 
 `config(modelName)` gets or creates a configuration without checking the server. Model IDs must match what your deployment accepts.
 
-See [Getting Started](GETTING_STARTED.md) for completions, [Models](../MODELS.md) for request settings, and [Responses](../RESPONSES.md#embeddings) for single and batch embeddings. Decision requests have their own [guide](../DECISIONS.md).
+See [Getting Started](README.md) for completions, [Models](../MODELS.md) for request settings, and [Responses](../RESPONSES.md#embeddings) for single and batch embeddings. Decision requests have their own [guide](../DECISIONS.md).
 
 ## Compatibility
 

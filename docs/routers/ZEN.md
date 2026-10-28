@@ -47,4 +47,4 @@ The Chat Completions path uses the base parser, not Qwen XML extraction. Zen doe
 
 The catalog currently supplies only model IDs, names, descriptions, and positive context lengths. Prices, capabilities, modalities, and output limits aren't mapped, even if the service returns them.
 
-See [Model Catalogs](CATALOG.md) for shared metadata and [Getting Started](GETTING_STARTED.md) for router conversation behavior.
+See [Model Catalogs](CATALOG.md) for shared metadata and [Getting Started](README.md) for router conversation behavior.

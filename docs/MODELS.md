@@ -11,7 +11,7 @@ auto ep = new OpenAI("http://localhost:1234");
 ModelConfig cfg = ep.config("llama3");
 ```
 
-`ep.config(modelName)` creates a configuration if the name isn't cached. It doesn't check whether the server offers that model. `ep.configs()` returns cached configurations without making a request. See [Endpoints](endpoints/GETTING_STARTED.md) for discovery.
+`ep.config(modelName)` creates a configuration if the name isn't cached. It doesn't check whether the server offers that model. `ep.configs()` returns cached configurations without making a request. See [Endpoints](endpoints/README.md) for discovery.
 
 On an inference-capable router, `router.config()` returns the active model's configuration. `router.config(modelName)` gets or creates another configuration without activating it. Catalog-only routers don't support either operation.
 

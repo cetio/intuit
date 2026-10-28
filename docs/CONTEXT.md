@@ -52,7 +52,7 @@ Context-backed completions can perform further rounds through `toolPolicy`. The 
 
 Clear history with `ctx.clear()` or `router.context.clear()`. This removes messages but retains the compactor and policy. Switching an active model doesn't clear history.
 
-For complete conversation examples, see [Endpoints](endpoints/GETTING_STARTED.md) or [Routers](routers/GETTING_STARTED.md).
+For complete conversation examples, see [Endpoints](endpoints/README.md) or [Routers](routers/README.md).
 
 ## Message Types
 
