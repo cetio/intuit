@@ -3,6 +3,70 @@ site_name = "Intuit"
 site_description = "SDK for interfacing with AI LLMs and embeddings models with streaming, tools, routing, and much more."
 site_url = "https://mortifying.si/intuit/"
 repo_url = "https://github.com/cetio/intuit"
+edit_uri = "https://github.com/cetio/intuit/edit/main/docs/"
 
-[project.theme.palette]
+nav = [
+  { "Home" = "README.md" },
+  { "Endpoints" = [
+    "endpoints/README.md",
+    "endpoints/OPENAI.md",
+    "endpoints/ANTHROPIC.md",
+    "endpoints/QWEN.md",
+    "endpoints/TYPESAFE.md",
+  ] },
+  { "Routers" = [
+    "routers/README.md",
+    "routers/OPENROUTER.md",
+    "routers/ZEN.md",
+    "routers/LITELLM.md",
+    "routers/MODELSDEV.md",
+    "routers/CATALOG.md",
+  ] },
+  { "Guides" = [
+    "MODELS.md",
+    "CONTEXT.md",
+    "RESPONSES.md",
+    "TOOLS.md",
+    "DECISIONS.md",
+    "ERRORS.md",
+  ] },
+  { "Extending" = "EXTENDING.md" },
+]
+
+[project.theme]
+features = [
+  "content.action.copy",
+  "content.action.edit",
+  "content.code.annotate",
+  "content.code.copy",
+  "content.code.select",
+  "content.footnote.tooltips",
+  "content.tabs.link",
+  "content.tooltips",
+  "navigation.footer",
+  "navigation.indexes",
+  "navigation.path",
+  "navigation.sections",
+  "navigation.tabs",
+  "navigation.top",
+  "search.highlight",
+]
+
+# Dark mode by default, with a toggle to light
+[[project.theme.palette]]
 scheme = "slate"
+primary = "indigo"
+accent = "orange"
+toggle.icon = "lucide/moon-star"
+toggle.name = "Switch to light mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+scheme = "default"
+primary = "indigo"
+accent = "indigo"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to dark mode"
+
+[project.theme.icon.tag]
+default = "lucide/hash"
