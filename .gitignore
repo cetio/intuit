@@ -1,7 +1,4 @@
 .dub
-docs.json
-__dummy.html
-/intuit
 intuit.so
 intuit.dylib
 intuit.dll
@@ -14,11 +11,10 @@ intuit-test-*
 *.obj
 *.lst
 libintuit*
-bin/*
-playground/*
-!bin/.gitkeep
-!playground/.gitkeep
-.env
+
+bin/
+playground/
 site/
-.venv-docs/
+
+.env
 .venv*
