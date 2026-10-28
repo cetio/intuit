@@ -1,14 +1,6 @@
----
-layout: default
-title: Getting Started with Endpoints
-parent: Endpoints
-nav_order: 1
-permalink: /endpoints/getting-started/
----
-
 # Getting Started with Endpoints
 
-An endpoint connects to one provider API. This guide finds a model and makes a short conversation through an OpenAI-compatible server. Start with [Quick Start](../../quick-start/) if you haven't installed Intuit or prepared a server.
+An endpoint connects to one provider API. This guide finds a model and makes a short conversation through an OpenAI-compatible server. Start with [Quick Start](../QUICK_START.md) if you haven't installed Intuit or prepared a server.
 
 ## Creating an Endpoint
 
@@ -77,9 +69,9 @@ The configuration is reused for later requests with that model name. Creating on
 
 ## Next Steps
 
-- [Models](../../models/) for common settings and structured output.
-- [Context](../../context/) for message types, history, and compaction.
-- [Responses](../../responses/) for completion fields and embedding requests.
-- [Tools](../../tools/) and [Decisions](../../decisions/) for additional request workflows.
-- [Provider guides](../#providers) for authentication, formats, and supported operations.
-- [Errors](../../errors/) for exception types and request timeouts.
+- [Models](../MODELS.md) for common settings and structured output.
+- [Context](../CONTEXT.md) for message types, history, and compaction.
+- [Responses](../RESPONSES.md) for completion fields and embedding requests.
+- [Tools](../TOOLS.md) and [Decisions](../DECISIONS.md) for additional request workflows.
+- [Provider guides](README.md#providers) for authentication, formats, and supported operations.
+- [Errors](../ERRORS.md) for exception types and request timeouts.

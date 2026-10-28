@@ -1,10 +1,3 @@
----
-layout: default
-title: Extending Intuit
-nav_order: 11
-permalink: /extending/
----
-
 # Extending Intuit
 
 Use a custom configuration when an existing transport works but a provider needs a different request or response shape. Implement an endpoint or router when the connection, routes, or model-selection behavior also differs.
@@ -69,7 +62,7 @@ class LocalEndpoint : OpenAI
 
 Returning the subclass from `config()` makes high-level requests use it. This example is intended for explicitly named models. Override `available()` too if you expose discovery, because the inherited OpenAI implementation creates base `ModelConfig` instances.
 
-For a simple extra field, prefer [ModelConfig.params](../models/#completion-parameters) over a subclass. Provider-specific builders don't all merge it in the same way.
+For a simple extra field, prefer [ModelConfig.params](MODELS.md#completion-parameters) over a subclass. Provider-specific builders don't all merge it in the same way.
 
 ## Custom Endpoints
 
@@ -79,7 +72,7 @@ The `_completions`, `_embeddings`, and `_decisions` methods receive a configurat
 
 Return a stable configuration instance for each model name. Ensure `available()` creates the same configuration subclass as `config()`. Reject unsupported operations explicitly.
 
-The built-in HTTP helper is `package(intuit)`, so an adapter outside that package must supply its own transport. The public interfaces don't require curl. Use [Errors](../errors/) as the failure contract when matching built-in behavior.
+The built-in HTTP helper is `package(intuit)`, so an adapter outside that package must supply its own transport. The public interfaces don't require curl. Use [Errors](ERRORS.md) as the failure contract when matching built-in behavior.
 
 ## Custom Routers
 

@@ -1,10 +1,3 @@
----
-layout: default
-title: Errors
-nav_order: 10
-permalink: /errors/
----
-
 # Errors
 
 Intuit distinguishes failed requests from responses it can't parse. Catching `EndpointException` handles HTTP and transport failures, but it doesn't catch `MalformedResponseException` or `FormatException`.
@@ -96,4 +89,4 @@ Decide whether a retry is safe before adding backoff. Authentication and request
 
 Conversation state can change before a request fails. Router completion input is appended before the HTTP request, and earlier policy rounds may already have appended assistant messages and tool results. Tool functions may have performed side effects.
 
-Inspect the context before retrying. Don't blindly append the same user message again or rerun every tool call. See [Tools](../tools/#policy-managed-execution) for partial batches and [Context](../context/) for history management.
+Inspect the context before retrying. Don't blindly append the same user message again or rerun every tool call. See [Tools](TOOLS.md#policy-managed-execution) for partial batches and [Context](CONTEXT.md) for history management.

@@ -1,10 +1,3 @@
----
-layout: default
-title: Quick Start
-nav_order: 2
-permalink: /quick-start/
----
-
 # Quick Start
 
 This guide makes a completion request and continues the conversation. Use an endpoint when you want to choose the model and keep history yourself. Use an inference-capable router when you want it to own the history and active model.
@@ -46,7 +39,7 @@ void main()
 
 Each request sends `ctx` and appends the first assistant choice to it. The endpoint doesn't retain history itself.
 
-Use a base URL without `/v1` or a trailing slash. Intuit appends `/v1/chat/completions` directly. To inspect the server's advertised model IDs, use `ep.available()` as shown in [Getting Started with Endpoints](../endpoints/getting-started/#finding-a-model).
+Use a base URL without `/v1` or a trailing slash. Intuit appends `/v1/chat/completions` directly. To inspect the server's advertised model IDs, use `ep.available()` as shown in [Getting Started with Endpoints](endpoints/GETTING_STARTED.md#finding-a-model).
 
 ## Using a Router
 
@@ -74,9 +67,9 @@ Select a model before requesting a completion. OpenRouter may fetch its catalog 
 
 ## Next Steps
 
-- [Endpoints](../endpoints/) for provider clients and their supported operations.
-- [Routers](../routers/) for active models and catalog access.
-- [Models](../models/) for request settings and structured output.
-- [Responses](../responses/) for completion fields and embedding requests.
-- [Tools](../tools/) and [Decisions](../decisions/) for those workflows.
-- [Errors](../errors/) if a request fails.
+- [Endpoints](endpoints/README.md) for provider clients and their supported operations.
+- [Routers](routers/README.md) for active models and catalog access.
+- [Models](MODELS.md) for request settings and structured output.
+- [Responses](RESPONSES.md) for completion fields and embedding requests.
+- [Tools](TOOLS.md) and [Decisions](DECISIONS.md) for those workflows.
+- [Errors](ERRORS.md) if a request fails.

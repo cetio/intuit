@@ -1,11 +1,3 @@
----
-layout: default
-title: OpenCode Zen
-parent: Routers
-nav_order: 3
-permalink: /routers/zen/
----
-
 # OpenCode Zen
 
 `Zen` supports completions through OpenCode's Chat Completions and Messages routes. It owns conversation history and selects the payload format from the active model ID. Embeddings and decisions aren't supported.
@@ -47,7 +39,7 @@ Activation preserves history and updates the compactor limit only when the catal
 
 ## Configuration and Limitations
 
-Use [Models](../../models/) for base settings and [Anthropic](../../endpoints/anthropic/) for `ClaudeModelConfig` settings and message-translation limits. The Messages path has the same shared tool-history limitation described there.
+Use [Models](../MODELS.md) for base settings and [Anthropic](../endpoints/ANTHROPIC.md) for `ClaudeModelConfig` settings and message-translation limits. The Messages path has the same shared tool-history limitation described there.
 
 The Chat Completions path uses the base parser, not Qwen XML extraction. Zen doesn't implement the Responses API, Gemini-native requests, decisions, embeddings, or streaming.
 
@@ -55,4 +47,4 @@ The Chat Completions path uses the base parser, not Qwen XML extraction. Zen doe
 
 The catalog currently supplies only model IDs, names, descriptions, and positive context lengths. Prices, capabilities, modalities, and output limits aren't mapped, even if the service returns them.
 
-See [Model Catalogs](../catalog/) for shared metadata and [Getting Started](../getting-started/) for router conversation behavior.
+See [Model Catalogs](CATALOG.md) for shared metadata and [Getting Started](GETTING_STARTED.md) for router conversation behavior.

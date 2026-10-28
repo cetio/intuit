@@ -1,14 +1,6 @@
----
-layout: default
-title: Getting Started with Routers
-parent: Routers
-nav_order: 1
-permalink: /routers/getting-started/
----
-
 # Getting Started with Routers
 
-Inference-capable routers keep conversation history and use one active model. This guide uses OpenRouter. See [Quick Start](../../quick-start/) for installation and [Routers](../) for the capability comparison.
+Inference-capable routers keep conversation history and use one active model. This guide uses OpenRouter. See [Quick Start](../QUICK_START.md) for installation and [Routers](README.md) for the capability comparison.
 
 ## Creating a Router
 
@@ -20,7 +12,7 @@ import intuit;
 auto router = new OpenRouter("your-openrouter-key");
 ```
 
-The public host is used by default. Provider-specific headers, routes, and other options are covered in [OpenRouter](../openrouter/).
+The public host is used by default. Provider-specific headers, routes, and other options are covered in [OpenRouter](OPENROUTER.md).
 
 ## Selecting a Model
 
@@ -69,9 +61,9 @@ cfg.maxTokens = 1024;
 
 ## Next Steps
 
-- [Model Catalogs](../catalog/) for metadata and discovery.
-- [Models](../../models/) for request settings and structured output.
-- [Context](../../context/) for history management and compaction.
-- [Responses](../../responses/) for completion fields and embedding requests.
-- [Tools](../../tools/) and [Decisions](../../decisions/) for those workflows.
-- [Router guides](../#implementations) for options and limitations.
+- [Model Catalogs](CATALOG.md) for metadata and discovery.
+- [Models](../MODELS.md) for request settings and structured output.
+- [Context](../CONTEXT.md) for history management and compaction.
+- [Responses](../RESPONSES.md) for completion fields and embedding requests.
+- [Tools](../TOOLS.md) and [Decisions](../DECISIONS.md) for those workflows.
+- [Router guides](README.md#implementations) for options and limitations.

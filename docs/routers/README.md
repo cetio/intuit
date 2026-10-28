@@ -1,27 +1,19 @@
----
-layout: default
-title: Routers
-nav_order: 4
-has_children: true
-permalink: /routers/
----
-
 # Routers
 
 Routers implement `IRouter`, which exposes conversation history, tools, model configurations, and a catalog. Inference-capable routers use one active model instead of accepting a model name with each request. Some implementations currently provide catalog access only.
 
-- [Getting Started](getting-started/) makes a conversation through OpenRouter.
-- [Model Catalogs](catalog/) explains discovery, metadata, and pricing units.
-- [Models](../models/) covers common request settings.
+- [Getting Started](GETTING_STARTED.md) makes a conversation through OpenRouter.
+- [Model Catalogs](CATALOG.md) explains discovery, metadata, and pricing units.
+- [Models](../MODELS.md) covers common request settings.
 
 ## Implementations
 
 | Guide | Class | Inference support |
 | --- | --- | --- |
-| [OpenRouter](openrouter/) | `OpenRouter` | Completions, embeddings, and System One decisions. |
-| [OpenCode Zen](zen/) | `Zen` | Completions for supported API families. |
-| [LiteLLM](litellm/) | `LiteLLM` | Catalog only. |
-| [Models.dev](modelsdev/) | `ModelsDev` | Catalog only, without authentication. |
+| [OpenRouter](OPENROUTER.md) | `OpenRouter` | Completions, embeddings, and System One decisions. |
+| [OpenCode Zen](ZEN.md) | `Zen` | Completions for supported API families. |
+| [LiteLLM](LITELLM.md) | `LiteLLM` | Catalog only. |
+| [Models.dev](MODELSDEV.md) | `ModelsDev` | Catalog only, without authentication. |
 
 Provider and model support still determines whether a particular request works. Catalog metadata doesn't guarantee inference support, and streaming isn't implemented.
 
@@ -29,4 +21,4 @@ Provider and model support still determines whether a particular request works. 
 
 Completion requests use and update the router's `Context`. Embedding and decision requests use the active model but don't change conversation history.
 
-Changing models preserves history. If you want to keep history yourself and name a model per request, use an [endpoint](../endpoints/) instead.
+Changing models preserves history. If you want to keep history yourself and name a model per request, use an [endpoint](../endpoints/README.md) instead.

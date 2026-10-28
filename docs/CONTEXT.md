@@ -1,10 +1,3 @@
----
-layout: default
-title: Context
-nav_order: 6
-permalink: /context/
----
-
 # Context
 
 A `Context` holds conversation messages. Keep one yourself when using an endpoint, or use the context owned by an inference-capable router.
@@ -55,11 +48,11 @@ The data helpers use Intuit's JSON conversion support. Strings, numbers, boolean
 | `completions(router)` | Sends existing history without adding another user message. |
 | Embeddings and decisions | Don't append messages or run tool policy. |
 
-Context-backed completions can perform further rounds through `toolPolicy`. The default policy doesn't allow tools; registered calls become pending, and missing tools fail. See [Tools](../tools/) for authorization and execution.
+Context-backed completions can perform further rounds through `toolPolicy`. The default policy doesn't allow tools; registered calls become pending, and missing tools fail. See [Tools](TOOLS.md) for authorization and execution.
 
 Clear history with `ctx.clear()` or `router.context.clear()`. This removes messages but retains the compactor and policy. Switching an active model doesn't clear history.
 
-For complete conversation examples, see [Endpoints](../endpoints/getting-started/) or [Routers](../routers/getting-started/).
+For complete conversation examples, see [Endpoints](endpoints/GETTING_STARTED.md) or [Routers](routers/GETTING_STARTED.md).
 
 ## Message Types
 
@@ -74,7 +67,7 @@ Every message implements `IMessage`, which exposes `role` and `toJSON()`.
 
 `AssistantMessage` retains the complete `Completion`, selected choice index, token usage, text, and tool calls. This allows context compaction to account for usage reported by earlier requests.
 
-All messages serialize to OpenAI-style objects. `ClaudeModelConfig` translates string system messages to the Anthropic top-level `system` field, but doesn't convert shared tool history to Anthropic content blocks. See [Anthropic](../endpoints/anthropic/#payload-translation).
+All messages serialize to OpenAI-style objects. `ClaudeModelConfig` translates string system messages to the Anthropic top-level `system` field, but doesn't convert shared tool history to Anthropic content blocks. See [Anthropic](endpoints/ANTHROPIC.md#payload-translation).
 
 ## Tool Messages
 
@@ -84,7 +77,7 @@ A tool-result message references the originating call ID.
 ctx.tool("call_123", "The current temperature is 21 degrees.");
 ```
 
-Use the actual ID from the assistant's tool call, not the placeholder above. The assistant message is already appended by a context-backed request. See [Tools](../tools/#manual-execution) for the complete round-trip and safe handling of policy-managed calls.
+Use the actual ID from the assistant's tool call, not the placeholder above. The assistant message is already appended by a context-backed request. See [Tools](TOOLS.md#manual-execution) for the complete round-trip and safe handling of policy-managed calls.
 
 ## Compaction
 
@@ -133,7 +126,7 @@ The callback runs only after a configured limit is exceeded. If it is null, the 
 
 The example keeps only the last ten messages, including any system messages in that slice. A callback is responsible for preserving required instructions and complete tool exchanges. Its output isn't repeatedly compacted until it satisfies the limits.
 
-Built-in routers construct a compactor automatically. Activation can update its token limit from catalog metadata without immediately compacting existing messages. Compaction occurs on the next append. See [Model Catalogs](../routers/catalog/#selecting-models) for the provider differences.
+Built-in routers construct a compactor automatically. Activation can update its token limit from catalog metadata without immediately compacting existing messages. Compaction occurs on the next append. See [Model Catalogs](routers/CATALOG.md#selecting-models) for the provider differences.
 
 ## Serialization
 

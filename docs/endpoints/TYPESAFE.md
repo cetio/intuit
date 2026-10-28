@@ -1,11 +1,3 @@
----
-layout: default
-title: TypeSafe
-parent: Endpoints
-nav_order: 5
-permalink: /endpoints/typesafe/
----
-
 # TypeSafe
 
 `TypeSafe` sends System One decision requests. It inherits connection handling from `OpenAI`, but rejects completions and embeddings with `EndpointException`.
@@ -23,7 +15,7 @@ The URL defaults to `https://api.typesafe.ai`, the key defaults to null, and the
 
 Discovery requests `GET /v1/models` and reads names from a top-level `models` array. It adds new configurations without clearing the cache. Decisions use `POST /v1/systemone`.
 
-Configurations are `SystemOneModelConfig` instances. Import `intuit.provider.systemone` explicitly if you need to name that subclass. For normal requests, use the common `ModelConfig` interface and the [Decisions](../../decisions/) guide.
+Configurations are `SystemOneModelConfig` instances. Import `intuit.provider.systemone` explicitly if you need to name that subclass. For normal requests, use the common `ModelConfig` interface and the [Decisions](../DECISIONS.md) guide.
 
 ## System One Translation
 
@@ -49,4 +41,4 @@ Boolean and string choices remain distinct even though System One uses string ke
 
 The configuration inherits `params` for extra request fields. Required `model`, `state`, and `questions` fields are written afterward, so `params` can't override them.
 
-Chat sampling settings, response schemas, tool selection, and completion token limits aren't serialized into decision requests. See [Models](../../models/) for the shared configuration contract.
+Chat sampling settings, response schemas, tool selection, and completion token limits aren't serialized into decision requests. See [Models](../MODELS.md) for the shared configuration contract.

@@ -1,15 +1,8 @@
----
-layout: default
-title: Decisions
-nav_order: 9
-permalink: /decisions/
----
-
 # Decisions
 
 Use `decisions` when you want typed answers to specific questions rather than a chat response. A request can estimate a probability, choose an option, or score input against labeled levels.
 
-Decision support depends on the server and model. [OpenAI-compatible endpoints](../endpoints/openai/) use `/v1/decisions`. [TypeSafe](../endpoints/typesafe/) and [OpenRouter](../routers/openrouter/) translate questions to System One requests. Claude and Zen don't support decisions, and the catalog-only routers can't make inference requests.
+Decision support depends on the server and model. [OpenAI-compatible endpoints](endpoints/OPENAI.md) use `/v1/decisions`. [TypeSafe](endpoints/TYPESAFE.md) and [OpenRouter](routers/OPENROUTER.md) translate questions to System One requests. Claude and Zen don't support decisions, and the catalog-only routers can't make inference requests.
 
 ## Asking a Question
 
@@ -115,14 +108,14 @@ Check each answer's `type` before reading its value. A refusal is an answer, not
 
 Each `DecisionProbability` has a `value` and `probability`, plus a `label` for score levels when supplied by the adapter. These are model-reported values, not a guarantee of calibration. The shared parser checks that reported probabilities are finite and between zero and one, but doesn't enforce that a distribution sums to one.
 
-`usage` uses the shared [Usage](../responses/#usage) type. `raw` preserves the provider response, including fields not mapped into the shared types.
+`usage` uses the shared [Usage](RESPONSES.md#usage) type. `raw` preserves the provider response, including fields not mapped into the shared types.
 
 ## Input and Validation
 
 The base OpenAI-compatible builder accepts a string or JSON array. It sends them as `input`, with questions in an array. Use the message format required by your server when supplying an array.
 
-System One accepts text, an object, or an array as `state`. Its additional limits and conversion rules are covered in [TypeSafe](../endpoints/typesafe/#system-one-translation).
+System One accepts text, an object, or an array as `state`. Its additional limits and conversion rules are covered in [TypeSafe](endpoints/TYPESAFE.md#system-one-translation).
 
 Invalid questions throw `FormatException` before the request. Response parsing checks answer count, names, types, selected options, score ranges, and reported probabilities against the original questions. Refusals are allowed in place of the requested type. Invalid responses throw `MalformedResponseException`.
 
-Common chat settings such as `temperature` and `maxTokens` aren't copied into decision payloads. See [Models](../models/) for extra request parameters and [Errors](../errors/) for failure handling.
+Common chat settings such as `temperature` and `maxTokens` aren't copied into decision payloads. See [Models](MODELS.md) for extra request parameters and [Errors](ERRORS.md) for failure handling.

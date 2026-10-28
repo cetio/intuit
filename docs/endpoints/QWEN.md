@@ -1,11 +1,3 @@
----
-layout: default
-title: Qwen
-parent: Endpoints
-nav_order: 4
-permalink: /endpoints/qwen/
----
-
 # Qwen
 
 `Qwen` extends the OpenAI-compatible endpoint with `QwenModelConfig`. Use it when your server needs Qwen-specific settings or returns tool calls embedded in XML.
@@ -21,7 +13,7 @@ cfg.enableThinking = false;
 cfg.topK = 40;
 ```
 
-The constructor accepts a base `url`, optional API `key`, and display `name` (default `"Qwen"`). Authentication and request paths are inherited from [OpenAI](../openai/). Discovery and explicit configuration both create `QwenModelConfig` instances.
+The constructor accepts a base `url`, optional API `key`, and display `name` (default `"Qwen"`). Authentication and request paths are inherited from [OpenAI](OPENAI.md). Discovery and explicit configuration both create `QwenModelConfig` instances.
 
 Replace the URL and model ID with those accepted by your server. Qwen-specific fields aren't supported by every OpenAI-compatible deployment.
 
@@ -35,7 +27,7 @@ Replace the URL and model ID with those accepted by your server. Qwen-specific f
 | `thinkingBudget` | Sends `thinking_budget` when nonnegative. |
 | `mmProcessorKwargs` | Sends `mm_processor_kwargs` when non-null. |
 
-The base [completion settings](../../models/#completion-parameters) are applied first. Qwen-specific settings are added afterward and can replace the corresponding fields in `params`.
+The base [completion settings](../MODELS.md#completion-parameters) are applied first. Qwen-specific settings are added afterward and can replace the corresponding fields in `params`.
 
 ## Embedding Settings
 
@@ -49,4 +41,4 @@ Native OpenAI-style `tool_calls` take precedence. When no native calls are prese
 
 It accepts Qwen3-Coder function/parameter tags and Hermes-style JSON-in-XML forms. Extracted calls populate `Choice.toolCalls`, receive synthetic IDs, and are removed from `Choice.text`. Surrounding prose is preserved. Unrecognized blocks aren't guaranteed to produce calls.
 
-Extraction doesn't authorize execution. Use the shared [Tools](../../tools/) workflow to register functions, evaluate policy, and handle pending calls.
+Extraction doesn't authorize execution. Use the shared [Tools](../TOOLS.md) workflow to register functions, evaluate policy, and handle pending calls.

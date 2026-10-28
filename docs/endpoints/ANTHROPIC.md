@@ -1,11 +1,3 @@
----
-layout: default
-title: Anthropic
-parent: Endpoints
-nav_order: 3
-permalink: /endpoints/anthropic/
----
-
 # Anthropic
 
 `Claude` implements the Anthropic Messages API. It translates shared completion settings to Anthropic payloads and returns the same `Completion` type as the other adapters. Embeddings and decisions aren't supported.
@@ -53,4 +45,4 @@ Text blocks populate `Choice.text`. Thinking blocks populate `Choice.reasoning`,
 
 The parser returns one choice and preserves the full response as both `Completion.raw` and `Choice.raw`. Prompt usage includes ordinary input, cache reads, and cache creation. Cache reads are reported as hits.
 
-See [Models](../../models/) for structured output, [Responses](../../responses/) for shared fields, and [Errors](../../errors/) for failure handling.
+See [Models](../MODELS.md) for structured output, [Responses](../RESPONSES.md) for shared fields, and [Errors](../ERRORS.md) for failure handling.

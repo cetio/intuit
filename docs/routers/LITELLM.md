@@ -1,11 +1,3 @@
----
-layout: default
-title: LiteLLM
-parent: Routers
-nav_order: 4
-permalink: /routers/litellm/
----
-
 # LiteLLM
 
 `LiteLLM` currently exposes the proxy's model catalog only. Model activation, configuration access, completions, embeddings, and decisions throw plain `Exception`.
@@ -31,11 +23,11 @@ Context length comes from `max_input_tokens`, falling back to `max_tokens`. Outp
 
 Input modalities start with text, then add explicitly reported vision, audio, and PDF support. Output modalities use the reported mode and audio-output flag. Capability mapping includes tools, tool choice, response schemas, system messages, reasoning, prompt caching, and web search.
 
-These fields describe the proxy's models. They don't enable inference in this router. See [Model Catalogs](../catalog/) for the shared metadata type.
+These fields describe the proxy's models. They don't enable inference in this router. See [Model Catalogs](CATALOG.md) for the shared metadata type.
 
 ## Using a Proxy for Inference
 
-Use an [OpenAI endpoint](../../endpoints/openai/) against an OpenAI-compatible LiteLLM proxy when you need completions or embeddings.
+Use an [OpenAI endpoint](../endpoints/OPENAI.md) against an OpenAI-compatible LiteLLM proxy when you need completions or embeddings.
 
 ```d
 auto ep = new OpenAI("http://localhost:4000", "your-proxy-key");

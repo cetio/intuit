@@ -1,10 +1,3 @@
----
-layout: default
-title: Tools
-nav_order: 8
-permalink: /tools/
----
-
 # Tools
 
 Register D functions so a model can request them as tools. Intuit derives a schema from the signature and stores a wrapper that converts arguments and return values to JSON.
@@ -91,7 +84,7 @@ writeln(registeredTool.schema.toPrettyString());
 
 ## Controlling Tool Choice
 
-Use [model tool-choice settings](../models/#tool-choice) to request automatic selection, require a tool, or disable tool requests. These settings affect what the model returns. They don't grant execution permission.
+Use [model tool-choice settings](MODELS.md#tool-choice) to request automatic selection, require a tool, or disable tool requests. These settings affect what the model returns. They don't grant execution permission.
 
 ## Manual Execution
 
@@ -186,7 +179,7 @@ For failed calls, inspect the message and context before retrying. A function ca
 
 When all calls in a batch are resolved and another round is available, Intuit sends the updated history again. At the limit it returns the last tool-call completion after evaluating that batch, without requesting a final assistant answer. Setting the limit to zero skips policy evaluation and marks returned calls `Pending`. Negative values throw.
 
-Automatic rounds are kept in the context. Inspect stored `AssistantMessage` values to review earlier calls and their outcomes. See [Errors](../errors/#retrying-requests) before retrying a failed conversation.
+Automatic rounds are kept in the context. Inspect stored `AssistantMessage` values to review earlier calls and their outcomes. See [Errors](ERRORS.md#retrying-requests) before retrying a failed conversation.
 
 ## Provider Formats
 
@@ -196,7 +189,7 @@ Automatic rounds are kept in the context. Inspect stored `AssistantMessage` valu
 - function `name`, optional `description`, and `parameters`
 - tool choice as a string or named function object
 
-`ClaudeModelConfig` translates definitions to Anthropic's shape with `name`, optional `description`, and `input_schema`. It parses `tool_use` blocks into shared calls, but doesn't translate shared tool history back into Anthropic request blocks. See the [Anthropic limitations](../endpoints/anthropic/#payload-translation).
+`ClaudeModelConfig` translates definitions to Anthropic's shape with `name`, optional `description`, and `input_schema`. It parses `tool_use` blocks into shared calls, but doesn't translate shared tool history back into Anthropic request blocks. See the [Anthropic limitations](endpoints/ANTHROPIC.md#payload-translation).
 
 `QwenModelConfig` accepts native OpenAI-compatible calls and also extracts supported Qwen custom XML and Hermes JSON-in-XML tool calls. Extracted calls receive synthetic IDs.
 
