@@ -1,12 +1,15 @@
 # Responses
 
-Intuit translates provider-specific completion and embedding responses into shared D types while preserving raw JSON.
+Intuit exposes shared completion and embedding types. Decision answers have their own [guide](DECISIONS.md).
 
 ## Completion
 
 `completions` returns a `Completion`:
 
 ```d
+import intuit;
+
+auto ep = new OpenAI("http://localhost:1234");
 Completion result = completions(ep, "llama3", "Why is the sky blue?");
 ```
 
@@ -20,19 +23,23 @@ Use `choice(index)` to access a choice by reference. The default index is zero, 
 
 ```d
 Choice first = result.choice;
-Choice second = result.choice(1);
+if (result.choices.length > 1)
+{
+    Choice second = result.choice(1);
+}
 ```
 
 Convenience accessors read common values:
 
 ```d
+import std.json : JSONValue;
+
 string text = result.text;
-string secondText = result.text(1);
 string reasoning = result.reasoning;
 JSONValue parsed = result.json;
 ```
 
-`json(index)` parses that choice's text with `std.json.parseJSON` and propagates parsing failures.
+`text(index)`, `reasoning(index)`, and `json(index)` select another choice. `json()` is appropriate only when the choice contains JSON text. Invalid JSON throws `MalformedResponseException`, preserving the response in `rawText` and the candidate text in `candidateText`. It doesn't validate a response schema.
 
 ## Choice
 
@@ -44,7 +51,7 @@ A `Choice` represents one generated alternative:
 | `content` | Raw OpenAI-compatible message content. |
 | `text` | Extracted response text. |
 | `reasoning` | Extracted reasoning or thinking text. |
-| `finishReason` | Normalized reason generation ended. |
+| `finishReason` | Wire reason generation ended, represented by a string-backed enum. |
 | `logProbs` | Provider log-probability data when returned. |
 | `toolCalls` | Tools requested by the model. |
 
@@ -52,7 +59,7 @@ OpenAI-compatible parsing accepts string content and recursively extracts text a
 
 ## Finish Reasons
 
-`FinishReason` normalizes common provider values:
+`FinishReason` names common provider values without merging distinct wire spellings.
 
 | Value | Typical meaning |
 | --- | --- |
@@ -64,9 +71,9 @@ OpenAI-compatible parsing accepts string content and recursively extracts text a
 | `ContentFilter` or `Refusal` | Output was filtered or refused. |
 | `Pause` or `PauseTurn` | The provider paused generation. |
 | `Missing` | The provider reported a missing reason. |
-| `Unknown` | The reason was absent or unrecognized. |
+| `Unknown` | The reason was absent, non-string, or explicitly `"unknown"`. |
 
-Callers should also inspect `toolCalls`; provider-specific finish reasons are not always consistent.
+Unrecognized string reasons retain their wire value and aren't automatically converted to `Unknown`. Inspect `toolCalls` too, because finish reasons don't consistently establish whether a response includes calls.
 
 ## Tool Calls
 
@@ -77,17 +84,9 @@ Each `ToolCall` contains:
 | `id` | Provider or generated call identifier. |
 | `name` | Registered function name requested by the model. |
 | `arguments` | Parsed JSON arguments. |
+| `policyResult` | Execution-policy status and explanation for context-backed requests. |
 
-```d
-foreach (call; result.choice.toolCalls)
-{
-    Tool tool = ep.tools.get(call.name);
-    JSONValue output = tool.impl(call.arguments);
-    ctx.tool(call.id, output);
-}
-```
-
-See [Tools](TOOLS.md) for a complete request-execution-response flow.
+Returned calls may already have been evaluated or executed. See [Tools](TOOLS.md) before invoking them. The guide covers manual-only execution, policy-managed rounds, and partial batches.
 
 ## Usage
 
@@ -105,7 +104,7 @@ See [Tools](TOOLS.md) for a complete request-execution-response flow.
 
 OpenAI-compatible responses use `prompt_tokens`, `completion_tokens`, and related token-detail fields. Claude usage includes uncached input, cache-read input, and cache-creation input in `promptTokens`, with cache-read tokens reported as hits.
 
-Providers may omit usage fields. Missing numeric values remain zero.
+Providers may omit usage fields. Missing counts remain zero, while missing floating-point latency defaults to `NaN`. During automatic tool rounds, each completion has its own usage. The final returned completion doesn't aggregate all rounds.
 
 ## Embeddings
 
@@ -119,7 +118,7 @@ Embedding!float embedding = embeddings(
 );
 float[] vector = embedding.value;
 
-Embedding!double[] embeddings = embeddings!double(
+Embedding!double[] batch = embeddings!double(
     ep,
     "nomic-embed-text",
     ["first", "second"]
@@ -129,15 +128,25 @@ Embedding!double[] embeddings = embeddings!double(
 `Embedding!T` aliases itself to its `value` field, so it implicitly converts to `T[]`:
 
 ```d
-float[] vector = embedding;
+float[] values = embedding;
 ```
 
-The element type defaults to `float`. Numeric JSON values are cast to the requested type; null entries retain that type's default value. A response without a valid first vector returns an empty single `Embedding`, while array requests preserve the number and order of returned embedding entries.
+The element type defaults to `float`. Numeric values are cast to the requested type. Null and nonnumeric entries retain that type's default (`NaN` for floating-point types, zero for integers).
 
-Claude's endpoint implementation does not support embeddings and throws `EndpointException`.
+A single request reads the first returned vector, or returns an empty vector if none is usable. Batch requests preserve the order and count of returned embedding entries, not necessarily the input count. Entries without an `embedding` member are skipped, and non-array vectors become empty.
+
+OpenRouter uses its active embedding model. This leaves conversation history unchanged.
+
+```d
+auto router = new OpenRouter("your-openrouter-key");
+router.active("openai/text-embedding-3-small");
+Embedding!float routerVector = embeddings(router, "Hello, world!");
+```
+
+The server and selected model must support embeddings. Claude, TypeSafe, Zen, and the catalog-only routers don't support this operation through Intuit.
 
 ## Raw Responses and Errors
 
 Use `Completion.raw` when provider fields are not represented by the shared types. The HTTP helper also adds a numeric `latency` field to parsed response objects before model parsing.
 
-Non-success HTTP responses and invalid JSON responses throw `EndpointException`. A completion response containing an `error` member is also rejected before choices are returned.
+HTTP failures and detected provider error envelopes throw `EndpointException` or a subclass. Invalid HTTP response JSON and invalid `Completion.json` text throw `MalformedResponseException`, which isn't an `EndpointException`. Other field and tool-argument parsing errors can propagate from conversion code. See [Errors](ERRORS.md) for the full distinction.

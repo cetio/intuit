@@ -1,6 +1,6 @@
 # Context
 
-A `Context` is a mutable sequence of typed conversation messages. It can preserve a conversation across endpoint requests or serve as the state owned by a router.
+A `Context` holds conversation messages. Keep one yourself when using an endpoint, or use the context owned by an inference-capable router.
 
 ## Building a Context
 
@@ -29,47 +29,30 @@ ctx.system("Answer concisely.")
 | `system(data)` | `SystemMessage` | Add system instructions. |
 | `user(data)` | `UserMessage` | Add user content. |
 | `assistant(text)` | `AssistantMessage` | Add a synthetic assistant response. |
+| `assistant(text, calls)` | `AssistantMessage` | Add synthetic text and tool calls. |
 | `assistant(completion, index)` | `AssistantMessage` | Preserve a completion choice and its usage. |
 | `tool(data)` | `ToolMessage` | Add an unassociated tool result. |
 | `tool(callId, data)` | `ToolMessage` | Add a result for a specific tool call. |
-| `clear()` | — | Remove every message. |
-| `length` | — | Return the message count. |
+| `clear()` | None | Remove every message. |
+| `length` | None | Return the message count. |
 
 The data helpers use Intuit's JSON conversion support. Strings, numbers, booleans, arrays, string-keyed associative arrays, `JSONValue`, and supported aggregate types can be passed directly.
 
-## Endpoint Conversations
+## Request Behavior
 
-Endpoint requests are stateless unless the caller preserves a context. Passing a `Context` by reference sends all of its messages and automatically appends the returned assistant choice:
+| Request | History behavior |
+| --- | --- |
+| `completions(ep, model, ctx)` | Sends the caller's context and appends the first assistant choice. |
+| `completions(ep, model, text)` | Sends the supplied value without retaining the response. |
+| `completions(router, data)` | Appends data as a user message, sends history, then appends the first assistant choice. |
+| `completions(router)` | Sends existing history without adding another user message. |
+| Embeddings and decisions | Don't append messages or run tool policy. |
 
-```d
-OpenAI ep = new OpenAI("http://localhost:1234");
+Context-backed completions can perform further rounds through `toolPolicy`. The default policy doesn't allow tools; registered calls become pending, and missing tools fail. See [Tools](TOOLS.md) for authorization and execution.
 
-Context ctx;
-ctx.system("You are a helpful assistant.");
-ctx.user("What is D?");
+Clear history with `ctx.clear()` or `router.context.clear()`. This removes messages but retains the compactor and policy. Switching an active model doesn't clear history.
 
-Completion first = completions(ep, "llama3", ctx);
-
-ctx.user("How does it compare to C++?");
-Completion second = completions(ep, "llama3", ctx);
-```
-
-Passing a string or another value sends only that value and does not retain the response.
-
-## Router Conversations
-
-Every router owns a context. Supplying data to `completions(router, data)` appends it as a user message before sending the request. The response is then appended as an assistant message:
-
-```d
-OpenRouter router = new OpenRouter("sk-or-key");
-router.active("openai/gpt-4o");
-router.context.system("Answer concisely.");
-
-Completion first = completions(router, "Explain context windows.");
-Completion second = completions(router, "Now give one practical implication.");
-```
-
-Use `completions(router)` to send the context without adding a user message. Clear the conversation with `router.context.clear()`.
+For complete conversation examples, see [Endpoints](endpoints/GETTING_STARTED.md) or [Routers](routers/GETTING_STARTED.md).
 
 ## Message Types
 
@@ -84,30 +67,23 @@ Every message implements `IMessage`, which exposes `role` and `toJSON()`.
 
 `AssistantMessage` retains the complete `Completion`, selected choice index, token usage, text, and tool calls. This allows context compaction to account for usage reported by earlier requests.
 
-All messages serialize to OpenAI-style message objects. `ClaudeModelConfig` translates system messages to the Anthropic Messages API's top-level `system` field.
+All messages serialize to OpenAI-style objects. `ClaudeModelConfig` translates string system messages to the Anthropic top-level `system` field, but doesn't convert shared tool history to Anthropic content blocks. See [Anthropic](endpoints/ANTHROPIC.md#payload-translation).
 
 ## Tool Messages
 
-A tool-call round-trip preserves the assistant call and associates each result with its call ID:
+A tool-result message references the originating call ID.
 
 ```d
-Completion result = completions(ep, "llama3", ctx);
-ToolCall call = result.choice.toolCalls[0];
-Tool tool = ep.tools.get(call.name);
-JSONValue output = tool.impl(call.arguments);
-
-ctx.tool(call.id, output);
-Completion finalResult = completions(ep, "llama3", ctx);
+ctx.tool("call_123", "The current temperature is 21 degrees.");
 ```
 
-The first completion is already appended to `ctx`, including its tool calls. See [Tools](TOOLS.md) for registration and execution.
+Use the actual ID from the assistant's tool call, not the placeholder above. The assistant message is already appended by a context-backed request. See [Tools](TOOLS.md#manual-execution) for the complete round-trip and safe handling of policy-managed calls.
 
 ## Compaction
 
-Assign a `Compactor` to enforce message or token limits after each append:
+Assign a `Compactor` to trim history after an append exceeds a message-count or estimated token limit. A caller-created context has no compactor by default.
 
 ```d
-Context ctx;
 ctx.compactor = new Compactor();
 ctx.compactor.maxMessages = 20;
 ctx.compactor.maxTokens = 32_000;
@@ -123,9 +99,13 @@ The token total is estimated from stored assistant completions:
 
 Synthetic assistant messages do not contribute tokens unless their wrapped completion contains usage data.
 
+This isn't tokenization of the current messages. New user input isn't measured before a response reports usage, and missing usage can undercount history. A compactor doesn't guarantee that a request fits the server's context window.
+
 ### Trim Strategy
 
 `CompactorStrategy.Trim` removes the oldest non-system messages until every configured limit is satisfied. System messages are preserved. If only system messages remain and still exceed a configured message limit, no more messages can be removed.
+
+Removing old messages may not reduce the token estimate immediately, because the latest assistant message still reports prompt usage for an earlier request.
 
 Because messages are removed individually, trimming does not guarantee that assistant tool calls and their matching tool results remain together.
 
@@ -144,7 +124,9 @@ ctx.compactor.callback = (IMessage[] messages) {
 
 The callback runs only after a configured limit is exceeded. If it is null, the messages are left unchanged.
 
-Routers construct a compactor automatically. When `OpenRouter.active(modelName)` finds model metadata, it changes `maxTokens` to that model's context length without immediately compacting existing messages. Compaction occurs on the next append.
+The example keeps only the last ten messages, including any system messages in that slice. A callback is responsible for preserving required instructions and complete tool exchanges. Its output isn't repeatedly compacted until it satisfies the limits.
+
+Built-in routers construct a compactor automatically. Activation can update its token limit from catalog metadata without immediately compacting existing messages. Compaction occurs on the next append. See [Model Catalogs](routers/CATALOG.md#selecting-models) for the provider differences.
 
 ## Serialization
 
@@ -157,3 +139,5 @@ JSONValue messages = ctx.toJSON();
 ```
 
 Use the public `messages` array when individual message types or stored completion metadata are needed.
+
+Direct changes to `messages` don't trigger compaction. Appending through the helper methods does.

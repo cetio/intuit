@@ -1,6 +1,6 @@
 # Quick Start
 
-Intuit can be used through endpoints or routers. Endpoints are stateless provider clients whose requests name a model explicitly. Routers select an active model and maintain conversation context across requests.
+This guide makes a completion request and continues the conversation. Use an endpoint when you want to choose the model and keep history yourself. Use an inference-capable router when you want it to own the history and active model.
 
 ## Installation
 
@@ -8,124 +8,68 @@ Intuit can be used through endpoints or routers. Endpoints are stateless provide
 dub add intuit
 ```
 
-Import the complete public API:
+You'll need DUB and a D compiler. Intuit doesn't host models. For the local example, start an OpenAI-compatible server such as LM Studio or Ollama, load a chat model, and enable its HTTP API.
 
-```d
-import intuit;
-```
+The example assumes the server listens at `http://localhost:1234` and accepts `llama3` as a model ID. Replace both values with your deployment's settings. Ollama commonly uses port `11434`. Hosted providers need their own URL and API key.
 
-## Using an Endpoint
+## First Conversation
 
-Construct an endpoint with the provider's base URL and optional API key:
+Save this as your D application's source and run it with DUB.
 
 ```d
 import intuit;
 
 import std.stdio : writeln;
 
-OpenAI ep = new OpenAI("http://localhost:1234");
+void main()
+{
+    auto ep = new OpenAI("http://localhost:1234");
+    Context ctx;
+    ctx.system("Answer concisely.");
+    ctx.user("What is D?");
 
-Context ctx;
-ctx.system("You are a helpful assistant.");
-ctx.user("What is D?");
+    Completion first = completions(ep, "llama3", ctx);
+    writeln(first.text);
 
-Completion result = completions(ep, "llama3", ctx);
-writeln(result.text);
+    ctx.user("Show me a small example.");
+    Completion second = completions(ep, "llama3", ctx);
+    writeln(second.text);
+}
 ```
 
-The endpoint does not own conversation state. Passing `ctx` by reference sends its messages and appends the assistant response, allowing the caller to preserve state. A string request sends one user message without retaining the response:
+Each request sends `ctx` and appends the first assistant choice to it. The endpoint doesn't retain history itself.
 
-```d
-Completion result = completions(ep, "llama3", "Why is the sky blue?");
-```
-
-Configure a model through the endpoint's cached `ModelConfig`:
-
-```d
-ModelConfig cfg = ep.config("llama3");
-cfg.temperature = 0.7;
-cfg.maxTokens = 1024;
-```
-
-Built-in endpoint classes are `OpenAI`, `Claude`, and `Qwen`. See the [Endpoints guide](endpoints/README.md).
+Use a base URL without `/v1` or a trailing slash. Intuit appends `/v1/chat/completions` directly. To inspect the server's advertised model IDs, use `ep.available()` as shown in [Getting Started with Endpoints](endpoints/GETTING_STARTED.md#finding-a-model).
 
 ## Using a Router
 
-A router owns its context and uses one active model:
+A router keeps history for you. This alternative uses an OpenRouter account and a model available to that account.
 
 ```d
 import intuit;
 
 import std.stdio : writeln;
 
-OpenRouter router = new OpenRouter("sk-or-key");
-router.active("openai/gpt-4o");
-router.context.system("Answer concisely.");
-
-Completion first = completions(router, "What is D?");
-Completion second = completions(router, "How does it compare to C++?");
-
-writeln(first.text);
-writeln(second.text);
-```
-
-`OpenRouter` fetches model metadata on demand. When metadata exists, selecting a model changes the context compactor's token limit to match that model's context window.
-
-`LiteLLM` currently supports model-catalog access only and does not implement completion or embedding requests. See the [Routers guide](routers/README.md).
-
-## Embeddings
-
-OpenAI-compatible endpoints and OpenRouter expose single and batch embedding requests:
-
-```d
-Embedding!float embedding = embeddings(
-    ep,
-    "nomic-embed-text",
-    "Hello, world!"
-);
-
-Embedding!float[] batch = embeddings(
-    ep,
-    "nomic-embed-text",
-    ["first", "second"]
-);
-```
-
-Claude does not support embeddings through Intuit's Messages API implementation.
-
-## Tools
-
-Register a D function on an endpoint or router. Intuit generates its JSON schema and parses returned arguments:
-
-```d
-@Description("Greet someone by name.")
-string greet(string name)
+void main()
 {
-    return "Hello, "~name~"!";
+    auto router = new OpenRouter("your-openrouter-key");
+    router.active("openai/gpt-4o");
+    router.context.system("Answer concisely.");
+
+    Completion first = completions(router, "What is D?");
+    Completion second = completions(router, "How does it compare to C++?");
+    writeln(first.text);
+    writeln(second.text);
 }
-
-ep.tools.add!greet();
-ep.config("llama3").setToolLiability("auto");
-
-Context ctx;
-ctx.user("Say hello to Bob.");
-
-Completion result = completions(ep, "llama3", ctx);
-foreach (call; result.choice.toolCalls)
-{
-    Tool tool = ep.tools.get(call.name);
-    ctx.tool(call.id, tool.impl(call.arguments));
-}
-
-Completion finalResult = completions(ep, "llama3", ctx);
 ```
 
-Tool execution is explicit; Intuit never invokes returned calls automatically. See [Tools](TOOLS.md) for supported signatures and provider behavior.
+Select a model before requesting a completion. OpenRouter may fetch its catalog during activation. LiteLLM and Models.dev are catalog-only and can't run this example.
 
 ## Next Steps
 
-- [Endpoints](endpoints/README.md) — provider clients, model configuration, completions, and embeddings.
-- [Routers](routers/README.md) — active models, catalogs, maintained context, and OpenRouter options.
-- [Context](CONTEXT.md) — messages and compaction.
-- [Responses](RESPONSES.md) — choices, usage, finish reasons, and embeddings.
-- [Tools](TOOLS.md) — schema generation and tool-call round-trips.
+- [Endpoints](endpoints/README.md) for provider clients and their supported operations.
+- [Routers](routers/README.md) for active models and catalog access.
+- [Models](MODELS.md) for request settings and structured output.
+- [Responses](RESPONSES.md) for completion fields and embedding requests.
+- [Tools](TOOLS.md) and [Decisions](DECISIONS.md) for those workflows.
+- [Errors](ERRORS.md) if a request fails.
