@@ -22,3 +22,4 @@ playground/*
 docs/_site/
 docs/.bundle/
 .jekyll-cache
+.venv*
