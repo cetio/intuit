@@ -17,34 +17,25 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: docs
     steps:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Setup Ruby
-        uses: ruby/setup-ruby@v1
+      - name: Setup Python
+        uses: actions/setup-python@v7
         with:
-          ruby-version: '3.3'
-          bundler-cache: true
-          cache-version: 0
-          working-directory: '${{ github.workspace }}/docs'
+          python-version: '3.13'
 
-      - name: Setup Pages
-        id: pages
-        uses: actions/configure-pages@v6
+      - name: Install Zensical
+        run: pip install zensical==0.0.73
 
-      - name: Build with Jekyll
-        run: bundle exec jekyll build --baseurl "${{ steps.pages.outputs.base_path }}"
-        env:
-          JEKYLL_ENV: production
+      - name: Build site
+        run: zensical build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v5
         with:
-          path: docs/_site
+          path: site
 
   deploy:
     environment:
