@@ -14,9 +14,11 @@ import std.json : JSONValue;
 /// Mutable conversation context that accumulates typed messages for LLM requests.
 struct Context
 {
+    /// The accumulated message list.
     IMessage[] messages;
     /// The compactor applied after each append. Disabled if set to null.
     Compactor compactor;
+    /// Policy evaluated for each tool call during automatic execution.
     ToolPolicy toolPolicy;
 
     /**

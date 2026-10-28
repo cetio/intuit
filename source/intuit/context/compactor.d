@@ -7,7 +7,9 @@ import intuit.response;
 /// Strategy used to compact a context once a limit is exceeded.
 enum CompactorStrategy
 {
+    /// Removes the oldest non-system messages.
     Trim,
+    /// Invokes the user-supplied callback.
     Callback
 }
 
