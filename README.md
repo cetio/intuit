@@ -4,9 +4,9 @@
 [![License](https://img.shields.io/badge/License-Apache--2.0-blue)](LICENSE.txt)
 [![CI](https://github.com/cetio/intuit/actions/workflows/ci.yml/badge.svg)](https://github.com/cetio/intuit/actions/workflows/ci.yml)
 
-Intuit is a library for interacting with AI LLM and embeddings endpoints, with a focus on local models. Endpoints, models, and routers are built around small interfaces so that new providers and routing strategies are straightforward to add.
+Intuit is a D library for LLM completions, embeddings, and typed decision requests, with a focus on local models. It connects to provider APIs without external language bindings.
 
-An `IEndpoint` wraps one provider API. An `IRouter` sits beside one or more endpoints, maintains its own `Context`, and operates on a single active model at a time.
+Endpoints name a model with each request and leave conversation history to the caller. Inference-capable routers keep their own history and use an active model. Both expose shared configuration and response types.
 
 ## Installation
 
@@ -15,6 +15,8 @@ dub add intuit
 ```
 
 ## Quick Start
+
+Start an OpenAI-compatible server and load a chat model first. This example assumes a server at `http://localhost:1234` and a model ID of `llama3`. Replace them with your server's settings.
 
 ```d
 import intuit;
@@ -31,50 +33,40 @@ Completion result = completions(ep, "llama3", ctx);
 writeln(result.text);
 ```
 
-Endpoints are constructed with a base URL and an optional API key. Intuit does not normalize it; provider request paths such as `/v1/chat/completions` are appended to it. Intuit does not host endpoints — use a local server such as [Ollama](https://ollama.com/) or [LM Studio](https://lmstudio.ai/), a router, or the vendor's API directly.
+Use a base URL without `/v1` or a trailing slash. Intuit appends request paths directly. It doesn't start servers or load models. See [Quick Start](docs/QUICK_START.md) for a complete program and a router alternative.
 
 ## Providers
 
-Intuit provides endpoint and model definitions for the following providers:
+Provider adapters expose different operations. Support also depends on the server and selected model.
 
 | Endpoint | Module |
 | --- | --- |
-| `OpenAI` | `intuit.provider.openai` |
-| `Claude` | `intuit.provider.claude` |
-| `Qwen` | `intuit.provider.qwen` |
+| [`OpenAI`](docs/endpoints/OPENAI.md) | `intuit.provider.openai` |
+| [`Claude`](docs/endpoints/ANTHROPIC.md) | `intuit.provider.claude` |
+| [`Qwen`](docs/endpoints/QWEN.md) | `intuit.provider.qwen` |
+| [`TypeSafe`](docs/endpoints/TYPESAFE.md) | `intuit.provider.typesafe` |
 
-Support means the endpoint and model definitions are provided and tested for those API styles. OpenAI-compatible endpoints work with most local servers and many hosted models, but behavior varies by model version and capabilities.
-
-`Qwen` extends `OpenAI` with Qwen-specific model parameters and XML tool-call extraction. `Claude` implements the Anthropic Messages API and does not support embeddings.
+`OpenAI` handles compatible APIs, `Qwen` adds provider settings and XML tool-call extraction, `Claude` uses Anthropic Messages, and `TypeSafe` handles System One decisions. See [Endpoints](docs/endpoints/README.md) for supported operations and limitations.
 
 ## Routers
 
-Routers sit beside endpoints with their own interface (`IRouter`) and request functions. A router juggles one or more endpoints internally, maintains its own `Context`, and operates on a single active model at a time. Setting the active model adjusts the maintained context's `Compactor` token limit to match the model's context window.
+Routers expose model catalogs through `IRouter`. OpenRouter and Zen also support inference and keep conversation history.
 
-| Router | Description | Reference |
-| --- | --- | --- |
-| `OpenRouter` | OpenRouter router with dynamic model discovery. | https://openrouter.ai/ |
-| `LiteLLM` | LiteLLM proxy router. Catalog access only. | https://docs.litellm.ai/ |
-| `ModelsDev` | Unauthenticated models.dev catalog. No inference support. | https://models.dev/ |
+| Router | Requests |
+| --- | --- |
+| [OpenRouter](docs/routers/OPENROUTER.md) | Completions, embeddings, and System One decisions. |
+| [Zen](docs/routers/ZEN.md) | Completions for supported API families. |
+| [LiteLLM](docs/routers/LITELLM.md) | Catalog only. |
+| [Models.dev](docs/routers/MODELSDEV.md) | Catalog only, without authentication. |
 
-Router request functions omit the model parameter. When data is provided it is appended to the maintained context; when omitted, the existing context state is used:
-
-```d
-auto router = new OpenRouter("sk-my-key");
-router.active("openai/gpt-4o");
-
-Completion result = completions(router, "Why is the sky blue?");
-Completion followUp = completions(router);
-```
+See [Routers](docs/routers/README.md) for usage and [Model Catalogs](docs/routers/CATALOG.md) for discovery. Streaming isn't implemented.
 
 ## Documentation
 
 - [Documentation index](docs/README.md)
-- [Endpoints guide](docs/endpoints/README.md)
-- [Routers guide](docs/routers/README.md)
-- [Context](docs/CONTEXT.md)
-- [Responses](docs/RESPONSES.md)
-- [Tools](docs/TOOLS.md)
+- [Quick Start](docs/QUICK_START.md)
+- [Tools](docs/TOOLS.md) and [Decisions](docs/DECISIONS.md)
+- [Errors](docs/ERRORS.md)
 - [Testing](TESTING.md)
 - [Contributing](CONTRIBUTING.md)
 
