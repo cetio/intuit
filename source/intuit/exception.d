@@ -118,6 +118,7 @@ class RateLimitException : EndpointException
 /// Thrown when a transport error occurs.
 class TransportException : EndpointException
 {
+    /// Transport error details.
     string detail;
 
     /**
