@@ -1,3 +1,4 @@
+/// JSON serialization and deserialization of D types.
 module intuit.json;
 
 import std.conv : to;
@@ -5,13 +6,26 @@ import std.json : JSONType, JSONValue;
 import std.traits;
 import std.typecons : Nullable;
 
+/// UDA for overriding a field's JSON name.
 struct JSONName
 {
+    /// The JSON field name.
     string value;
 }
 
+/// UDA that marks a field as required during deserialization.
+/// Fields are treated as optional by default.
 struct JSONRequired { }
 
+/**
+ * Serializes an arbitrary value of T into a JSONValue.
+ *
+ * Params:
+ *   value = The value to serialize.
+ *
+ * Returns:
+ *   A JSONValue representing the serialized data.
+ */
 JSONValue toJSON(T)(T value)
 {
     static if (is(T == JSONValue))
@@ -82,6 +96,15 @@ JSONValue toJSON(T)(T value)
         static assert(false, "Cannot serialize type "~T.stringof~" to JSON.");
 }
 
+/**
+ * Deserializes a JSONValue into the requested D type.
+ *
+ * Params:
+ *   json = The JSON value to deserialize.
+ *
+ * Returns:
+ *   The deserialized value of type T.
+ */
 T fromJSON(T)(JSONValue json)
 {
     static if (is(T == JSONValue))
