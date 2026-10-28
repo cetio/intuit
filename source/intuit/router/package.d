@@ -5,6 +5,7 @@ public import intuit.router.details;
 public import intuit.router.litellm;
 public import intuit.router.modelsdev;
 public import intuit.router.openrouter;
+public import intuit.router.zen;
 
 import intuit.context;
 import intuit.json : toJSON;

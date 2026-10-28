@@ -12,7 +12,7 @@ import intuit.provider.claude : Claude;
 import intuit.provider.openai : OpenAI;
 import intuit.provider.qwen : Qwen;
 import intuit.provider.typesafe : TypeSafe;
-import intuit.router : IRouter, LiteLLM, ModelsDev, OpenRouter;
+import intuit.router : IRouter, LiteLLM, ModelsDev, OpenRouter, Zen;
 import intuit.response;
 import unit_threaded;
 
@@ -77,7 +77,12 @@ unittest
     withServer(
         null,
         delegate void(string url) {
-            IRouter[] routers = [cast(IRouter)new OpenRouter(null, url), new LiteLLM(url), new ModelsDev(url)];
+            IRouter[] routers = [
+                cast(IRouter)new OpenRouter(null, url),
+                new LiteLLM(url),
+                new ModelsDev(url),
+                new Zen(null, url),
+            ];
             foreach (router; routers)
             {
                 router.connectTimeout(dur!"seconds"(1));
@@ -86,7 +91,7 @@ unittest
             }
         },
         dur!"msecs"(200),
-        3,
+        4,
     );
 }
 
