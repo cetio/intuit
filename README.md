@@ -1,6 +1,8 @@
 # Intuit
 
-[![DUB Package](https://img.shields.io/badge/DUB-latest-red)](https://code.dlang.org/packages/intuit)
+[![DUB](https://img.shields.io/badge/DUB-red?style=for-the-badge&logo=hackthebox&logoColor=white)](https://code.dlang.org/packages/intuit)
+[![Documentation](https://img.shields.io/badge/Documentation-brightgreen?style=for-the-badge&logo=readthedocs&logoColor=white)](https://mortifying.si/intuit/)
+
 [![License](https://img.shields.io/badge/License-Apache--2.0-blue)](LICENSE.txt)
 [![CI](https://github.com/cetio/intuit/actions/workflows/ci.yml/badge.svg)](https://github.com/cetio/intuit/actions/workflows/ci.yml)
 
@@ -33,7 +35,7 @@ Completion result = completions(ep, "llama3", ctx);
 writeln(result.text);
 ```
 
-Use a base URL without `/v1` or a trailing slash. Intuit appends request paths directly. It doesn't start servers or load models. See [Quick Start](docs/QUICK_START.md) for a complete program and a router alternative.
+Use a base URL without `/v1` or a trailing slash. Intuit appends request paths directly. It doesn't start servers or load models. See [Quick Start](docs/README.md) for a complete program and a router alternative.
 
 ## Providers
 
@@ -63,12 +65,9 @@ See [Routers](docs/routers/README.md) for usage and [Model Catalogs](docs/router
 
 ## Documentation
 
-- [Documentation index](docs/README.md)
-- [Quick Start](docs/QUICK_START.md)
-- [Tools](docs/TOOLS.md) and [Decisions](docs/DECISIONS.md)
-- [Errors](docs/ERRORS.md)
-- [Testing](TESTING.md)
-- [Contributing](CONTRIBUTING.md)
+Guides are published at [mortifying.si/intuit](https://mortifying.si/intuit/), covering installation, endpoints, routers, model catalogs, and shared request, response, tool, and error references.
+
+Development notes live in [Testing](TESTING.md) and [Contributing](CONTRIBUTING.md).
 
 ## License
 
