@@ -58,7 +58,7 @@ unittest
 
     JSONValue schema = tool.schema;
     schema["type"].str.should == "object";
-    schema["properties"]["name"].str.should == "string";
+    schema["properties"]["name"]["type"].str.should == "string";
     schema["required"].array.length.should == 1;
     schema["required"][0].str.should == "name";
 }
@@ -89,9 +89,9 @@ unittest
     registry.add!multiParam();
 
     JSONValue schema = registry.get("multiParam").schema;
-    schema["properties"]["a"].str.should == "integer";
-    schema["properties"]["b"].str.should == "string";
-    schema["properties"]["c"].str.should == "boolean";
+    schema["properties"]["a"]["type"].str.should == "integer";
+    schema["properties"]["b"]["type"].str.should == "string";
+    schema["properties"]["c"]["type"].str.should == "boolean";
     schema["required"].array.length.should == 3;
 }
 
@@ -113,8 +113,8 @@ unittest
     registry.add!mixedJSONValue();
 
     JSONValue schema = registry.get("mixedJSONValue").schema;
-    schema["properties"]["name"].str.should == "string";
-    schema["properties"]["extra"].str.should == "object";
+    schema["properties"]["name"]["type"].str.should == "string";
+    schema["properties"]["extra"]["type"].str.should == "object";
     schema["required"].array.length.should == 2;
 }
 
@@ -126,7 +126,7 @@ unittest
 
     JSONValue schema = registry.get("concat").schema;
     schema["properties"]["parts"]["type"].str.should == "array";
-    schema["properties"]["parts"]["items"].str.should == "string";
+    schema["properties"]["parts"]["items"]["type"].str.should == "string";
     schema["required"].array.length.should == 1;
 }
 
@@ -138,6 +138,6 @@ unittest
 
     JSONValue schema = registry.get("sum").schema;
     schema["properties"]["nums"]["type"].str.should == "array";
-    schema["properties"]["nums"]["items"].str.should == "integer";
+    schema["properties"]["nums"]["items"]["type"].str.should == "integer";
     schema["required"].array.length.should == 1;
 }

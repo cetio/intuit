@@ -26,19 +26,35 @@ Passing tests doesn't establish live provider compatibility. In particular, pars
 
 ## Integration Tests
 
-The `integration` configuration additionally enables code guarded by `version(integration)`.
+The `integration` configuration additionally enables code guarded by `version(integration)`. The `unittest` configuration makes no external requests.
 
 ```sh
 dub run --compiler=ldc2 --config=integration --build=unittest
 ```
 
-These tests can make live requests and incur provider charges. Inspect the enabled tests and prepare their fixtures before running them.
+### Configuration
 
-- Endpoint fixtures are defined in `source/tests/common.d`. They currently name local OpenAI/Qwen servers at `127.0.0.1:1234` and specific model IDs, plus an Anthropic fixture with no key configured.
-- OpenRouter and Models.dev catalog tests access public remote services.
-- The tool round-trip integration test needs a model/server with compatible tool behavior.
+Live tests read `INTUIT_TEST_*` settings and conventional provider keys from the process environment. The library never loads dotenv files. Export variables directly, or source a trusted file:
 
-Adjust fixtures to your test environment without committing credentials. The library doesn't automatically load `.env` files, and these fixtures don't obtain provider keys from the environment.
+```sh
+set -a; . ./.env; set +a
+```
+
+See `.env.example` for every supported knob; it holds placeholders, not real keys. `INTUIT_TEST_ALLOW_PAID` defaults to free-only inference: `0`, unset, or empty keeps free mode, only the literal `1` enables paid inference, and any other value is a configuration error. `INTUIT_TEST_MAX_TOKENS` (256) and `INTUIT_TEST_TIMEOUT_SECONDS` (90) bound every request.
+
+### Free defaults
+
+- Models.dev and OpenCode Zen catalogs are public and keyless. Zen's default model is `nemotron-3.5-lightning-free`, but [OpenCode's inference docs](https://opencode.ai/v2/docs/console/api/inference) restrict free chat inference to OpenCode clients; the SDK integration test explicitly skips those free inference calls. To test Zen inference from this SDK, choose a paid model and set `ZEN_API_KEY` plus `INTUIT_TEST_ALLOW_PAID=1`.
+- OpenRouter defaults are catalog-verified zero-price models: `nvidia/nemotron-3.5-lightning:free` for completions, `cohere/north-mini-code:free` for tools, and `respan/span-01-lite:free` for decisions. The free Respan decision model only accepts Noul/predicate questions, so its live smoke test checks one predicate; offline tests cover all question types. Free mode verifies exact id, modality, and zero prompt/completion pricing in the live catalog before requesting, and pins `provider.max_price` to zero. Set `INTUIT_TEST_OPENROUTER_EMBEDDING_MODEL` (for example `nvidia/nemotron-3-embed-1b:free`) to enable embedding smoke tests.
+- Paid models such as `inception/mercury-decide` ($0.02/M input tokens) never run without your explicit model choice plus `INTUIT_TEST_ALLOW_PAID=1`.
+
+Direct providers run only for explicitly configured `INTUIT_TEST_{OPENAI,QWEN,CLAUDE,TYPESAFE}_URL` plus the matching `*_MODEL` (TypeSafe uses `*_DECISION_MODEL`). OpenAI and Qwen append `/v1` to the base URL, so point them at a server root such as `http://127.0.0.1:1234`. To reach OpenRouter through the OpenAI-compatible path, use exactly `https://openrouter.ai/api`; that canonical URL activates the same catalog zero-price guard. Keys are only sent to the provider they name, and any other remote URL is your cost responsibility. Claude covers completions and model discovery only. LiteLLM runs a catalog check when `INTUIT_TEST_LITELLM_URL` is set.
+
+The OpenAI-compatible `/v1/decisions` route is not OpenRouter's `/api/alpha/decisions`; do not point a direct provider at OpenRouter for decision tests.
+
+### Filtering and skips
+
+Runner arguments filter by test path: `tests.integration.routers` selects that package, a longer module prefix narrows further, and `-s` runs in one thread. Missing optional configuration prints `SKIP <scenario>: missing <ENV_NAME>` to stderr and returns; the runner captures stdout during passing tests, so skips go to stderr to stay visible. These helper-reported skips count as passes because the runner has no runtime skip mechanism. The known OpenCode free-tier restriction is also reported as a skip because third-party SDK calls are not supported for those models. Other configured scenarios that fail (auth, rate limit, transport, or parse errors) fail the test with sanitized diagnostics; nothing is retried, substituted, or downgraded to a skip. Free tiers can be rate-limited or removed by the service, so a failure may reflect service state rather than a library defect.
 
 ## Test Layout
 
@@ -49,7 +65,8 @@ Adjust fixtures to your test environment without committing credentials. The lib
 | `source/tests/decision.d` | Shared decisions and System One translation. |
 | `source/tests/context/` | Messages, compaction, and policy evaluation. |
 | `source/tests/provider/` | Provider payloads, parsers, HTTP errors, and timeouts. |
-| `source/tests/router/` | Catalog-only restrictions and live catalog checks. |
-| `source/tests/tool/` | Schema generation, invocation wrappers, and the live round-trip. |
-
-`bin/ut.d` is generated by the configuration's pre-build command. Don't edit it manually. The current CI workflow uses `dub test` across compilers and operating systems. Use the explicit configuration above when you need a known offline run.
+| `source/tests/router/` | Catalog-only restrictions. |
+| `source/tests/tool/` | Schema generation and invocation wrappers. |
+| `source/tests/integration/config.d` | Offline regressions for settings parsing, skip selection, and free-price policy. |
+| `source/tests/integration/routers/` | Live catalog, completion, tool, decision, and embedding router tests. |
+| `source/tests/integration/providers/` | Live model listing, completion, tool, decision, and embedding provider tests. |

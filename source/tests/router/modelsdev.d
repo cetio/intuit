@@ -68,31 +68,3 @@ unittest
     ModelsDev router = new ModelsDev("unsupported://modelsdev-test");
     router.refresh().shouldThrow!TransportException;
 }
-
-version(integration)
-{
-    import intuit.router.details : ModelDetails, ModelCapability, Modality;
-    import std.algorithm.searching : canFind;
-    import unit_threaded : should;
-
-    @Name("ModelsDev retrieves the public catalog without authentication")
-    unittest
-    {
-        ModelsDev router = new ModelsDev();
-        ModelDetails[string] catalog = router.catalog;
-        bool supportsVideo;
-        bool supportsTools;
-
-        assert(catalog.length > 0);
-        foreach (id, details; catalog)
-        {
-            id.should == details.id;
-            supportsVideo |= details.inputModalities.canFind(Modality.Video)
-                || details.outputModalities.canFind(Modality.Video);
-            supportsTools |= details.capabilities.canFind(ModelCapability.Tools);
-        }
-
-        assert(supportsVideo);
-        assert(supportsTools);
-    }
-}

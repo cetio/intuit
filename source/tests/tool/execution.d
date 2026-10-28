@@ -121,33 +121,3 @@ unittest
 
     result.integer.should == 6;
 }
-
-version(integration)
-{
-    import tests.common;
-
-    @Name("manual tool call round-trip yields final text response") @Serial
-    unittest
-    {
-        testOnce((endpoint, modelName) {
-            endpoint.tools.add!greet();
-
-            Context ctx;
-            ctx.user("Say hello to Bob");
-
-            Completion result = completions(endpoint, modelName, ctx);
-            result.choice.toolCalls.length.shouldBeGreaterThan(0);
-            result.choice.toolCalls[0].name.should == "greet";
-
-            Tool tool = endpoint.tools.get("greet");
-            JSONValue toolArgs = JSONValue.emptyObject;
-            toolArgs["name"] = JSONValue("Bob");
-            JSONValue toolResult = tool.impl(toolArgs);
-            toolResult.str.should == "Hello, Bob!";
-
-            ctx.tool(result.choice.toolCalls[0].id, toolResult);
-            Completion finalResult = completions(endpoint, modelName, ctx);
-            finalResult.choice.text.length.shouldBeGreaterThan(0);
-        });
-    }
-}

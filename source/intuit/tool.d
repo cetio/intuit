@@ -116,15 +116,15 @@ static:
     JSONValue typeSchema(T)()
     {
         static if (is(T == JSONValue))
-            return JSONValue("object");
+            return typedSchema("object");
         else static if (is(T == string))
-            return JSONValue("string");
+            return typedSchema("string");
         else static if (is(T == int) || is(T == long))
-            return JSONValue("integer");
+            return typedSchema("integer");
         else static if (is(T == float) || is(T == double))
-            return JSONValue("number");
+            return typedSchema("number");
         else static if (is(T == bool))
-            return JSONValue("boolean");
+            return typedSchema("boolean");
         else static if (is(T : E[], E))
         {
             JSONValue arr = JSONValue.emptyObject;
@@ -134,6 +134,13 @@ static:
         }
         else
             static assert(false, "Unsupported parameter type: "~T.stringof);
+    }
+
+    JSONValue typedSchema(string type)
+    {
+        JSONValue ret = JSONValue.emptyObject;
+        ret["type"] = JSONValue(type);
+        return ret;
     }
 
     /// Generates a JSON schema object describing the parameters of function F.
