@@ -1,4 +1,4 @@
-/// Base model configuration class for LLM providers.
+/// Base model configuration class for model providers.
 module intuit.model;
 
 import intuit.exception : FormatException;
@@ -9,7 +9,7 @@ import std.algorithm.searching : canFind;
 import std.json : JSONValue, JSONType;
 import std.math : isNaN;
 
-/// Configuration and request/response logic for an LLM model.
+/// Configuration and request/response logic for a model.
 class ModelConfig
 {
     /// Model identifier, e.g. "gpt-4o".
@@ -238,6 +238,16 @@ class ModelConfig
     JSONValue parseEmbeddingResponse(JSONValue json)
         => intuit.response.embedding.parseEmbeddingResponse(json);
 
+    /**
+     * Builds the decisions request payload.
+     *
+     * Params:
+     *  input = The input data.
+     *  questions = The decision questions to answer.
+     *
+     * Returns:
+     *  The JSON payload for the decisions endpoint.
+     */
     JSONValue buildDecisionPayload(JSONValue input, DecisionQuestion[] questions)
     {
         if (input.type != JSONType.string && input.type != JSONType.array)
@@ -256,6 +266,16 @@ class ModelConfig
         return ret;
     }
 
+    /**
+     * Parses a raw decisions response.
+     *
+     * Params:
+     *  json = The raw JSON response.
+     *  questions = The decision questions used for validation.
+     *
+     * Returns:
+     *  The parsed Decision.
+     */
     Decision parseDecisionResponse(JSONValue json, DecisionQuestion[] questions = null)
         => intuit.response.decision.parseDecisionResponse(json, questions, name);
 
