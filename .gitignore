@@ -15,7 +15,7 @@ libintuit*
 bin/
 playground/
 site/
-cache/
 
+.cache/
 .env
 .venv*
