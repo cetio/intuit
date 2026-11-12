@@ -122,7 +122,7 @@ private:
 
             if (message.role == Role.System && assistant !is null)
                 preservedPrompt = assistant.usage.promptTokens;
-            else
+            else if (message.role != Role.System)
             {
                 --retained;
                 if (assistant !is null)
