@@ -90,24 +90,60 @@ private:
     /// Removes the oldest non-system messages until back under every limit.
     IMessage[] trim(IMessage[] messages)
     {
-        IMessage[] ret = messages.dup;
-        while (over(ret))
+        size_t completion;
+        size_t latestPrompt;
+        size_t latestAssistant = messages.length;
+        if (maxTokens > 0)
         {
-            ptrdiff_t oldest = -1;
-            foreach (i, message; ret)
+            foreach (i, message; messages)
             {
-                if (message.role != Role.System)
+                AssistantMessage assistant = cast(AssistantMessage)message;
+                if (assistant is null)
+                    continue;
+                
+                Usage usage = assistant.usage;
+                completion += usage.completionTokens;
+                latestPrompt = usage.promptTokens;
+                latestAssistant = i;
+            }
+        }
+
+        size_t retained = messages.length;
+        size_t firstRetained;
+        size_t preservedPrompt;
+        while (firstRetained < messages.length
+            && ((maxMessages > 0 && retained > maxMessages)
+                || (maxTokens > 0 && completion + latestPrompt > maxTokens)))
+        {
+            IMessage message = messages[firstRetained];
+            AssistantMessage assistant;
+            if (maxTokens > 0)
+                assistant = cast(AssistantMessage)message;
+
+            if (message.role == Role.System && assistant !is null)
+                preservedPrompt = assistant.usage.promptTokens;
+            else
+            {
+                --retained;
+                if (assistant !is null)
                 {
-                    oldest = i;
-                    break;
+                    completion -= assistant.usage.completionTokens;
+                    if (firstRetained == latestAssistant)
+                        latestPrompt = preservedPrompt;
                 }
             }
-
-            if (oldest < 0)
-                break;
-
-            ret = ret[0..oldest]~ret[oldest + 1..$];
+            ++firstRetained;
         }
+
+        IMessage[] ret = new IMessage[retained];
+        size_t index;
+        foreach (message; messages[0..firstRetained])
+        {
+            if (message.role == Role.System)
+                ret[index++] = message;
+        }
+        
+        ret[index..$] = messages[firstRetained..$];
         return ret;
     }
 }

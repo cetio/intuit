@@ -38,6 +38,18 @@ struct Context
         return this;
     }
 
+    ref Context appendAll(IMessage[] batch)
+    {
+        if (batch.length == 0)
+            return this;
+
+        messages ~= batch;
+        if (compactor !is null)
+            messages = compactor.compact(messages);
+            
+        return this;
+    }
+
     /// Appends a system message.
     ref Context system(T)(T data)
         => append(new SystemMessage(data.toJSON()));
