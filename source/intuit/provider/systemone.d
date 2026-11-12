@@ -3,12 +3,7 @@ module intuit.provider.systemone;
 
 import intuit.exception : FormatException, MalformedResponseException;
 import intuit.model : ModelConfig;
-import intuit.response.decision :
-    Decision,
-    DecisionOption,
-    DecisionQuestion,
-    DecisionType,
-    decisionQuestions;
+import intuit.response.decision;
 
 import std.conv : to;
 import std.json : JSONType, JSONValue;
