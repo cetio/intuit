@@ -26,6 +26,7 @@ ctx.system("Answer concisely.")
 | Member | Message type | Purpose |
 | --- | --- | --- |
 | `append(message)` | Any `IMessage` | Append a pre-built message. |
+| `appendAll(messages)` | `IMessage[]` | Append a batch and compact once. |
 | `system(data)` | `SystemMessage` | Add system instructions. |
 | `user(data)` | `UserMessage` | Add user content. |
 | `assistant(text)` | `AssistantMessage` | Add a synthetic assistant response. |
@@ -37,6 +38,8 @@ ctx.system("Answer concisely.")
 | `length` | None | Return the message count. |
 
 The data helpers use Intuit's JSON conversion support. Strings, numbers, booleans, arrays, string-keyed associative arrays, `JSONValue`, and supported aggregate types can be passed directly.
+
+For pre-built message batches, use `appendAll` to import them in order and compact once against the complete history.
 
 ## Request Behavior
 
@@ -99,7 +102,7 @@ The token total is estimated from stored assistant completions:
 
 Synthetic assistant messages do not contribute tokens unless their wrapped completion contains usage data.
 
-This isn't tokenization of the current messages. New user input isn't measured before a response reports usage, and missing usage can undercount history. A compactor doesn't guarantee that a request fits the server's context window.
+This isn't tokenization or server-side estimation of the current messages. New user input isn't measured before a response reports usage, and missing usage can undercount.
 
 ### Trim Strategy
 
@@ -124,6 +127,8 @@ ctx.compactor.callback = (IMessage[] messages) {
 
 The callback runs only after a configured limit is exceeded. If it is null, the messages are left unchanged.
 
+For `appendAll`, the callback receives the complete batch together with existing history and runs at most once. This can produce different results from appending each message separately, since intermediate histories are not compacted.
+
 The example keeps only the last ten messages, including any system messages in that slice. A callback is responsible for preserving required instructions and complete tool exchanges. Its output isn't repeatedly compacted until it satisfies the limits.
 
 Built-in routers construct a compactor automatically. Activation can update its token limit from catalog metadata without immediately compacting existing messages. Compaction occurs on the next append. See [Model Catalogs](routers/CATALOG.md#selecting-models) for the provider differences.
@@ -141,3 +146,5 @@ JSONValue messages = ctx.toJSON();
 Use the public `messages` array when individual message types or stored completion metadata are needed.
 
 Direct changes to `messages` don't trigger compaction. Appending through the helper methods does.
+
+Compaction reads current message usage on every check rather than caching token totals. This preserves changes made through `messages` or an assistant's `completion` reference. Repeated single-message appends with a token limit can therefore take quadratic total time when building a long history. Use `appendAll` when a batch is already available to perform one token scan for that batch.
