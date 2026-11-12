@@ -1,11 +1,6 @@
 module tests.provider.openai;
 
-import intuit.exception :
-    AuthException,
-    MalformedResponseException,
-    RateLimitException,
-    RequestTimeoutException,
-    TransportException;
+import intuit.exception;
 import intuit.model;
 import intuit.provider : IEndpoint, legacyCompletions;
 import intuit.provider.claude : Claude;
@@ -21,6 +16,7 @@ import std.json : JSONValue, JSONType, parseJSON;
 import std.socket : InternetAddress, Socket, TcpSocket;
 import std.string : indexOf, split, strip;
 import std.uni : icmp;
+import std.zlib : Compress, HeaderFormat;
 import core.thread : Thread;
 import core.time : Duration, dur;
 
@@ -93,6 +89,53 @@ unittest
         dur!"msecs"(200),
         4,
     );
+}
+
+@Name("HTTP responses decode gzip and deflate")
+unittest
+{
+    foreach (encoding; ["gzip", "deflate"])
+    {
+        withServer(`{"data":[{"id":"compressed"}]}`, delegate void(string url) {
+            OpenAI endpoint = new OpenAI(url);
+            endpoint.available()[0].name.should == "compressed";
+        }, Duration.zero, 1, encoding);
+    }
+}
+
+@Name("HTTP clients handle compressed and uncompressed responses across requests")
+unittest
+{
+    withServer(`{"value":"compressed"}`, delegate void(string url) {
+        OpenAI endpoint = new OpenAI(url);
+        ModelConfig cfg = endpoint.config("fixture");
+        endpoint._completions(cfg, JSONValue.emptyObject)["value"].str.should == "compressed";
+
+        withServer(`{"value":"plain"}`, delegate void(string plainUrl) {
+            endpoint.url = plainUrl;
+            endpoint._completions(cfg, JSONValue.emptyObject)["value"].str.should == "plain";
+        });
+    }, Duration.zero, 1, "gzip");
+}
+
+@Name("Compressed HTTP errors preserve their classification and decoded body")
+unittest
+{
+    string response = `{"error":"authentication required"}`;
+    withServer(response, delegate void(string url) {
+        OpenAI endpoint = new OpenAI(url);
+        auto error = endpoint.available().shouldThrow!AuthException;
+        (error.msg.indexOf(response) >= 0).should == true;
+    }, Duration.zero, 1, "gzip", "401 Unauthorized");
+}
+
+@Name("Malformed compressed JSON remains a malformed response")
+unittest
+{
+    withServer("{", delegate void(string url) {
+        OpenAI endpoint = new OpenAI(url);
+        endpoint.available().shouldThrow!MalformedResponseException;
+    }, Duration.zero, 1, "gzip");
 }
 
 @Name("ModelConfig parseCompletionResponse captures OpenAI usage and latency")
@@ -324,8 +367,16 @@ void withServer(
     scope void delegate(string) request,
     Duration delay = Duration.zero,
     size_t count = 1,
+    string encoding = null,
+    string status = "200 OK",
 )
 {
+    if (encoding.length > 0)
+    {
+        Compress compressor = new Compress(encoding == "gzip" ? HeaderFormat.gzip : HeaderFormat.deflate);
+        response = cast(string)(compressor.compress(response)~compressor.flush());
+    }
+
     TcpSocket listener = new TcpSocket();
     listener.bind(new InternetAddress("127.0.0.1", 0));
     listener.listen(cast(int)count);
@@ -391,8 +442,12 @@ void withServer(
                 }
                 assert(requestLength != size_t.max && bytesReceived >= requestLength);
 
-                string reply = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: "
-                    ~response.length.to!string~"\r\nConnection: close\r\n\r\n"~response;
+                string reply = "HTTP/1.1 "~status~"\r\nContent-Type: application/json\r\nContent-Length: "
+                    ~response.length.to!string~"\r\nConnection: close\r\n";
+                if (encoding.length > 0)
+                    reply ~= "Content-Encoding: "~encoding~"\r\n";
+                reply ~= "\r\n"~response;
+
                 size_t bytesSent;
                 while (bytesSent < reply.length)
                 {

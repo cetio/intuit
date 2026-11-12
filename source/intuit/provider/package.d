@@ -7,13 +7,7 @@ public import intuit.provider.qwen;
 public import intuit.provider.typesafe;
 
 import intuit.context;
-import intuit.exception :
-    AuthException,
-    EndpointException,
-    MalformedResponseException,
-    RateLimitException,
-    RequestTimeoutException,
-    TransportException;
+import intuit.exception;
 import intuit.json : toJSON;
 import intuit.model;
 import intuit.response;
@@ -21,7 +15,7 @@ import intuit.tool;
 
 import std.conv : to;
 import std.json : JSONValue, JSONType, parseJSON;
-import std.net.curl : CurlException, CurlTimeoutException, HTTP;
+import std.net.curl : CurlException, CurlOption, CurlTimeoutException, HTTP;
 import std.string : assumeUTF;
 import std.traits : isArray;
 import core.time : Duration, MonoTime;
@@ -156,7 +150,11 @@ package(intuit) JSONValue request(
     };
 
     try
+    {
+        http.handle.set(CurlOption.encoding, "");
+        http.handle.set(CurlOption.http_content_decoding, 1L);
         http.perform();
+    }
     catch (CurlTimeoutException error)
         throw new RequestTimeoutException(method.to!string, url, error.msg);
     catch (CurlException error)
